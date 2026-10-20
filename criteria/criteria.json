@@ -1,0 +1,3555 @@
+{
+  "schema": "criteria/1",
+  "standard": "WCAG 2.2",
+  "levels": [
+    "A",
+    "AA"
+  ],
+  "generated": "2026-10-13",
+  "sources": {
+    "base": "criteria.base.json",
+    "axe_core": {
+      "version": "4.14.0",
+      "file": "sources/axe/rule-descriptions.md",
+      "rules": 105
+    },
+    "act": {
+      "file": "sources/act/testcases.json",
+      "name": "ACT Task Force test cases",
+      "test_cases": 1213,
+      "rules": 87
+    }
+  },
+  "fields": {
+    "method": "auto | auto+review | person. See PLAN.md section 7.1.",
+    "test_groups": "page | template | site | process. Where the automatic test or the finder runs. See PLAN.md section 5.3.",
+    "conditions": "For the three auto criteria: the conditions under which a script decides.",
+    "non_interference": "One of the four criteria of WCAG 2.2 conformance requirement 5.2.5.",
+    "finder_reliable": "True when the engine can give the result 'No content found' for this criterion. False when the finder is a heuristic.",
+    "context_dependent": "True when the answer to a review question depends on the context of the item, so the question fingerprint includes the context.",
+    "person_task": "A task that a person does at each audit, with or without candidates from the engine. Null when candidates drive the person check.",
+    "affects": "First assessment of the groups of PLAN.md section 3.1 that the criterion protects most: visual, auditory, physical, speech, cognitive, seizure."
+  },
+  "criteria": [
+    {
+      "id": "1.1.1",
+      "name": "Non-text Content",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.1",
+        "name": "Text Alternatives"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-content.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds images, icons, and image buttons with no text alternative.",
+      "review_or_person_check": "AI compares each text alternative with its image, in its context. A person confirms the sample.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": true,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": "The correct alternative depends on the context. The same image can need different alternatives on different pages.",
+      "axe_rules": [
+        {
+          "id": "aria-meter-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA meter node has an accessible name"
+        },
+        {
+          "id": "aria-progressbar-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA progressbar node has an accessible name"
+        },
+        {
+          "id": "image-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <img> elements have alternative text or a role of none or presentation"
+        },
+        {
+          "id": "input-image-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <input type=\"image\"> elements have alternative text"
+        },
+        {
+          "id": "object-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <object> elements have alternative text"
+        },
+        {
+          "id": "role-img-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure [role=\"img\"] and [role=\"image\"] elements have alternative text"
+        },
+        {
+          "id": "svg-img-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <svg> elements with an img, image, graphics-document or graphics-symbol role have accessible text"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "23a2a8",
+          "name": "Image has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 8,
+            "failed": 5,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/23a2a8/proposed/"
+        },
+        {
+          "id": "59796f",
+          "name": "Image button has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 3,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/59796f/proposed/"
+        },
+        {
+          "id": "7d6734",
+          "name": "SVG element with explicit role has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/7d6734/proposed/"
+        },
+        {
+          "id": "8fc3b6",
+          "name": "Object element rendering non-text content has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 6,
+            "inapplicable": 8
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/8fc3b6/proposed/"
+        },
+        {
+          "id": "e88epe",
+          "name": "Image not in the accessibility tree is decorative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 5,
+            "inapplicable": 10
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/e88epe/proposed/"
+        },
+        {
+          "id": "qt1vmo",
+          "name": "Image accessible name is descriptive",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 3,
+            "inapplicable": 10
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/qt1vmo/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.2.1",
+      "name": "Audio-only and Video-only (Prerecorded)",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.2",
+        "name": "Time-based Media"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/audio-only-and-video-only-prerecorded.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds each audio file, video file, and embedded player.",
+      "review_or_person_check": "Make sure that a transcript or an equal alternative is there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Find each audio-only and video-only file. Make sure that a transcript or an equal alternative is there.",
+      "affects": [
+        "auditory",
+        "visual"
+      ],
+      "notes": "Players in iframes can hide media from the finder.",
+      "axe_rules": [
+        {
+          "id": "audio-caption",
+          "category": "deprecated",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <audio> elements have captions"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "c3232f",
+          "name": "Video element visual-only content has accessible alternative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c3232f/proposed/"
+        },
+        {
+          "id": "e7aa44",
+          "name": "Audio element content has text alternative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 2,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/e7aa44/proposed/"
+        },
+        {
+          "id": "1a02b0",
+          "name": "Audio and visuals of video element have transcript",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 4,
+            "failed": 4,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/1a02b0/proposed/"
+        },
+        {
+          "id": "ee13b5",
+          "name": "Video element visual-only content has transcript",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 3,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/ee13b5/proposed/"
+        },
+        {
+          "id": "f51b46",
+          "name": "Video element auditory content has captions",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 2,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/f51b46/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.2.2",
+      "name": "Captions (Prerecorded)",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.2",
+        "name": "Time-based Media"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/captions-prerecorded.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds each video with synchronized audio. A caption track is a hint only, because captions can also be in the video file.",
+      "review_or_person_check": "Make sure that captions are there and are correct.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Play each video with audio. Make sure that captions are there and are correct.",
+      "affects": [
+        "auditory"
+      ],
+      "notes": "A missing track element is not a failure signal. The criterion applies only to synchronized media.",
+      "axe_rules": [
+        {
+          "id": "video-caption",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <video> elements have captions"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "eac66b",
+          "name": "Video element auditory content has accessible alternative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 2,
+            "failed": 2,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/eac66b/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.2.3",
+      "name": "Audio Description or Media Alternative (Prerecorded)",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.2",
+        "name": "Time-based Media"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/audio-description-or-media-alternative-prerecorded.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds each video. A description track is a hint only, because the audio itself can give the visual information.",
+      "review_or_person_check": "Make sure that an audio description or a text alternative is there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Play each video. Make sure that an audio description or a full text alternative is there.",
+      "affects": [
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "c5a4ea",
+          "name": "Video element visual content has accessible alternative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c5a4ea/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.2.4",
+      "name": "Captions (Live)",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.2",
+        "name": "Time-based Media"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/captions-live.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds live video players.",
+      "review_or_person_check": "Make sure that live captions are there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Find each live video. Make sure that live captions are there.",
+      "affects": [
+        "auditory"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "1.2.5",
+      "name": "Audio Description (Prerecorded)",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.2",
+        "name": "Time-based Media"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/audio-description-prerecorded.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds each video. A description track is a hint only.",
+      "review_or_person_check": "Make sure that an audio description is there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Play each video. Make sure that an audio description is there.",
+      "affects": [
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "1ec09b",
+          "name": "Video element visual content has strict accessible alternative",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 2,
+            "failed": 3,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/1ec09b/proposed/"
+        },
+        {
+          "id": "c5a4ea",
+          "name": "Video element visual content has accessible alternative",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c5a4ea/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.3.1",
+      "name": "Info and Relationships",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.3",
+        "name": "Adaptable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/info-and-relationships.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Tests labels, table headers, lists, and groups in the code. The landmark and heading-order rules are best practice. They give notes, not issues of 1.3.1.",
+      "review_or_person_check": "AI finds text that looks like a heading, a list, or a table but has no such code.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "The axe-core rules for landmarks, regions, and heading order have no WCAG tag.",
+      "axe_rules": [
+        {
+          "id": "aria-hidden-body",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure aria-hidden=\"true\" is not present on the document body."
+        },
+        {
+          "id": "aria-required-children",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure elements with an ARIA role that require child roles contain them"
+        },
+        {
+          "id": "aria-required-parent",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure elements with an ARIA role that require parent roles are contained by them"
+        },
+        {
+          "id": "definition-list",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <dl> elements are structured correctly"
+        },
+        {
+          "id": "dlitem",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <dt> and <dd> elements are contained by a <dl>"
+        },
+        {
+          "id": "list",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure that lists are structured correctly"
+        },
+        {
+          "id": "listitem",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <li> elements are used semantically"
+        },
+        {
+          "id": "p-as-heading",
+          "category": "experimental",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": true,
+          "description": "Ensure bold, italic text and font-size is not used to style <p> elements as a heading"
+        },
+        {
+          "id": "table-fake-caption",
+          "category": "experimental",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": true,
+          "description": "Ensure that tables with a caption use the <caption> element."
+        },
+        {
+          "id": "td-has-header",
+          "category": "experimental",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": true,
+          "description": "Ensure that each non-empty data cell in a <table> larger than 3 by 3 has one or more table headers"
+        },
+        {
+          "id": "td-headers-attr",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure that each cell in a table that uses the headers attribute refers only to other <th> elements in that table"
+        },
+        {
+          "id": "th-has-data-cells",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure that <th> elements and elements with role=columnheader/rowheader have data cells they describe"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "a25f45",
+          "name": "Headers attribute specified on a cell refers to cells in the same table element",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 8,
+            "failed": 4,
+            "inapplicable": 7
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/a25f45/proposed/"
+        },
+        {
+          "id": "bc4a75",
+          "name": "ARIA required owned elements",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 10,
+            "failed": 10,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/bc4a75/proposed/"
+        },
+        {
+          "id": "d0f69e",
+          "name": "Table header cell has assigned cells",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 3,
+            "inapplicable": 7
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/d0f69e/proposed/"
+        },
+        {
+          "id": "ff89c9",
+          "name": "ARIA required context role",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 4,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/ff89c9/proposed/"
+        },
+        {
+          "id": "1a02b0",
+          "name": "Audio and visuals of video element have transcript",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 4,
+            "failed": 4,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/1a02b0/proposed/"
+        },
+        {
+          "id": "4e8ab6",
+          "name": "Element with role attribute has required states and properties",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 7,
+            "failed": 5,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/4e8ab6/proposed/"
+        },
+        {
+          "id": "5c01ea",
+          "name": "ARIA state or property is permitted",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 13,
+            "failed": 2,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/5c01ea/proposed/"
+        },
+        {
+          "id": "5f99a7",
+          "name": "ARIA attribute is defined in WAI-ARIA",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 5,
+            "failed": 2,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/5f99a7/"
+        },
+        {
+          "id": "674b10",
+          "name": "Role attribute has valid value",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 2,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/674b10/"
+        },
+        {
+          "id": "6a7281",
+          "name": "ARIA state or property has valid value",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 10,
+            "failed": 7,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/6a7281/"
+        },
+        {
+          "id": "e086e5",
+          "name": "Form field has non-empty accessible name",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 10,
+            "failed": 9,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/e086e5/proposed/"
+        },
+        {
+          "id": "ee13b5",
+          "name": "Video element visual-only content has transcript",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 3,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/ee13b5/proposed/"
+        },
+        {
+          "id": "kb1m8s",
+          "name": "ARIA global properties not used where prohibited",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 5,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/kb1m8s/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.3.2",
+      "name": "Meaningful Sequence",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.3",
+        "name": "Adaptable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/meaningful-sequence.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Compares the order in the code with the order on the screen.",
+      "review_or_person_check": "AI reads the content in code order and examines the sense.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "1.3.3",
+      "name": "Sensory Characteristics",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.3",
+        "name": "Adaptable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/sensory-characteristics.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds instructions with words for shape, color, size, position, or sound.",
+      "review_or_person_check": "AI and a person examine each instruction.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "auditory",
+        "cognitive"
+      ],
+      "notes": "The finder is a word list. It can miss instructions.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "9bd38c",
+          "name": "Content has alternative for visual reference",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 15,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/9bd38c/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.3.4",
+      "name": "Orientation",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.3",
+        "name": "Adaptable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/orientation.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Loads each page in portrait and in landscape. Finds CSS that rotates or hides content on the orientation media feature.",
+      "review_or_person_check": "A person decides if a lock is essential.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "The approved ACT rule covers only CSS on the orientation media feature. The axe-core rule is experimental and off.",
+      "axe_rules": [
+        {
+          "id": "css-orientation-lock",
+          "category": "experimental",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": true,
+          "description": "Ensure content is not locked to any specific display orientation, and the content is operable in all display orientations"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "b33eff",
+          "name": "Orientation of the page is not restricted using CSS transforms",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/b33eff/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.3.5",
+      "name": "Identify Input Purpose",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.3",
+        "name": "Adaptable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/identify-input-purpose.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Tests the autocomplete value of each field that has one. Flags fields for personal data with no value.",
+      "review_or_person_check": "AI decides if a flagged field collects data about the user. A person confirms the sample.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "physical"
+      ],
+      "notes": "The ACT rule and axe-core only validate an attribute that is there. A field with no attribute needs judgment.",
+      "axe_rules": [
+        {
+          "id": "autocomplete-valid",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure the autocomplete attribute is correct and suitable for the form field"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "73f2c2",
+          "name": "`autocomplete` attribute has valid value",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 9,
+            "failed": 10,
+            "inapplicable": 11
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/73f2c2/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.1",
+      "name": "Use of Color",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds links in text that only color shows.",
+      "review_or_person_check": "AI examines screenshots for states, errors, and charts that only color shows.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "link-in-text-block",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure links are distinguished from surrounding text in a way that does not rely on color"
+        }
+      ],
+      "act_rules": [],
+      "axe_gap": false,
+      "act_gap": true
+    },
+    {
+      "id": "1.4.2",
+      "name": "Audio Control",
+      "level": "A",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/audio-control.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds audio that starts automatically and plays for more than 3 seconds. Looks for a control that can pause, stop, or change the volume.",
+      "review_or_person_check": "A person confirms the control, and examines embedded players.",
+      "conditions": null,
+      "non_interference": true,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "Non-interference criterion. The test runs on each page and each state, with the cookie banner open. The ACT rule is proposed. The axe-core rule only flags for review.",
+      "axe_rules": [
+        {
+          "id": "no-autoplay-audio",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Moderate",
+          "experimental": false,
+          "description": "Ensure <video> or <audio> elements do not autoplay audio for more than 3 seconds without a control mechanism to stop or mute the audio"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "80f0bf",
+          "name": "Audio or video element avoids automatically playing audio",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 2,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/80f0bf/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.3",
+      "name": "Contrast (Minimum)",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Calculates the contrast of all text from the code and the styles, including placeholder text and text on hover and focus. The limits are 4.5:1, and 3:1 for large text, which is 18 point or 14 point bold. Flags text on an image or a gradient.",
+      "review_or_person_check": "AI and a person decide the exceptions: inactive controls, decoration, invisible text, text in a picture with other significant content, and logotypes.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": "W3C says to take the colors from the code and the styles, not from the screen.",
+      "axe_rules": [
+        {
+          "id": "color-contrast",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "afw4f7",
+          "name": "Text has minimum contrast",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 12,
+            "failed": 11,
+            "inapplicable": 11
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/afw4f7/proposed/"
+        },
+        {
+          "id": "09o5cg",
+          "name": "Text has enhanced contrast",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 11,
+            "failed": 13,
+            "inapplicable": 11
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/09o5cg/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.4",
+      "name": "Resize Text",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/resize-text.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Emulates 200% zoom. Finds a block of zoom, which is an automatic failure. Flags text that is cut or hidden.",
+      "review_or_person_check": "A person confirms that the cut content is not available on focus or after activation. Captions and images of text are exceptions.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": "Playwright has no zoom function. The engine uses half the viewport width and a device scale factor of 2. The zoom block has an approved ACT rule.",
+      "axe_rules": [
+        {
+          "id": "meta-viewport",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Moderate",
+          "experimental": false,
+          "description": "Ensure <meta name=\"viewport\"> does not disable text scaling and zooming"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "59br37",
+          "name": "Zoomed text node is not clipped with CSS overflow",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 5,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/59br37/proposed/"
+        },
+        {
+          "id": "b4f0c3",
+          "name": "Meta viewport allows for zoom",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 7,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/b4f0c3/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.5",
+      "name": "Images of Text",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/images-of-text.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "AI with vision finds images that contain text. Finds an image of text next to the same text, which passes.",
+      "review_or_person_check": "A person decides the definition and the exceptions: a picture with other significant content, 'customizable', and 'essential', for example a logo.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "0va7u6",
+          "name": "HTML images contain no text",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 8,
+            "failed": 5,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/0va7u6/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.10",
+      "name": "Reflow",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/reflow.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Sets the width to 320 CSS px for vertical content, and the height to 256 CSS px for horizontal content. Finds a scroll in two directions and cut content.",
+      "review_or_person_check": "A person decides the exceptions for each part with two dimensions: maps, diagrams, video, data tables, and toolbars.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": "Content that moves to a new position is not a loss.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "b4f0c3",
+          "name": "Meta viewport allows for zoom",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 5,
+            "failed": 7,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/b4f0c3/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "1.4.11",
+      "name": "Non-text Contrast",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Calculates the contrast of control borders and focus rings.",
+      "review_or_person_check": "AI and a person examine icons and charts.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "1.4.12",
+      "name": "Text Spacing",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/text-spacing.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Applies the WCAG spacing values. Flags text that is cut or that overlaps.",
+      "review_or_person_check": "A person confirms that the content is not available, for example after an ellipsis. Images of text and canvas are out of the scope.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "The approved ACT rules cover only inline styles with !important. The axe-core rule avoid-inline-spacing is not consistent with them (W3C report, research question 2), so the own test stays necessary.",
+      "axe_rules": [
+        {
+          "id": "avoid-inline-spacing",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure that text spacing set through style attributes can be adjusted with custom stylesheets"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "24afc2",
+          "name": "Important letter spacing in style attributes is wide enough",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 4,
+            "inapplicable": 9
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/24afc2/"
+        },
+        {
+          "id": "78fd32",
+          "name": "Important line height in style attributes is wide enough",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 8,
+            "failed": 6,
+            "inapplicable": 10
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/78fd32/"
+        },
+        {
+          "id": "9e45ec",
+          "name": "Important word spacing in style attributes is wide enough",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 4,
+            "inapplicable": 9
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/9e45ec/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "1.4.13",
+      "name": "Content on Hover or Focus",
+      "level": "AA",
+      "principle": "perceivable",
+      "guideline": {
+        "id": "1.4",
+        "name": "Distinguishable"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/content-on-hover-or-focus.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Moves the pointer and the focus to each control. Tests the new content with Esc and with the pointer.",
+      "review_or_person_check": "A person confirms the results.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "physical",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.1.1",
+      "name": "Keyboard",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.1",
+        "name": "Keyboard Accessible"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Finds controls that the keyboard cannot get to or operate.",
+      "review_or_person_check": "A person tests complex controls, for example a map or an editor.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "frame-focusable-content",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <frame> and <iframe> elements with focusable content do not have tabindex=-1"
+        },
+        {
+          "id": "scrollable-region-focusable",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure elements that have scrollable content are accessible by keyboard in Safari"
+        },
+        {
+          "id": "server-side-image-map",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Minor",
+          "experimental": false,
+          "description": "Ensure that server-side image maps are not used"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "0ssw9k",
+          "name": "Scrollable content can be reached with sequential focus navigation",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 2,
+            "inapplicable": 9
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/0ssw9k/proposed/"
+        },
+        {
+          "id": "akn7bn",
+          "name": "Iframe with interactive elements is not excluded from tab-order",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 2,
+            "failed": 1,
+            "inapplicable": 7
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/akn7bn/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.1.2",
+      "name": "No Keyboard Trap",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.1",
+        "name": "Keyboard Accessible"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/no-keyboard-trap.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Moves through all controls with Tab and Shift+Tab. Flags a trap.",
+      "review_or_person_check": "A person confirms that the page does not tell the user how to leave. A dialog that the user knows how to leave passes.",
+      "conditions": null,
+      "non_interference": true,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "Non-interference criterion. The Tab pass runs on each page and each state, with the cookie banner open.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "80af7b",
+          "name": "Focusable element has no keyboard trap",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 7,
+            "failed": 5,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/80af7b/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "2.1.4",
+      "name": "Character Key Shortcuts",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.1",
+        "name": "Keyboard Accessible"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/character-key-shortcuts.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Presses each character key in the protected mode. Finds shortcuts, and the listeners for single keys.",
+      "review_or_person_check": "A person makes sure that you can stop or change a shortcut.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "speech"
+      ],
+      "notes": "Key presses on a live site run only in the protected mode of PLAN.md section 4.5.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "ffbc54",
+          "name": "No keyboard shortcut uses only printable characters",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 2,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/ffbc54/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "2.2.1",
+      "name": "Timing Adjustable",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.2",
+        "name": "Enough Time"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "process"
+      ],
+      "automatic_test": "Fails a meta refresh with a delay between 1 and 72,000 seconds. Finds timers that redirect.",
+      "review_or_person_check": "A person tests the time limits of sessions.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Test the time limits of sessions and of each process.",
+      "affects": [
+        "physical",
+        "cognitive",
+        "visual"
+      ],
+      "notes": "The approved ACT rule bc659a fails a meta refresh. The session limits stay with a person.",
+      "axe_rules": [
+        {
+          "id": "meta-refresh",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <meta http-equiv=\"refresh\"> is not used for delayed refresh"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "bc659a",
+          "name": "Meta element has no refresh delay",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 8
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/bc659a/proposed/"
+        },
+        {
+          "id": "bisz58",
+          "name": "Meta element has no refresh delay (no exception)",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 2,
+            "failed": 3,
+            "inapplicable": 8
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/bisz58/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.2.2",
+      "name": "Pause, Stop, Hide",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.2",
+        "name": "Enough Time"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Flags content that moves, blinks, or scrolls for more than 5 seconds. Flags all content that updates automatically, with no time limit.",
+      "review_or_person_check": "A person makes sure that a control can pause, stop, or hide it, or that it is essential.",
+      "conditions": null,
+      "non_interference": true,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "visual",
+        "physical"
+      ],
+      "notes": "Non-interference criterion. The five seconds apply only to information that moves, blinks, or scrolls. There is no five-second exception for content that updates automatically.",
+      "axe_rules": [
+        {
+          "id": "blink",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <blink> elements are not used"
+        },
+        {
+          "id": "marquee",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <marquee> elements are not used"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "efbfc7",
+          "name": "Text content that changes automatically can be paused, stopped or hidden",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 1,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/efbfc7/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.3.1",
+      "name": "Three Flashes or Below Threshold",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.3",
+        "name": "Seizures and Physical Reactions"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html",
+      "method": "person",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds animation and video.",
+      "review_or_person_check": "A person or a special tool measures the flash rate.",
+      "conditions": null,
+      "non_interference": true,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Look for content that flashes. Measure the flash rate of each candidate with a tool.",
+      "affects": [
+        "seizure"
+      ],
+      "notes": "Non-interference criterion. The finder gives candidates only.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.4.1",
+      "name": "Bypass Blocks",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/bypass-blocks.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds the skip link and the landmarks.",
+      "review_or_person_check": "A person confirms which blocks repeat on many pages, and that a way to bypass them is there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "The axe-core rule only flags for review. The ACT rule is a proposed composite.",
+      "axe_rules": [
+        {
+          "id": "bypass",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure each page has at least one mechanism for a user to bypass navigation and jump straight to the content"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "cf77f2",
+          "name": "Bypass Blocks of Repeated Content",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 12,
+            "failed": 1,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/cf77f2/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.4.2",
+      "name": "Page Titled",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/page-titled.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "site"
+      ],
+      "automatic_test": "Finds pages with no title and pages with the same title.",
+      "review_or_person_check": "AI examines if the title describes the page.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": true,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "document-title",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure each HTML document contains a non-empty <title> element"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "2779a5",
+          "name": "HTML page has non-empty title",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 6,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/2779a5/proposed/"
+        },
+        {
+          "id": "c4a8a4",
+          "name": "HTML page title is descriptive",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 3,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c4a8a4/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.4.3",
+      "name": "Focus Order",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/focus-order.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Compares the focus order with the visual order. Tests the focus in dialogs.",
+      "review_or_person_check": "A person confirms that the order keeps the meaning.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.4.4",
+      "name": "Link Purpose (In Context)",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/link-purpose-in-context.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds links with no name, and links with general text such as 'read more'.",
+      "review_or_person_check": "AI examines each link text in its context.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": true,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "physical",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "area-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <area> elements of image maps have alternative text"
+        },
+        {
+          "id": "link-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure links have discernible text"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "5effbb",
+          "name": "Link in context is descriptive",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 9,
+            "failed": 6,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/5effbb/proposed/"
+        },
+        {
+          "id": "c487ae",
+          "name": "Link has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 11,
+            "failed": 11,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c487ae/proposed/"
+        },
+        {
+          "id": "fd3a94",
+          "name": "Links with identical accessible names and same context serve equivalent purpose",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 9,
+            "failed": 8,
+            "inapplicable": 7
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/fd3a94/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.4.5",
+      "name": "Multiple Ways",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/multiple-ways.html",
+      "method": "auto+review",
+      "test_groups": [
+        "site"
+      ],
+      "automatic_test": "Looks for navigation, search, and a sitemap. Finds pages that no link points to.",
+      "review_or_person_check": "A person confirms.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive",
+        "physical"
+      ],
+      "notes": "Pages that are a step in a process are an exception.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.4.6",
+      "name": "Headings and Labels",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/headings-and-labels.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Collects each heading and label with its content. Reports empty headings and labels under 1.3.1, 3.3.2, or 4.1.2, because 2.4.6 does not require headings.",
+      "review_or_person_check": "AI examines if each heading and label describes its content.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": true,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "b49b2e",
+          "name": "Heading is descriptive",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/b49b2e/proposed/"
+        },
+        {
+          "id": "cc0f0a",
+          "name": "Form field label is descriptive",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 7,
+            "failed": 6,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/cc0f0a/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "2.4.7",
+      "name": "Focus Visible",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/focus-visible.html",
+      "method": "auto",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Sends real Tab events, scrolls each control into view, and compares a screenshot of the full viewport with focus and with no focus. Ignores animation.",
+      "review_or_person_check": "None. The research confirms the test on the ACT cases.",
+      "conditions": "A script decides only with real Tab events, the control scrolled into view, a comparison of the full viewport, and animation ignored. A new issue needs the same result in two renders.",
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "The approved ACT rule oj04fd has only partial automatic implementations.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "oj04fd",
+          "name": "Element in sequential focus order has visible focus",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 1,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/oj04fd/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "2.4.11",
+      "name": "Focus Not Obscured (Minimum)",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.4",
+        "name": "Navigable"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/focus-not-obscured-minimum.html",
+      "method": "auto",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Tests if a fixed header, banner, or widget hides the control that has focus completely, in the initial positions.",
+      "review_or_person_check": "None. Content that the user opened and can close does not count.",
+      "conditions": "A script decides only 'entirely hidden', in the initial positions of the fixed elements. Content that the user opened and can close without a move of the focus does not count.",
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "No ACT rule and no axe-core rule exist.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.5.1",
+      "name": "Pointer Gestures",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/pointer-gestures.html",
+      "method": "person",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Finds sliders, carousels, and maps that use gestures.",
+      "review_or_person_check": "A person makes sure that one pointer can do the function.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Find each function that uses a gesture with more than one point or a path. Make sure that one pointer can do it.",
+      "affects": [
+        "physical"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.5.2",
+      "name": "Pointer Cancellation",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/pointer-cancellation.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Finds controls that act when the pointer goes down.",
+      "review_or_person_check": "A person confirms one of four options: no down-event, abort or undo, up reversal, or essential.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "cognitive"
+      ],
+      "notes": "Frameworks delegate events at the root, so a listener test cannot see each control.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.5.3",
+      "name": "Label in Name",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/label-in-name.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Compares the visible label with the accessible name of widgets with aria-label or aria-labelledby.",
+      "review_or_person_check": "AI examines labels in images of text. A symbol is not a label.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "speech",
+        "visual"
+      ],
+      "notes": "The ACT rule is proposed. The axe-core rule label-content-name-mismatch is on by default in 4.14.0, and it covers only widgets with aria-label or aria-labelledby.",
+      "axe_rules": [
+        {
+          "id": "label-content-name-mismatch",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure that elements labelled through their content must have their visible text as part of their accessible name"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "2ee8b8",
+          "name": "Visible label is part of accessible name",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 16,
+            "failed": 16,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/2ee8b8/proposed/"
+        },
+        {
+          "id": "e086e5",
+          "name": "Form field has non-empty accessible name",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 10,
+            "failed": 9,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/e086e5/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "2.5.4",
+      "name": "Motion Actuation",
+      "level": "A",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/motion-actuation.html",
+      "method": "person",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Finds listeners for device motion in the browser, and in the source code.",
+      "review_or_person_check": "A person tests the alternative control.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Find each function that the motion of the device starts. Make sure that a control can do it, and that the user can switch the motion off.",
+      "affects": [
+        "physical"
+      ],
+      "notes": "Research question 7 compares the listener test with the search in the source code.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "7677a9",
+          "name": "Device motion based changes to the content can also be created from the user interface",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 1,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/7677a9/proposed/"
+        },
+        {
+          "id": "c249d5",
+          "name": "Device motion based changes to the content can be disabled",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 1,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c249d5/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "2.5.7",
+      "name": "Dragging Movements",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html",
+      "method": "person",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Finds elements that you can drag, from the drag and pointer listeners.",
+      "review_or_person_check": "A person makes sure that a function with no drag is there.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Find each function that needs a drag. Make sure that a single pointer can do it with no drag.",
+      "affects": [
+        "physical"
+      ],
+      "notes": "No ACT rule and no axe-core rule exist.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "2.5.8",
+      "name": "Target Size (Minimum)",
+      "level": "AA",
+      "principle": "operable",
+      "guideline": {
+        "id": "2.5",
+        "name": "Input Modalities"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Measures the size of each target and the space around it. A slider is one target. Overlapped areas do not count.",
+      "review_or_person_check": "A person decides the exceptions 'equivalent' and 'essential'.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "physical",
+        "visual"
+      ],
+      "notes": "No ACT rule exists. The axe-core rule target-size is off by default, and the engine switches it on (research question 2). The minimum is 24 by 24 CSS px, or an equal spacing.",
+      "axe_rules": [
+        {
+          "id": "target-size",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure touch targets have sufficient size and space"
+        }
+      ],
+      "act_rules": [],
+      "axe_gap": false,
+      "act_gap": true
+    },
+    {
+      "id": "3.1.1",
+      "name": "Language of Page",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.1",
+        "name": "Readable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/language-of-page.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Tests that the language attribute is there and is valid. Compares it with the language that the page uses most.",
+      "review_or_person_check": "A person confirms a mismatch on a short or mixed page.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "The presence and the validity of the attribute have approved ACT rules. The match with the text has a proposed rule.",
+      "axe_rules": [
+        {
+          "id": "html-has-lang",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every HTML document has a lang attribute"
+        },
+        {
+          "id": "html-lang-valid",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure the lang attribute of the <html> element has a valid value"
+        },
+        {
+          "id": "html-xml-lang-mismatch",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Moderate",
+          "experimental": false,
+          "description": "Ensure that HTML elements with both valid lang and xml:lang attributes agree on the base language of the page"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "b5c3f8",
+          "name": "HTML page has lang attribute",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 1,
+            "failed": 4,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/b5c3f8/proposed/"
+        },
+        {
+          "id": "bf051a",
+          "name": "HTML page `lang` attribute has valid language tag",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 2,
+            "failed": 4,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/bf051a/proposed/"
+        },
+        {
+          "id": "ucwvc8",
+          "name": "HTML page language subtag matches default language",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 5,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/ucwvc8/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "3.1.2",
+      "name": "Language of Parts",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.1",
+        "name": "Readable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/language-of-parts.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds text in a different language with no language attribute.",
+      "review_or_person_check": "AI and a person confirm short text.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "Proper names and technical terms are exceptions.",
+      "axe_rules": [
+        {
+          "id": "valid-lang",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure lang attributes have valid values"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "de46e4",
+          "name": "Element with lang attribute has valid language tag",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 9,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/de46e4/"
+        },
+        {
+          "id": "off6ek",
+          "name": "HTML element language subtag matches language",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 4,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/off6ek/proposed/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "3.2.1",
+      "name": "On Focus",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.2",
+        "name": "Predictable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/on-focus.html",
+      "method": "auto",
+      "test_groups": [
+        "template"
+      ],
+      "automatic_test": "Moves the focus to each control in the protected mode. Fails a change of page, window, or focus. Flags content that changes the meaning.",
+      "review_or_person_check": "None for the automatic failure. A review decides the flagged content changes.",
+      "conditions": "A script decides only a change of page, window, or focus. Content that changes the meaning goes to the review. A menu that opens or a tab control is not a change of context by itself.",
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive",
+        "physical"
+      ],
+      "notes": "A change of context includes a move of the focus and content that changes the meaning.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.2.2",
+      "name": "On Input",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.2",
+        "name": "Predictable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/on-input.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template",
+        "process"
+      ],
+      "automatic_test": "Changes the value of each select, checkbox, and radio button. Types in fields where permitted. Finds a change of page or window.",
+      "review_or_person_check": "A person makes sure that the page gave a warning.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive",
+        "physical"
+      ],
+      "notes": "Text entry runs only where PLAN.md section 4.5 permits.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.2.3",
+      "name": "Consistent Navigation",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.2",
+        "name": "Predictable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html",
+      "method": "auto+review",
+      "test_groups": [
+        "site"
+      ],
+      "automatic_test": "Compares the relative order of the navigation on all pages of a set. Permits insertions and removals.",
+      "review_or_person_check": "A person confirms the differences.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "visual"
+      ],
+      "notes": "The scope is a set of web pages.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.2.4",
+      "name": "Consistent Identification",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.2",
+        "name": "Predictable"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/consistent-identification.html",
+      "method": "auto+review",
+      "test_groups": [
+        "site"
+      ],
+      "automatic_test": "Finds controls with the same function but different names.",
+      "review_or_person_check": "AI and a person confirm.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.2.6",
+      "name": "Consistent Help",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.2",
+        "name": "Predictable"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/consistent-help.html",
+      "method": "auto+review",
+      "test_groups": [
+        "site"
+      ],
+      "automatic_test": "Finds contact links and help links. Compares their order in the code on all pages of a set, at each width.",
+      "review_or_person_check": "A person confirms.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive"
+      ],
+      "notes": "The order is the serialized order, in the same page variation. No ACT rule and no axe-core rule exist.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.3.1",
+      "name": "Error Identification",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/error-identification.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template",
+        "process"
+      ],
+      "automatic_test": "Sends incorrect data in forms where permitted. Tests how each error shows.",
+      "review_or_person_check": "AI examines the error text.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "cognitive"
+      ],
+      "notes": "A form submission runs only on staging or with permission.",
+      "axe_rules": [],
+      "act_rules": [
+        {
+          "id": "36b590",
+          "name": "Error message describes invalid form field value",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 5,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/36b590/proposed/"
+        }
+      ],
+      "axe_gap": true,
+      "act_gap": false
+    },
+    {
+      "id": "3.3.2",
+      "name": "Labels or Instructions",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/labels-or-instructions.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page"
+      ],
+      "automatic_test": "Finds fields with no visible label.",
+      "review_or_person_check": "AI examines if the instructions are sufficient.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "form-field-multiple-labels",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Moderate",
+          "experimental": false,
+          "description": "Ensure form field does not have multiple label elements"
+        }
+      ],
+      "act_rules": [],
+      "axe_gap": false,
+      "act_gap": true
+    },
+    {
+      "id": "3.3.3",
+      "name": "Error Suggestion",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/error-suggestion.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template",
+        "process"
+      ],
+      "automatic_test": "Collects the error messages from the form tests.",
+      "review_or_person_check": "AI examines if each message tells how to correct the error.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive",
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.3.4",
+      "name": "Error Prevention (Legal, Financial, Data)",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/error-prevention-legal-financial-data.html",
+      "method": "person",
+      "test_groups": [
+        "page",
+        "process"
+      ],
+      "automatic_test": "Finds forms for payment, orders, and legal data, forms that change or delete data of the user, and forms with test answers.",
+      "review_or_person_check": "A person tests if you can check, correct, or cancel the data.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Do each process with legal, financial, or user data. Make sure that the user can reverse, check, or confirm the data.",
+      "affects": [
+        "cognitive",
+        "physical",
+        "visual"
+      ],
+      "notes": null,
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.3.7",
+      "name": "Redundant Entry",
+      "level": "A",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/redundant-entry.html",
+      "method": "person",
+      "test_groups": [
+        "process"
+      ],
+      "automatic_test": "Finds processes with more than one step.",
+      "review_or_person_check": "A person does the process and looks for data that you must type again.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": "Do each process with more than one step. Look for data that the user must type again in the same process.",
+      "affects": [
+        "cognitive",
+        "physical"
+      ],
+      "notes": "No ACT rule and no axe-core rule exist.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "3.3.8",
+      "name": "Accessible Authentication (Minimum)",
+      "level": "AA",
+      "principle": "understandable",
+      "guideline": {
+        "id": "3.3",
+        "name": "Input Assistance"
+      },
+      "since": "2.2",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/accessible-authentication-minimum.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Finds login forms. Tests paste and autocomplete in their fields, because a block fails unless an alternative exists. Finds a CAPTCHA.",
+      "review_or_person_check": "A person makes sure that a method with no cognitive function test is there, or one of the exceptions: alternative, mechanism, object recognition, or personal content.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "cognitive"
+      ],
+      "notes": "The term is 'cognitive function test'. A CAPTCHA with transcribed audio does not meet the alternative exception. No ACT rule and no axe-core rule exist.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    },
+    {
+      "id": "4.1.2",
+      "name": "Name, Role, Value",
+      "level": "A",
+      "principle": "robust",
+      "guideline": {
+        "id": "4.1",
+        "name": "Compatible"
+      },
+      "since": "2.0",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/name-role-value.html",
+      "method": "auto+review",
+      "test_groups": [
+        "page",
+        "template"
+      ],
+      "automatic_test": "Tests the name, the role, and the ARIA code of each control. Operates controls in the protected mode and tests if the state changes.",
+      "review_or_person_check": "A person tests custom controls with a screen reader.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": true,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual",
+        "physical"
+      ],
+      "notes": null,
+      "axe_rules": [
+        {
+          "id": "area-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <area> elements of image maps have alternative text"
+        },
+        {
+          "id": "aria-allowed-attr",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure an element's role supports its ARIA attributes"
+        },
+        {
+          "id": "aria-braille-equivalent",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure aria-braillelabel and aria-brailleroledescription have a non-braille equivalent"
+        },
+        {
+          "id": "aria-command-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA button, link and menuitem has an accessible name"
+        },
+        {
+          "id": "aria-conditional-attr",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure ARIA attributes are used as described in the specification of the element's role"
+        },
+        {
+          "id": "aria-deprecated-role",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Minor",
+          "experimental": false,
+          "description": "Ensure elements do not use deprecated roles"
+        },
+        {
+          "id": "aria-hidden-body",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure aria-hidden=\"true\" is not present on the document body."
+        },
+        {
+          "id": "aria-hidden-focus",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure aria-hidden elements are not focusable nor contain focusable elements"
+        },
+        {
+          "id": "aria-input-field-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA input field has an accessible name"
+        },
+        {
+          "id": "aria-prohibited-attr",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure ARIA attributes are not prohibited for an element's role"
+        },
+        {
+          "id": "aria-required-attr",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure elements with ARIA roles have all required ARIA attributes"
+        },
+        {
+          "id": "aria-roledescription",
+          "category": "deprecated",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure aria-roledescription is only used on elements with an implicit or explicit role"
+        },
+        {
+          "id": "aria-roles",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure all elements with a role attribute use a valid value"
+        },
+        {
+          "id": "aria-tab-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA tab node has an accessible name"
+        },
+        {
+          "id": "aria-toggle-field-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA toggle field has an accessible name"
+        },
+        {
+          "id": "aria-tooltip-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure every ARIA tooltip node has an accessible name"
+        },
+        {
+          "id": "aria-valid-attr",
+          "category": "wcag",
+          "issue_type": "failure",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure attributes that begin with aria- are valid ARIA attributes"
+        },
+        {
+          "id": "aria-valid-attr-value",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure all ARIA attributes have valid values"
+        },
+        {
+          "id": "button-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure buttons have discernible text"
+        },
+        {
+          "id": "duplicate-id-aria",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure every id attribute value used in ARIA and in labels is unique"
+        },
+        {
+          "id": "frame-title",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <iframe> and <frame> elements have an accessible name"
+        },
+        {
+          "id": "frame-title-unique",
+          "category": "wcag",
+          "issue_type": "needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure <iframe> and <frame> elements contain a unique title attribute"
+        },
+        {
+          "id": "input-button-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure input buttons have discernible text"
+        },
+        {
+          "id": "input-image-alt",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure <input type=\"image\"> elements have alternative text"
+        },
+        {
+          "id": "label",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure every form element has a label"
+        },
+        {
+          "id": "link-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure links have discernible text"
+        },
+        {
+          "id": "nested-interactive",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure interactive controls are not nested as they are not always announced by screen readers or can cause focus problems for assistive technologies"
+        },
+        {
+          "id": "select-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Critical",
+          "experimental": false,
+          "description": "Ensure select element has an accessible name"
+        },
+        {
+          "id": "summary-name",
+          "category": "wcag",
+          "issue_type": "failure, needs&nbsp;review",
+          "impact": "Serious",
+          "experimental": false,
+          "description": "Ensure summary elements have discernible text"
+        }
+      ],
+      "act_rules": [
+        {
+          "id": "2t702h",
+          "name": "Summary element has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 5,
+            "failed": 3,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/2t702h/proposed/"
+        },
+        {
+          "id": "307n5z",
+          "name": "Element with presentational children has no focusable content",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 5,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/307n5z/proposed/"
+        },
+        {
+          "id": "4b1c6c",
+          "name": "Iframe elements with identical accessible names have equivalent purpose",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 10,
+            "failed": 4,
+            "inapplicable": 9
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/4b1c6c/proposed/"
+        },
+        {
+          "id": "59796f",
+          "name": "Image button has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 3,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/59796f/proposed/"
+        },
+        {
+          "id": "6cfa84",
+          "name": "Element with aria-hidden has no content in sequential focus navigation",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 6,
+            "failed": 6,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/6cfa84/proposed/"
+        },
+        {
+          "id": "97a4e1",
+          "name": "Button has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 7,
+            "failed": 5,
+            "inapplicable": 5
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/97a4e1/proposed/"
+        },
+        {
+          "id": "c487ae",
+          "name": "Link has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 11,
+            "failed": 11,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/c487ae/proposed/"
+        },
+        {
+          "id": "cae760",
+          "name": "Iframe element has non-empty accessible name",
+          "approved": false,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 3,
+            "failed": 4,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/cae760/proposed/"
+        },
+        {
+          "id": "e086e5",
+          "name": "Form field has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 10,
+            "failed": 9,
+            "inapplicable": 3
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/e086e5/proposed/"
+        },
+        {
+          "id": "m6b1q3",
+          "name": "Menuitem has non-empty accessible name",
+          "approved": true,
+          "relation": "conformance",
+          "test_cases": {
+            "passed": 4,
+            "failed": 2,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/m6b1q3/"
+        },
+        {
+          "id": "4e8ab6",
+          "name": "Element with role attribute has required states and properties",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 7,
+            "failed": 5,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/4e8ab6/proposed/"
+        },
+        {
+          "id": "5c01ea",
+          "name": "ARIA state or property is permitted",
+          "approved": false,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 13,
+            "failed": 2,
+            "inapplicable": 2
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/5c01ea/proposed/"
+        },
+        {
+          "id": "5f99a7",
+          "name": "ARIA attribute is defined in WAI-ARIA",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 5,
+            "failed": 2,
+            "inapplicable": 1
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/5f99a7/"
+        },
+        {
+          "id": "674b10",
+          "name": "Role attribute has valid value",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 3,
+            "failed": 2,
+            "inapplicable": 6
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/674b10/"
+        },
+        {
+          "id": "6a7281",
+          "name": "ARIA state or property has valid value",
+          "approved": true,
+          "relation": "secondary",
+          "test_cases": {
+            "passed": 10,
+            "failed": 7,
+            "inapplicable": 4
+          },
+          "page": "https://www.w3.org/WAI/standards-guidelines/act/rules/6a7281/"
+        }
+      ],
+      "axe_gap": false,
+      "act_gap": false
+    },
+    {
+      "id": "4.1.3",
+      "name": "Status Messages",
+      "level": "AA",
+      "principle": "robust",
+      "guideline": {
+        "id": "4.1",
+        "name": "Compatible"
+      },
+      "since": "2.1",
+      "understanding": "https://www.w3.org/WAI/WCAG22/Understanding/status-messages.html",
+      "method": "auto+review",
+      "test_groups": [
+        "template",
+        "process"
+      ],
+      "automatic_test": "Does actions. Finds new content that is not in a live region and does not take the focus.",
+      "review_or_person_check": "AI and a person confirm that the text is a status message, and the type of the live region.",
+      "conditions": null,
+      "non_interference": false,
+      "finder_reliable": false,
+      "context_dependent": false,
+      "person_task": null,
+      "affects": [
+        "visual"
+      ],
+      "notes": "A message that takes the focus is not a status message.",
+      "axe_rules": [],
+      "act_rules": [],
+      "axe_gap": true,
+      "act_gap": true
+    }
+  ],
+  "coverage": {
+    "note": "Which criteria have an automatic rule in each source. An input for research question 2.",
+    "axe_core": {
+      "criteria_with_wcag_rule": [
+        "1.1.1",
+        "1.2.2",
+        "1.3.1",
+        "1.3.5",
+        "1.4.1",
+        "1.4.2",
+        "1.4.3",
+        "1.4.4",
+        "1.4.12",
+        "2.1.1",
+        "2.2.1",
+        "2.2.2",
+        "2.4.1",
+        "2.4.2",
+        "2.4.4",
+        "2.5.3",
+        "2.5.8",
+        "3.1.1",
+        "3.1.2",
+        "3.3.2",
+        "4.1.2"
+      ],
+      "criteria_without_wcag_rule": [
+        "1.2.1",
+        "1.2.3",
+        "1.2.4",
+        "1.2.5",
+        "1.3.2",
+        "1.3.3",
+        "1.3.4",
+        "1.4.5",
+        "1.4.10",
+        "1.4.11",
+        "1.4.13",
+        "2.1.2",
+        "2.1.4",
+        "2.3.1",
+        "2.4.3",
+        "2.4.5",
+        "2.4.6",
+        "2.4.7",
+        "2.4.11",
+        "2.5.1",
+        "2.5.2",
+        "2.5.4",
+        "2.5.7",
+        "3.2.1",
+        "3.2.2",
+        "3.2.3",
+        "3.2.4",
+        "3.2.6",
+        "3.3.1",
+        "3.3.3",
+        "3.3.4",
+        "3.3.7",
+        "3.3.8",
+        "4.1.3"
+      ]
+    },
+    "act": {
+      "criteria_with_conformance_rule": [
+        "1.1.1",
+        "1.2.1",
+        "1.2.2",
+        "1.2.3",
+        "1.2.5",
+        "1.3.1",
+        "1.3.3",
+        "1.3.4",
+        "1.3.5",
+        "1.4.2",
+        "1.4.3",
+        "1.4.4",
+        "1.4.5",
+        "1.4.12",
+        "2.1.1",
+        "2.1.2",
+        "2.1.4",
+        "2.2.1",
+        "2.2.2",
+        "2.4.1",
+        "2.4.2",
+        "2.4.4",
+        "2.4.6",
+        "2.4.7",
+        "2.5.3",
+        "2.5.4",
+        "3.1.1",
+        "3.1.2",
+        "3.3.1",
+        "4.1.2"
+      ],
+      "criteria_without_conformance_rule": [
+        "1.2.4",
+        "1.3.2",
+        "1.4.1",
+        "1.4.10",
+        "1.4.11",
+        "1.4.13",
+        "2.3.1",
+        "2.4.3",
+        "2.4.5",
+        "2.4.11",
+        "2.5.1",
+        "2.5.2",
+        "2.5.7",
+        "2.5.8",
+        "3.2.1",
+        "3.2.2",
+        "3.2.3",
+        "3.2.4",
+        "3.2.6",
+        "3.3.2",
+        "3.3.3",
+        "3.3.4",
+        "3.3.7",
+        "3.3.8",
+        "4.1.3"
+      ]
+    }
+  }
+}

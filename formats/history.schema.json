@@ -1,0 +1,143 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/history/1",
+  "title": "Accessibility Audit history (one line of history.jsonl)",
+  "description": "One audit run: when it ran, with which versions, and what it counted. See PLAN.md sections 6.1 and 8.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "run",
+    "started",
+    "duration_seconds",
+    "kind",
+    "environment",
+    "versions",
+    "baseline",
+    "counts",
+    "coverage"
+  ],
+  "properties": {
+    "schema": {
+      "const": "history/1"
+    },
+    "run": {
+      "type": "string",
+      "description": "The run ID, the start time in UTC with seconds, for example 2026-10-12T02:00:05Z."
+    },
+    "started": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "duration_seconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "kind": {
+      "enum": [
+        "full",
+        "short check"
+      ]
+    },
+    "started_by": {
+      "enum": [
+        "schedule",
+        "person",
+        "skill"
+      ]
+    },
+    "environment": {
+      "enum": [
+        "production",
+        "staging",
+        "local"
+      ]
+    },
+    "versions": {
+      "type": "object",
+      "required": [
+        "engine",
+        "axe_core",
+        "browser"
+      ],
+      "properties": {
+        "engine": {
+          "type": "string"
+        },
+        "axe_core": {
+          "type": "string"
+        },
+        "browser": {
+          "type": "string"
+        },
+        "rules_hash": {
+          "type": "string"
+        },
+        "skill": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string",
+          "description": "The AI model of the review, when the skill ran."
+        }
+      }
+    },
+    "baseline": {
+      "type": "boolean"
+    },
+    "counts": {
+      "$ref": "https://refact.co/a11y/formats/summary/1#/$defs/counts"
+    },
+    "coverage": {
+      "$ref": "https://refact.co/a11y/formats/summary/1#/$defs/coverage"
+    },
+    "renders": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The count of page renders, for the cost model."
+    },
+    "questions_answered": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "ai": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "person": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "source_commit": {
+      "type": "string",
+      "description": "The commit of the source code that the skill used."
+    },
+    "build_id": {
+      "type": "string",
+      "description": "The build ID of the live site, when it gives one."
+    },
+    "overview": {
+      "type": "object",
+      "description": "The part of the accessibility overview that the history keeps: the share of the tested units with no failure, for level A and for level AA, and the open issues.",
+      "additionalProperties": false,
+      "required": [
+        "share_no_failure_A",
+        "share_no_failure_AA",
+        "open_issues"
+      ],
+      "properties": {
+        "share_no_failure_A": {
+          "type": "number"
+        },
+        "share_no_failure_AA": {
+          "type": "number"
+        },
+        "open_issues": {
+          "type": "integer"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "schema": "page/1",
+  "url": "/pricing",
+  "template": "page",
+  "set": "site",
+  "sample": true,
+  "process": null,
+  "states": [
+    { "id": "initial", "actions": [] },
+    { "id": "menu-open", "actions": ["click header button.nav-toggle"] }
+  ],
+  "run": "2026-10-12T02:00Z",
+  "tested": true,
+  "http_status": 200,
+  "content_hash": "sha256:7c0d3e9a1f5b2648",
+  "results": {
+    "390": { "1.1.1": "no issue found", "1.4.3": "failed", "2.4.7": "no issue found", "1.2.2": "no content found", "2.3.1": "needs a person" },
+    "768": { "1.1.1": "no issue found", "1.4.3": "failed", "2.4.7": "no issue found", "1.2.2": "no content found", "2.3.1": "needs a person" },
+    "1280": { "1.1.1": "no issue found", "1.4.3": "needs review", "2.4.7": "no issue found", "1.2.2": "no content found", "2.3.1": "needs a person" }
+  },
+  "issues": ["ISS-7f3a9c21"]
+}

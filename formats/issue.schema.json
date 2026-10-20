@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/issue/2",
+  "title": "Accessibility Audit issue file (issues/ISS-*.json)",
+  "description": "One issue: one problem with one cause, with its location, origin, and recommended solution. See PLAN.md section 8.3.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "status", "status_by", "certainty", "non_interference", "rule", "wcag", "affects", "severity",
+    "summary", "reach", "first_seen", "last_seen", "environment", "question", "replaces", "origin", "source",
+    "source_warning", "examples", "solution", "decision", "untrusted_fields"
+  ],
+  "properties": {
+    "schema": { "const": "issue/2" },
+    "id": { "type": "string", "pattern": "^ISS-[0-9a-f]{8}$" },
+    "status": { "enum": ["new", "open", "resolved", "reopened", "not checked", "page removed", "accepted", "dismissed"] },
+    "status_by": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["who", "mode", "date", "run"],
+      "properties": {
+        "who": { "enum": ["engine", "ai", "person"] },
+        "mode": { "enum": ["automatic", "semi-automatic", "manual"] },
+        "date": { "type": "string", "format": "date" },
+        "run": { "type": "string", "description": "The run ID, see history.schema.json." },
+        "reason": { "enum": ["fixed", "rule changed", "page removed"], "description": "Only for the status resolved or page removed. A resolved issue with the reason 'rule changed' does not count as a fix." }
+      }
+    },
+    "certainty": { "enum": ["fail", "ai fail", "needs review"] },
+    "non_interference": { "type": "boolean", "description": "True for issues of 1.4.2, 2.1.2, 2.2.2, and 2.3.1. The origin does not exclude them." },
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "engine", "engine_version"],
+      "properties": {
+        "id": { "type": "string" },
+        "engine": { "type": "string", "description": "axe-core, a11y (our own tests), ai, or person." },
+        "engine_version": { "type": "string" }
+      }
+    },
+    "wcag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["criterion", "level", "principle"],
+      "properties": {
+        "criterion": { "type": "string", "pattern": "^[1-4]\\.[1-5]\\.[0-9]{1,2}$" },
+        "level": { "enum": ["A", "AA"] },
+        "principle": { "enum": ["perceivable", "operable", "understandable", "robust"] }
+      }
+    },
+    "affects": { "type": "array", "items": { "enum": ["visual", "auditory", "physical", "speech", "cognitive", "seizure"] }, "uniqueItems": true },
+    "severity": { "enum": ["critical", "serious", "moderate", "minor"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "reach": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pages", "occurrences"],
+      "properties": {
+        "pages": { "type": "integer", "minimum": 0 },
+        "occurrences": { "type": "integer", "minimum": 0 },
+        "templates": { "type": "array", "items": { "type": "string" } },
+        "widths": { "type": "array", "items": { "type": "integer" } },
+        "processes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "first_seen": { "type": "string", "format": "date" },
+    "last_seen": { "type": "string", "format": "date" },
+    "environment": { "enum": ["production", "staging", "local"] },
+    "question": { "oneOf": [{ "type": "string", "pattern": "^Q-[0-9a-f]{8}$" }, { "type": "null" }], "description": "The review question that made the issue." },
+    "replaces": { "oneOf": [{ "type": "string", "pattern": "^ISS-[0-9a-f]{8}$" }, { "type": "null" }], "description": "The old issue that this issue replaced after a change of markup." },
+    "origin": { "enum": ["code", "design", "content", "media", "configuration", "third-party-controlled", "third-party-uncontrolled", "unknown"] },
+    "source": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["file", "confidence", "method"],
+            "properties": {
+              "file": { "type": "string" },
+              "line": { "type": "integer", "minimum": 1 },
+              "confidence": { "enum": ["certain", "probable", "possible"] },
+              "method": { "type": "string" },
+              "commit": { "type": "string" }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cms", "item"],
+            "properties": {
+              "cms": { "type": "string" },
+              "item": { "type": "string", "description": "For example: post 812." },
+              "attachment": { "type": "integer" },
+              "block": { "type": "string" },
+              "field": { "type": "string", "description": "A setting or a field of the CMS, for configuration issues." },
+              "edit_url": { "type": "string", "format": "uri" }
+            }
+          }
+        ]
+      }
+    },
+    "source_warning": { "oneOf": [{ "type": "string" }, { "type": "null" }], "description": "A text when the commit of the source and the build ID of the live site do not agree." },
+    "examples": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["url", "width", "state", "selector"],
+        "properties": {
+          "url": { "type": "string" },
+          "width": { "type": "integer" },
+          "state": { "type": "array", "items": { "type": "string" }, "description": "The actions from the first load, empty for the initial state." },
+          "selector": { "type": "string" },
+          "html": { "type": "string", "description": "Untrusted. Personal data and tokens removed." },
+          "facts": { "type": "object", "description": "Untrusted. The measured values, for example the role, the name, or the contrast." },
+          "screenshot": { "type": "string", "description": "A path under runs/, not in Git." }
+        }
+      }
+    },
+    "solution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "summary", "steps"],
+      "properties": {
+        "type": { "enum": ["general", "specific"] },
+        "summary": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" } },
+        "example": { "type": "string" },
+        "expected_result": { "type": "string" },
+        "options": { "type": "array", "items": { "type": "string" }, "description": "For a third-party origin: update, replace, configure, tell the vendor, or list in a statement of partial conformance." }
+      }
+    },
+    "decision": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "reason", "by", "date"],
+          "properties": {
+            "status": { "enum": ["accepted", "dismissed"] },
+            "reason": { "type": "string", "description": "Why, in a few words, for example: false positive, confirmed accessible, accepted risk." },
+            "note": { "type": "string", "description": "An optional free note of the person, next to the reason." },
+            "by": { "type": "string" },
+            "date": { "type": "string", "format": "date" }
+          }
+        },
+        { "type": "null" }
+      ]
+    },
+    "untrusted_fields": { "type": "array", "items": { "type": "string" } }
+  }
+}

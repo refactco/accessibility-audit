@@ -1,0 +1,17 @@
+{
+  "schema": "history/1",
+  "run": "2026-10-12T02:00Z",
+  "started": "2026-10-12T02:00:00Z",
+  "duration_seconds": 15840,
+  "kind": "full",
+  "started_by": "schedule",
+  "environment": "production",
+  "versions": { "engine": "0.1.0", "axe_core": "4.14.0", "browser": "Chromium 142.0.7444.59", "rules_hash": "sha256:3e5a9c", "skill": "0.1.0", "model": "claude-fable-5-1" },
+  "baseline": false,
+  "counts": { "new": 3, "open": 41, "resolved": 7, "resolved_rule_changed": 0, "reopened": 1, "not_checked": 2, "page_removed": 1, "accepted": 4, "dismissed": 2 },
+  "coverage": { "pages_found": 412, "pages_tested": 410, "pages_not_tested": 2, "pages_in_sample": 53, "states_tested": 318, "processes_tested": 1, "processes_not_tested": 1, "tests_not_run": ["form tests on production"], "budget_reached": [] },
+  "renders": 3690,
+  "questions_answered": { "ai": 152, "person": 19 },
+  "source_commit": "a1b2c3d",
+  "build_id": "2026.10.11-4"
+}

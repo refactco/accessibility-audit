@@ -1,0 +1,55 @@
+{
+  "schema": "config/1",
+  "site": {
+    "url": "https://www.example.com",
+    "environment": "production",
+    "standard": "WCAG 2.2",
+    "level": "AA",
+    "languages": ["en"],
+    "sets": [{ "name": "site", "patterns": ["/**"] }],
+    "cms": { "type": "wordpress", "api_url": "https://www.example.com/wp-json/wp/v2" },
+    "build_id": { "source": "meta", "name": "generator" }
+  },
+  "crawl": {
+    "widths": [390, 768, 1280],
+    "max_pages": 5000,
+    "skip": ["/wp-admin/**", "/feed/**"],
+    "address_groups": [{ "pattern": "/events/*/*/", "limit": 20 }, { "pattern": "/page/*/", "limit": 5 }],
+    "parameters": { "keep": ["s", "page"] },
+    "rate_limit": 2,
+    "permitted_domains": ["www.example.com", "example.com"],
+    "obey_robots": true,
+    "cookie_banner": { "selector": "#cookie-banner", "dismiss_selector": "#cookie-banner button.accept" },
+    "templates": [
+      { "name": "home", "pattern": "/", "example_page": "/" },
+      { "name": "post", "pattern": "/blog/*", "example_page": "/blog/our-team" },
+      { "name": "page", "pattern": "/*", "example_page": "/pricing" }
+    ],
+    "sample_pages": ["/contact", "/accessibility-statement"],
+    "random_sample_share": 0.1
+  },
+  "interaction": {
+    "deny_list": ["delete", "remove", "pay", "buy", "order", "send", "submit", "subscribe", "unsubscribe", "log out", "sign out", "cancel"],
+    "tests_that_send_data": false,
+    "max_states_per_page": 10,
+    "processes": [
+      {
+        "name": "contact",
+        "environment": "staging",
+        "steps": [
+          { "page": "/contact", "action": "fill the form with test data" },
+          { "page": "/contact", "action": "click 'Send'" },
+          { "page": "/contact/thank-you", "action": "none" }
+        ]
+      }
+    ]
+  },
+  "login": {
+    "method": "storage_state",
+    "login_url": "/wp-login.php",
+    "roles": [{ "name": "subscriber", "secret_name": "A11Y_STORAGE_STATE_SUBSCRIBER" }]
+  },
+  "budgets": { "concurrency": 4, "time_budget_minutes": 480, "max_pages": 5000, "max_questions_per_audit": 500, "max_issues_for_skill": 200 },
+  "baseline": { "assistive_technologies": ["VoiceOver on macOS 26 with Safari 26"] },
+  "schedule": { "interval": "weekly" }
+}

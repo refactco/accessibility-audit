@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": { "noCheck": false, "noEmit": true, "strict": true, "types": ["node"], "esModuleInterop": true, "allowSyntheticDefaultImports": true },
+  "include": ["src"]
+}

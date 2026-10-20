@@ -1,0 +1,9 @@
+node_modules/
+runs/
+*.log
+.DS_Store
+
+tests/seeded-faults/build/
+tests/seeded-faults/act/cases/
+tmp/
+dist/

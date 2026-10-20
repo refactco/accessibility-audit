@@ -1,0 +1,47 @@
+{
+  "schema": "issue/2",
+  "id": "ISS-7f3a9c21",
+  "status": "open",
+  "status_by": { "who": "engine", "mode": "automatic", "date": "2026-10-12", "run": "2026-10-12T02:00Z" },
+  "certainty": "fail",
+  "non_interference": false,
+  "rule": { "id": "button-name", "engine": "axe-core", "engine_version": "4.14.0" },
+  "wcag": { "criterion": "4.1.2", "level": "A", "principle": "robust" },
+  "affects": ["visual", "physical"],
+  "severity": "critical",
+  "summary": "The menu button has no accessible name.",
+  "reach": { "pages": 412, "occurrences": 824, "templates": ["post", "page", "archive"], "widths": [390, 768, 1280] },
+  "first_seen": "2026-10-01",
+  "last_seen": "2026-10-12",
+  "environment": "production",
+  "question": null,
+  "replaces": null,
+  "origin": "code",
+  "source": [
+    { "file": "src/components/Header.tsx", "line": 42, "confidence": "probable", "method": "text search", "commit": "a1b2c3d" }
+  ],
+  "source_warning": null,
+  "examples": [
+    {
+      "url": "/pricing",
+      "width": 390,
+      "state": [],
+      "selector": "header button.nav-toggle",
+      "html": "<button class=\"nav-toggle\"><svg aria-hidden=\"true\"></svg></button>",
+      "facts": { "role": "button", "name": "" },
+      "screenshot": "runs/2026-10-12/ISS-7f3a9c21.png"
+    }
+  ],
+  "solution": {
+    "type": "specific",
+    "summary": "Give the menu button an accessible name.",
+    "steps": [
+      "Open src/components/Header.tsx at line 42.",
+      "Add aria-label=\"Menu\" to the button element."
+    ],
+    "example": "<button class=\"nav-toggle\" aria-label=\"Menu\">",
+    "expected_result": "A screen reader says \"Menu, button\"."
+  },
+  "decision": null,
+  "untrusted_fields": ["examples[].html", "examples[].facts"]
+}

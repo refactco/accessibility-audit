@@ -1,0 +1,303 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/question/2",
+  "title": "Accessibility Audit review question or person check (questions/Q-*.json)",
+  "description": "One narrow question about one item. The AI answers first. A person confirms the answers with low confidence and a random sample. See PLAN.md sections 7.3, 7.4, and 8.4.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "id",
+    "kind",
+    "issue",
+    "criterion",
+    "fingerprint",
+    "item_hash",
+    "context",
+    "question",
+    "evidence",
+    "ai_answer",
+    "sample",
+    "person_answer",
+    "pages"
+  ],
+  "properties": {
+    "schema": {
+      "const": "question/2"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^Q-[0-9a-f]{8}$"
+    },
+    "kind": {
+      "enum": [
+        "review",
+        "person"
+      ],
+      "description": "review: the AI answers first. person: only a person answers."
+    },
+    "issue": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^ISS-[0-9a-f]{8}$"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The issue that the answer made, or null."
+    },
+    "criterion": {
+      "type": "string",
+      "pattern": "^[1-4]\\.[1-5]\\.[0-9]{1,2}$"
+    },
+    "fingerprint": {
+      "type": "string",
+      "description": "The fingerprint of the component or content item. For 1.1.1, 2.4.2, 2.4.4, and 2.4.6 it includes the context."
+    },
+    "item_hash": {
+      "type": "string",
+      "description": "A hash of the item. The answer stays valid while the hash stays the same."
+    },
+    "context": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Untrusted. The text around the item, for the context-dependent criteria."
+    },
+    "question": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evidence": {
+      "type": "object",
+      "description": "Untrusted. The facts that the answer needs, for example the image path and the alt text.",
+      "properties": {
+        "image": {
+          "type": "string",
+          "description": "A path under runs/, not in Git."
+        },
+        "url": {
+          "type": "string"
+        },
+        "selector": {
+          "type": "string"
+        },
+        "html": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ai_answer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "confidence",
+            "reason",
+            "model",
+            "prompt_version",
+            "date"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "issue",
+                "no issue",
+                "unsure"
+              ],
+              "description": "The same two answers as the person: this is an issue, or this is not an issue. Unsure sends the question to a person."
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "prompt_version": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "facts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The facts that the answer relies on, in plain words, one each. A person can confirm them without knowledge of the rule."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sample": {
+      "type": "boolean",
+      "description": "True when the random sample selected the question for a person."
+    },
+    "person_answer": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "by",
+            "date"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "issue",
+                "no issue",
+                "not applicable"
+              ]
+            },
+            "by": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "note": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pages": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The count of pages that the answer closes."
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "For a person check: the steps of the check."
+    },
+    "facts_check": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "result",
+            "by",
+            "date"
+          ],
+          "properties": {
+            "result": {
+              "enum": [
+                "confirmed",
+                "wrong"
+              ]
+            },
+            "by": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "note": {
+              "type": "string",
+              "description": "Which fact is wrong, and what the person saw."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "A person confirmed the facts of the AI answer, or found one wrong. Confirmed facts count as agreement with the answer. A wrong fact sends the question back to the AI with the note."
+    },
+    "verification": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "confidence",
+            "reason",
+            "model",
+            "prompt_version",
+            "date"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "issue",
+                "no issue",
+                "unsure"
+              ],
+              "description": "The same two answers as the person: this is an issue, or this is not an issue. Unsure sends the question to a person."
+            },
+            "confidence": {
+              "enum": [
+                "low",
+                "medium",
+                "high"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "prompt_version": {
+              "type": "string"
+            },
+            "date": {
+              "type": "string",
+              "format": "date"
+            },
+            "facts": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "The facts that the answer relies on, in plain words, one each. A person can confirm them without knowledge of the rule."
+            },
+            "agrees": {
+              "type": "boolean",
+              "description": "True when the verification gives the same value as the first AI answer."
+            }
+          }
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The second, independent AI answer. The verifier did not see the first answer. Two equal answers decide the question. A disagreement, or an unsure answer, leaves the question unresolved, and the report says so. A person's answer still wins."
+    }
+  }
+}

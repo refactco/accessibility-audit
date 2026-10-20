@@ -1,0 +1,9 @@
+{
+  "schema": "decision/1",
+  "result": "passed",
+  "criterion": "1.2.1",
+  "scope": { "pages": { "/": "4f1c9a0e2b7d6c31" } },
+  "by": "Hossein Karami",
+  "date": "2026-10-14",
+  "note": "The transcript next to the recording is complete."
+}

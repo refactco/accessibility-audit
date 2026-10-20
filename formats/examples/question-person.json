@@ -1,0 +1,21 @@
+{
+  "schema": "question/2",
+  "id": "Q-5a1d77c3",
+  "kind": "person",
+  "issue": null,
+  "criterion": "1.2.2",
+  "fingerprint": "content:attachment-4102",
+  "item_hash": "sha256:1b4e8d2c7a9f0e35",
+  "context": null,
+  "question": "Does the video have captions, and are they correct?",
+  "evidence": { "url": "/blog/product-tour", "selector": "iframe[src*='youtube.com/embed/']", "html": "<iframe src=\"https://www.youtube.com/embed/abc123\" title=\"Product tour\"></iframe>" },
+  "ai_answer": null,
+  "sample": false,
+  "person_answer": null,
+  "pages": 1,
+  "steps": [
+    "Open /blog/product-tour and play the video.",
+    "Switch the captions on.",
+    "Make sure that the captions give all speech and important sounds, in the correct order."
+  ]
+}

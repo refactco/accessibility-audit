@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/config/1",
+  "title": "Accessibility Audit settings (config.json)",
+  "description": "The settings of one audited site. See PLAN.md section 8.2. Secrets never go into this file.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "site"],
+  "properties": {
+    "schema": { "const": "config/1" },
+    "site": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url", "environment"],
+      "properties": {
+        "url": { "type": "string", "format": "uri", "description": "The address of the site, with the scheme." },
+        "environment": { "enum": ["production", "staging", "local"] },
+        "standard": { "const": "WCAG 2.2", "default": "WCAG 2.2" },
+        "level": { "const": "AA", "default": "AA" },
+        "languages": { "type": "array", "items": { "type": "string" }, "description": "BCP 47 tags of the languages of the site, for example en, fr-CA." },
+        "sets": {
+          "type": "array",
+          "description": "Sets of web pages for the site tests. The default is one set for the whole site.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "patterns"],
+            "properties": {
+              "name": { "type": "string" },
+              "patterns": { "type": "array", "items": { "type": "string" }, "description": "Address patterns, as globs." }
+            }
+          }
+        },
+        "cms": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "type": { "enum": ["wordpress", "headless-wordpress", "other", "none"] },
+            "api_url": { "type": "string", "format": "uri", "description": "The address of the CMS REST API, for example the WordPress REST API." },
+            "graphql_url": { "type": "string", "format": "uri", "description": "The address of the CMS GraphQL API, when the site uses one, for example WPGraphQL." },
+            "source_path": { "type": "string", "description": "The path of the source repository, relative to the results folder, for the skill." }
+          }
+        },
+        "build_id": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where the live site shows its build, so that the issue can compare it with the commit of the source.",
+          "properties": {
+            "source": { "enum": ["header", "meta", "url"] },
+            "name": { "type": "string", "description": "The header name, the meta name, or the address." }
+          }
+        }
+      }
+    },
+    "crawl": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "widths": { "type": "array", "items": { "type": "integer", "minimum": 320 }, "default": [390, 768, 1280] },
+        "max_pages": { "type": "integer", "minimum": 1 },
+        "skip": { "type": "array", "items": { "type": "string" }, "description": "Address patterns that the crawler does not open." },
+        "address_groups": {
+          "type": "array",
+          "description": "Address groups with no end, for example a calendar, with a limit of pages.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["pattern", "limit"],
+            "properties": { "pattern": { "type": "string" }, "limit": { "type": "integer", "minimum": 0 } }
+          }
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Which query parameters make a different page. All others are removed.",
+          "properties": { "keep": { "type": "array", "items": { "type": "string" } } }
+        },
+        "rate_limit": { "type": "number", "exclusiveMinimum": 0, "description": "Page loads for each second, over all workers. The assets of a page do not count. The engine records the crawl delay of robots.txt and warns when this value is faster." },
+        "permitted_domains": { "type": "array", "items": { "type": "string" } },
+        "obey_robots": { "type": "boolean", "default": true, "description": "Obey the Disallow rules of robots.txt. The rate limit comes from rate_limit, not from the crawl delay." },
+        "cookie_banner": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "selector": { "type": "string", "description": "The CSS selector of the banner container." },
+            "dismiss_selector": { "type": "string", "description": "The CSS selector of the button that closes the banner." }
+          }
+        },
+        "templates": {
+          "type": "array",
+          "description": "The page templates, each with its pinned example page.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "example_page"],
+            "properties": {
+              "name": { "type": "string" },
+              "pattern": { "type": "string" },
+              "example_page": { "type": "string", "format": "uri-reference" }
+            }
+          }
+        },
+        "sample_pages": { "type": "array", "items": { "type": "string", "format": "uri-reference" }, "description": "Other pages for the template tests." },
+        "random_sample_share": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.1 }
+      }
+    },
+    "interaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "deny_list": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": ["delete", "remove", "pay", "buy", "order", "send", "submit", "subscribe", "unsubscribe", "log out", "sign out", "cancel"],
+          "description": "Names of controls that the tests never operate."
+        },
+        "tests_that_send_data": { "type": "boolean", "default": false, "description": "Permission for text entry and form submission. Never true on production without a test account." },
+        "max_states_per_page": { "type": "integer", "minimum": 0, "default": 10 },
+        "processes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "environment", "steps"],
+            "properties": {
+              "name": { "type": "string" },
+              "environment": { "enum": ["production", "staging", "local"], "description": "Where this process can run." },
+              "account": { "type": "string", "description": "The name of the login role that the process uses. When the secret of the role is absent, the engine does not test the process, and the summary gives the reason." },
+              "steps": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["page", "action"],
+                  "properties": {
+                    "page": { "type": "string", "format": "uri-reference" },
+                    "action": { "type": "string", "description": "One action that the engine does on the page. The forms: click <name or CSS selector>; fill <field> with <value>; select <option> in <field>; check <checkbox>; press <Key>; read (no action, test the page as it is). A name matches the accessible name, the placeholder, or the name attribute of the control, for example: click 'Add to cart'; fill 'Email' with 'audit@example.com'. A step that enters data or submits a form needs tests_that_send_data." }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "login": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "method": { "enum": ["none", "form", "storage_state"] },
+        "login_url": { "type": "string", "format": "uri-reference" },
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "secret_name"],
+            "properties": {
+              "name": { "type": "string" },
+              "secret_name": { "type": "string", "description": "The environment variable that holds the credentials, or the path of the Playwright storage state file. Never the secret itself." }
+            }
+          }
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "concurrency": { "type": "integer", "minimum": 1, "default": 4 },
+        "sample_share": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.1, "description": "The share of the AI answers that a person confirms, chosen at random by the question ID. All low confidence answers go to a person too. Lower it when the agreement of the AI and the person stays high." },
+        "time_budget_minutes": { "type": "integer", "minimum": 1 },
+        "max_pages": { "type": "integer", "minimum": 1 },
+        "max_questions_per_audit": { "type": "integer", "minimum": 0 },
+        "max_issues_for_skill": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "assistive_technologies": { "type": "array", "items": { "type": "string" }, "description": "The assistive technologies of the person checks, for example 'VoiceOver 26 with Safari 26'." }
+      }
+    },
+    "schedule": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "interval": { "enum": ["weekly", "monthly", "daily", "manual"], "default": "weekly" }
+      }
+    }
+  }
+}

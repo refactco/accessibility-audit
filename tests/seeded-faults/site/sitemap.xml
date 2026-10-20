@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>http://127.0.0.1:8080/index.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/articles.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/storage.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/products.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/order.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/order-review.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/order-done.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/help.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/account.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/sitemap.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/privacy.html</loc></url>
+  <url><loc>http://127.0.0.1:8080/search.html</loc></url>
+</urlset>

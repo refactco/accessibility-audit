@@ -1,0 +1,36 @@
+{
+  "schema": "summary/1",
+  "site": "https://www.example.com",
+  "run": "2026-10-12T02:00Z",
+  "date": "2026-10-12",
+  "standard": "WCAG 2.2",
+  "level": "AA",
+  "versions": { "engine": "0.1.0", "axe_core": "4.14.0", "browser": "Chromium 142.0.7444.59", "rules_hash": "sha256:3e5a9c" },
+  "baseline": false,
+  "counts": { "new": 3, "open": 41, "resolved": 7, "resolved_rule_changed": 0, "reopened": 1, "not_checked": 2, "page_removed": 1, "accepted": 4, "dismissed": 2 },
+  "coverage": {
+    "pages_found": 412,
+    "pages_tested": 410,
+    "pages_not_tested": 2,
+    "pages_in_sample": 53,
+    "states_tested": 318,
+    "processes_tested": 1,
+    "processes_not_tested": 1,
+    "tests_not_run": ["form tests on production"],
+    "budget_reached": []
+  },
+  "criteria": {
+    "1.1.1": { "result": "failed", "method": "auto+review", "coverage": { "tested_units": 1230, "all_units": 1236, "definition": "page" }, "issues": 12, "accepted": 1, "ai_only_answers": 140, "open_questions": 3 },
+    "1.2.2": { "result": "needs a person", "method": "person", "coverage": { "tested_units": 1230, "all_units": 1236, "definition": "page" }, "issues": 0, "open_questions": 4 },
+    "2.4.7": { "result": "no issue found", "method": "auto", "coverage": { "tested_units": 159, "all_units": 159, "definition": "template" }, "issues": 0 },
+    "1.4.4": { "result": "passed", "method": "auto+review", "coverage": { "tested_units": 1230, "all_units": 1236, "definition": "page" }, "issues": 0, "person_result": { "result": "passed", "by": "Name", "date": "2026-10-13", "scope": ["template:post", "template:page"], "void": false } }
+  },
+  "processes": {
+    "contact": { "tested": true, "result": "needs review", "criteria": { "3.3.1": "needs review", "3.3.7": "needs a person" } },
+    "checkout": { "tested": false, "reason": "The process runs only on staging, and no staging address is in the settings." }
+  },
+  "groups": {
+    "visual": { "criteria": 38, "failed": 6, "needs_review": 9, "needs_a_person": 4 },
+    "seizure": { "criteria": 1, "failed": 0, "needs_review": 0, "needs_a_person": 1 }
+  }
+}

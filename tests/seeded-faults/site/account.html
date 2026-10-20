@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in: Harbor Market</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site">
+  <a class="brand" href="index.html">Harbor Market</a>
+  <nav class="primary" aria-label="Main">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="articles.html">Articles</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="order.html">Order</a></li>
+    </ul>
+  </nav>
+  <form class="site-search" role="search" action="search.html" method="get">
+    <label for="q" class="visually-hidden">Search the site</label>
+    <input type="search" id="q" name="q">
+    <button type="submit">Search</button>
+  </form>
+  <div class="util">
+    <a href="help.html">Help</a>
+    <a href="help.html#contact">Contact</a>
+    <a href="account.html" aria-current="page">Account</a>
+  </div>
+</header>
+<main id="main">
+  <h1>Sign in</h1>
+  <p>Your browser or your password manager can fill both fields. All fields are required.</p>
+  <form id="login-form" data-validate action="account.html" method="get" novalidate>
+    <div class="error-summary" tabindex="-1" hidden></div>
+    <div class="field">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" name="email" autocomplete="username" required>
+      <p class="error" id="login-email-error"></p>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" required>
+      <p class="error" id="password-error"></p>
+    </div>
+    <button type="submit" class="primary">Sign in</button>
+    <p class="done status" tabindex="-1" hidden>You are signed in.</p>
+  </form>
+  <p id="link">No password? <a href="account.html#link">Get a sign-in link by email</a>.</p>
+</main>
+<footer class="site">
+  <ul>
+    <li><a href="sitemap.html">Sitemap</a></li>
+    <li><a href="help.html#contact">Contact us</a></li>
+    <li><a href="privacy.html">Privacy</a></li>
+  </ul>
+  <p class="muted">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

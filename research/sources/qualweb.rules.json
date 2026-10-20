@@ -1,0 +1,2384 @@
+{
+  "engine": "qualweb",
+  "packages": {
+    "@qualweb/act-rules": "0.8.6",
+    "@qualweb/wcag-techniques": "0.4.9"
+  },
+  "commit": "647cf5dbbc9c9dab09e0b9568a1a6a7aba37036e",
+  "commit_date": "2026-09-26",
+  "source": "https://github.com/qualweb/qualweb (packages/act-rules, packages/wcag-techniques)",
+  "extracted_on": "2026-10-13",
+  "method": "Parsed packages/act-rules/src/lib/rules.json and packages/wcag-techniques/src/lib/techniques.json (name, code, mapping, description, metadata.success-criteria[].name, metadata.related, metadata.url) with a Python script that reads the files as text; versions come from each module's package.json. The 'outcomes' list is the set of Verdict enum members (FAILED, WARNING, PASSED, INAPPLICABLE from @qualweb/core) that appear in the rule's TypeScript file after comments are removed; every such use in these files sets a verdict (assignment, 'new Test(Verdict.X)', the emit() helper or a ternary). For the seven composite rules listed in packages/act-rules/src/lib/mappingComposite.ts, whose execute() is a stub, 'outcomes' is the union of the outcomes of the atomic rules they combine (CompositeRule.conjunction/disjunction only emit failed, warning or passed); the 'composite' field records the combination. Note that a rule which produces no test result gets the module-level outcome 'inapplicable' from the base class, so 'inapplicable' here means the rule's own code emits that verdict explicitly. For act-rules, 'act' is the ACT rule id in 'mapping' and 'techniques' lists the WCAG technique ids found in 'related'; for wcag-techniques, 'techniques' is the technique id in 'mapping' (the merged id C121314 is expanded to C12, C13, C14) and 'act' is empty. 'related' and 'url' are copied from the metadata as extra fields.",
+  "rules": [
+    {
+      "id": "QW-ACT-R1",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R1.ts",
+      "name": "HTML page has non-empty title",
+      "criteria": [
+        "2.4.2"
+      ],
+      "act": [
+        "2779a5"
+      ],
+      "techniques": [
+        "G88",
+        "H25"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that a non-embedded HTML page has a non-empty title.",
+      "related": [
+        "G88",
+        "H25"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/2779a5/"
+    },
+    {
+      "id": "QW-ACT-R2",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R2.ts",
+      "name": "HTML page has lang attribute",
+      "criteria": [
+        "3.1.1"
+      ],
+      "act": [
+        "b5c3f8"
+      ],
+      "techniques": [
+        "H57"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that an HTML page has a non-empty lang attribute.",
+      "related": [
+        "H57"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/b5c3f8/"
+    },
+    {
+      "id": "QW-ACT-R4",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R4.ts",
+      "name": "Meta element has no refresh delay",
+      "criteria": [
+        "2.2.1",
+        "2.2.4",
+        "3.2.5"
+      ],
+      "act": [
+        "bc659a"
+      ],
+      "techniques": [
+        "G110",
+        "H76"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the meta element is not used for delayed redirecting or refreshing.",
+      "related": [
+        "G110",
+        "H76"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/bc659a/"
+    },
+    {
+      "id": "QW-ACT-R5",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R5.ts",
+      "name": "HTML page lang attribute has valid language tag",
+      "criteria": [
+        "3.1.1"
+      ],
+      "act": [
+        "bf051a"
+      ],
+      "techniques": [
+        "H57"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the lang attribute of the root element of a non-embedded HTML page has a language tag with a known primary language subtag.",
+      "related": [
+        "H57"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/bf051a/"
+    },
+    {
+      "id": "QW-ACT-R6",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R6.ts",
+      "name": "Image button has non-empty accessible name",
+      "criteria": [
+        "1.1.1",
+        "4.1.2"
+      ],
+      "act": [
+        "59796f"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each image button element has a non-empty accessible name.",
+      "related": [
+        "G94",
+        "G95"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/59796f/"
+    },
+    {
+      "id": "QW-ACT-R7",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R7.ts",
+      "name": "Orientation of the page is not restricted using CSS transform property",
+      "criteria": [
+        "1.3.4"
+      ],
+      "act": [
+        "b33eff"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that page content is not restricted to either landscape or portrait orientation using CSS transform property.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/b33eff/"
+    },
+    {
+      "id": "QW-ACT-R9",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R9.ts",
+      "name": "Links with identical accessible names have equivalent purpose",
+      "criteria": [
+        "2.4.9"
+      ],
+      "act": [
+        "b20e66"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that links with identical accessible names resolve to the same resource or equivalent resources.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/b20e66/"
+    },
+    {
+      "id": "QW-ACT-R10",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R10.ts",
+      "name": "Iframe elements with identical accessible names have equivalent purpose",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "4b1c6c"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that iframe elements with identical accessible names embed the same resource or equivalent resources.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/4b1c6c/"
+    },
+    {
+      "id": "QW-ACT-R11",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R11.ts",
+      "name": "Button has non-empty accessible name",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "97a4e1"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each button element has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/97a4e1/"
+    },
+    {
+      "id": "QW-ACT-R12",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R12.ts",
+      "name": "Link has non-empty accessible name",
+      "criteria": [
+        "2.4.4",
+        "2.4.9",
+        "4.1.2"
+      ],
+      "act": [
+        "c487ae"
+      ],
+      "techniques": [
+        "G91"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each link has a non-empty accessible name.",
+      "related": [
+        "G91"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/c487ae/"
+    },
+    {
+      "id": "QW-ACT-R13",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R13.ts",
+      "name": "Element with aria-hidden has no content in sequential focus navigation",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "6cfa84"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that elements with an aria-hidden attribute do not contain elements that are part of the sequential focus navigation and focusable.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/6cfa84/"
+    },
+    {
+      "id": "QW-ACT-R14",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R14.ts",
+      "name": "Meta viewport allows for zoom",
+      "criteria": [
+        "1.4.4"
+      ],
+      "act": [
+        "b4f0c3"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "This rule checks that the meta element retains the user agent ability to zoom.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/b4f0c3/"
+    },
+    {
+      "id": "QW-ACT-R15",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R15.ts",
+      "name": "Audio or video element avoids automatically playing audio",
+      "criteria": [
+        "1.4.2"
+      ],
+      "act": [
+        "80f0bf"
+      ],
+      "techniques": [
+        "G60",
+        "G170",
+        "G171"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that audio or video that plays automatically does not have audio that lasts for more than 3 seconds or has an audio control mechanism to stop or mute it.",
+      "related": [
+        "G60",
+        "G170",
+        "G171"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/80f0bf/",
+      "composite": {
+        "implementation": "disjunction",
+        "rules": [
+          "QW-ACT-R49",
+          "QW-ACT-R50"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R16",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R16.ts",
+      "name": "Form field has non-empty accessible name",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "e086e5"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each form field element has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/e086e5/"
+    },
+    {
+      "id": "QW-ACT-R17",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R17.ts",
+      "name": "Image has non-empty accessible name",
+      "criteria": [
+        "1.1.1"
+      ],
+      "act": [
+        "23a2a8"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each image either has a non-empty accessible name or is marked up as decorative.",
+      "related": [
+        "G94",
+        "G95"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/23a2a8/"
+    },
+    {
+      "id": "QW-ACT-R19",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R19.ts",
+      "name": "Iframe element has non-empty accessible name",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "cae760"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each iframe element has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/cae760/"
+    },
+    {
+      "id": "QW-ACT-R20",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R20.ts",
+      "name": "Role attribute has valid value",
+      "criteria": [],
+      "act": [
+        "674b10"
+      ],
+      "techniques": [
+        "ARIA4",
+        "G108"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each role attribute has a valid value.",
+      "related": [
+        "ARIA4",
+        "G108"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/674b10/"
+    },
+    {
+      "id": "QW-ACT-R21",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R21.ts",
+      "name": "SVG element with explicit role has non-empty accessible name",
+      "criteria": [
+        "1.1.1"
+      ],
+      "act": [
+        "7d6734"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each SVG image element that is explicitly included in the accessibility tree has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/7d6734/"
+    },
+    {
+      "id": "QW-ACT-R22",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R22.ts",
+      "name": "Element with lang attribute has valid language tag",
+      "criteria": [
+        "3.1.2"
+      ],
+      "act": [
+        "de46e4"
+      ],
+      "techniques": [
+        "H58"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that a non-empty lang attribute of an element in the page has a language tag with a known primary language subtag.",
+      "related": [
+        "H58"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/de46e4/"
+    },
+    {
+      "id": "QW-ACT-R23",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R23.ts",
+      "name": "Video element visual content has accessible alternative",
+      "criteria": [
+        "1.2.3"
+      ],
+      "act": [
+        "c5a4ea"
+      ],
+      "techniques": [
+        "G8",
+        "G69",
+        "G78",
+        "G173"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that video elements with audio have an alternative for the video content as audio or as text.",
+      "related": [
+        "G8",
+        "G69",
+        "G78",
+        "G173"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/c5a4ea/",
+      "composite": {
+        "implementation": "conjunction",
+        "rules": [
+          "QW-ACT-R55",
+          "QW-ACT-R61",
+          "QW-ACT-R56"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R24",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R24.ts",
+      "name": "autocomplete attribute has valid value",
+      "criteria": [
+        "1.3.5"
+      ],
+      "act": [
+        "73f2c2"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the HTML autocomplete attribute has a correct value.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/73f2c2/"
+    },
+    {
+      "id": "QW-ACT-R25",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R25.ts",
+      "name": "ARIA state or property is permitted",
+      "criteria": [],
+      "act": [
+        "5c01ea"
+      ],
+      "techniques": [
+        "ARIA5"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that WAI-ARIA states or properties are allowed for the element they are specified on.",
+      "related": [
+        "ARIA5"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/5c01ea/"
+    },
+    {
+      "id": "QW-ACT-R26",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R26.ts",
+      "name": "Video element auditory content has accessible alternative",
+      "criteria": [
+        "1.2.2"
+      ],
+      "act": [
+        "eac66b"
+      ],
+      "techniques": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that video elements have an alternative for information conveyed through audio.",
+      "related": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/eac66b/",
+      "composite": {
+        "implementation": "conjunction",
+        "rules": [
+          "QW-ACT-R56",
+          "QW-ACT-R60"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R27",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R27.ts",
+      "name": "ARIA attribute is defined in WAI-ARIA",
+      "criteria": [],
+      "act": [
+        "5f99a7"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each aria- attribute specified is defined in ARIA 1.2.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/5f99a7/"
+    },
+    {
+      "id": "QW-ACT-R28",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R28.ts",
+      "name": "Element with role attribute has required states and properties",
+      "criteria": [],
+      "act": [
+        "4e8ab6"
+      ],
+      "techniques": [
+        "ARIA5"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that elements that have an explicit role also specify all required states and properties.",
+      "related": [
+        "ARIA5"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/4e8ab6/"
+    },
+    {
+      "id": "QW-ACT-R29",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R29.ts",
+      "name": "Audio element content has text alternative",
+      "criteria": [
+        "1.2.1"
+      ],
+      "act": [
+        "e7aa44"
+      ],
+      "techniques": [
+        "G158"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that audio elements have a text alternative available.",
+      "related": [
+        "G158"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/e7aa44/",
+      "composite": {
+        "implementation": "conjunction",
+        "rules": [
+          "QW-ACT-R58",
+          "QW-ACT-R59"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R30",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R30.ts",
+      "name": "Visible label is part of accessible name",
+      "criteria": [
+        "2.5.3"
+      ],
+      "act": [
+        "2ee8b8"
+      ],
+      "techniques": [
+        "G208"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "This rule checks that interactive elements labeled through content have their visible label as part of their accessible name.",
+      "related": [
+        "G208"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/2ee8b8/"
+    },
+    {
+      "id": "QW-ACT-R31",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R31.ts",
+      "name": "Video element visual-only content has accessible alternative",
+      "criteria": [
+        "1.2.1"
+      ],
+      "act": [
+        "c3232f"
+      ],
+      "techniques": [
+        "G159",
+        "G166"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that video elements without audio have an alternative available.",
+      "related": [
+        "G159",
+        "G166"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/c3232f/",
+      "composite": {
+        "implementation": "conjunction",
+        "rules": [
+          "QW-ACT-R51",
+          "QW-ACT-R53",
+          "QW-ACT-R54"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R32",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R32.ts",
+      "name": "Video element visual content has strict accessible alternative",
+      "criteria": [
+        "1.2.5"
+      ],
+      "act": [
+        "1ec09b"
+      ],
+      "techniques": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that video elements with audio have audio description.",
+      "related": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/1ec09b/",
+      "composite": {
+        "implementation": "conjunction",
+        "rules": [
+          "QW-ACT-R55",
+          "QW-ACT-R56"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R33",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R33.ts",
+      "name": "ARIA required context role",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [
+        "ff89c9"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that an element with an explicit semantic role exists inside its required context.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/ff89c9/"
+    },
+    {
+      "id": "QW-ACT-R34",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R34.ts",
+      "name": "ARIA state or property has valid value",
+      "criteria": [],
+      "act": [
+        "6a7281"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each ARIA state or property has a valid value type.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/6a7281/"
+    },
+    {
+      "id": "QW-ACT-R35",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R35.ts",
+      "name": "Heading has non-empty accessible name",
+      "criteria": [],
+      "act": [
+        "ffd0e9"
+      ],
+      "techniques": [
+        "H42"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each heading has a non-empty accessible name.",
+      "related": [
+        "H42"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/ffd0e9/"
+    },
+    {
+      "id": "QW-ACT-R36",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R36.ts",
+      "name": "headers attribute specified on a cell refers to cells in the same table element",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [
+        "a25f45"
+      ],
+      "techniques": [
+        "H43"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "This rule checks that the headers attribute on a cell refer to other cells in the same table element.",
+      "related": [
+        "H43"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/a25f45/"
+    },
+    {
+      "id": "QW-ACT-R37",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R37.ts",
+      "name": "Text has minimum contrast",
+      "criteria": [
+        "1.4.3"
+      ],
+      "act": [
+        "afw4f7"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that the highest possible contrast of every text character with its background meets the minimal contrast requirement.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/afw4f7/"
+    },
+    {
+      "id": "QW-ACT-R38",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R38.ts",
+      "name": "ARIA required owned elements",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [
+        "bc4a75"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that an element with a semantic role that has required owned elements owns at least one of those required owned elements.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/bc4a75/"
+    },
+    {
+      "id": "QW-ACT-R39",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R39.ts",
+      "name": "Table header cell has assigned cells",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [
+        "d0f69e"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each table header has assigned cells in a table element.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/d0f69e/"
+    },
+    {
+      "id": "QW-ACT-R40",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R40.ts",
+      "name": "Zoomed text node is not clipped with CSS overflow",
+      "criteria": [
+        "1.4.4"
+      ],
+      "act": [
+        "59br37"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that text nodes are not unintentionally clipped by overflow, when a page is zoomed to 200% on 1280 by 1024 viewport.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/59br37/"
+    },
+    {
+      "id": "QW-ACT-R41",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R41.ts",
+      "name": "Error message describes invalid form field value",
+      "criteria": [
+        "3.3.1"
+      ],
+      "act": [
+        "36b590"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that text error messages provided when the user completes a form field with invalid values or using an invalid format, identify the cause of the error or how to fix the error.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/36b590/"
+    },
+    {
+      "id": "QW-ACT-R42",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R42.ts",
+      "name": "Object element rendering non-text content has non-empty accessible name",
+      "criteria": [
+        "1.1.1"
+      ],
+      "act": [
+        "8fc3b6"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each object element rendering non-text content has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/8fc3b6/"
+    },
+    {
+      "id": "QW-ACT-R43",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R43.ts",
+      "name": "Scrollable content can be reached with sequential focus navigation",
+      "criteria": [
+        "2.1.1",
+        "2.1.3"
+      ],
+      "act": [
+        "0ssw9k"
+      ],
+      "techniques": [
+        "G202"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that scrollable elements or their descendants can be reached with sequential focus navigation so that they can be scrolled by keyboard",
+      "related": [
+        "G202"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/0ssw9k/"
+    },
+    {
+      "id": "QW-ACT-R44",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R44.ts",
+      "name": "Links with identical accessible names and same context serve equivalent purpose",
+      "criteria": [
+        "2.4.4"
+      ],
+      "act": [
+        "fd3a94"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that links with identical accessible names in the same context resolve to the same or equivalent resources.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/fd3a94/"
+    },
+    {
+      "id": "QW-ACT-R48",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R48.ts",
+      "name": "Element marked as decorative is not exposed",
+      "criteria": [],
+      "act": [
+        "46ca7f"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that elements marked as decorative either are not included in the accessibility tree, or have a presentational role.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/46ca7f/"
+    },
+    {
+      "id": "QW-ACT-R49",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R49.ts",
+      "name": "Audio or video element that plays automatically has no audio that lasts more than 3 seconds",
+      "criteria": [],
+      "act": [
+        "aaa1bf"
+      ],
+      "techniques": [
+        "G60"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "audio or video that plays automatically does not output audio for more than 3 seconds.",
+      "related": [
+        "G60"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/aaa1bf/"
+    },
+    {
+      "id": "QW-ACT-R50",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R50.ts",
+      "name": "Audio or video element that plays automatically has a control mechanism",
+      "criteria": [],
+      "act": [
+        "4c31df"
+      ],
+      "techniques": [
+        "G170"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "audio or video that plays automatically must have a control mechanism.",
+      "related": [
+        "G170"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/4c31df/"
+    },
+    {
+      "id": "QW-ACT-R51",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R51.ts",
+      "name": "Video element visual-only content is media alternative for text",
+      "criteria": [],
+      "act": [
+        "fd26cf"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks non-streaming silent video is a media alternative for text on the page.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/fd26cf/"
+    },
+    {
+      "id": "QW-ACT-R53",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R53.ts",
+      "name": "Video element visual-only content has transcript",
+      "criteria": [],
+      "act": [
+        "ee13b5"
+      ],
+      "techniques": [
+        "G159"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "Non-streaming video elements without audio must have all visual information available in a transcript.",
+      "related": [
+        "G159"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/ee13b5/"
+    },
+    {
+      "id": "QW-ACT-R54",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R54.ts",
+      "name": "Video element visual-only content has audio track alternative",
+      "criteria": [],
+      "act": [
+        "d7ba54"
+      ],
+      "techniques": [
+        "G166"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "Non-streaming video elements without audio must have an audio alternative.",
+      "related": [
+        "G166"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/d7ba54/"
+    },
+    {
+      "id": "QW-ACT-R55",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R55.ts",
+      "name": "Video element visual content has audio description",
+      "criteria": [],
+      "act": [
+        "1ea59c"
+      ],
+      "techniques": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that non-streaming video elements have all visual information also contained in the audio.",
+      "related": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/1ea59c/"
+    },
+    {
+      "id": "QW-ACT-R56",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R56.ts",
+      "name": "Video element content is media alternative for text",
+      "criteria": [],
+      "act": [
+        "ab4d13"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks non-streaming video is a media alternative for text on the page.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/ab4d13/"
+    },
+    {
+      "id": "QW-ACT-R58",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R58.ts",
+      "name": "Audio element content has transcript",
+      "criteria": [],
+      "act": [
+        "2eb176"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that audio elements have a transcript that includes all auditory information.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/2eb176/"
+    },
+    {
+      "id": "QW-ACT-R59",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R59.ts",
+      "name": "Audio element content is media alternative for text",
+      "criteria": [],
+      "act": [
+        "afb423"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that the audio is a media alternative for text on the page.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/afb423/"
+    },
+    {
+      "id": "QW-ACT-R60",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R60.ts",
+      "name": "Video element auditory content has captions",
+      "criteria": [],
+      "act": [
+        "f51b46"
+      ],
+      "techniques": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that captions are available for audio information in non-streaming video elements.",
+      "related": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/f51b46/"
+    },
+    {
+      "id": "QW-ACT-R61",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R61.ts",
+      "name": "Audio and visuals of video element have transcript",
+      "criteria": [
+        "1.2.8"
+      ],
+      "act": [
+        "1a02b0"
+      ],
+      "techniques": [
+        "G69"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that non-streaming video elements have all audio and visual information available in a transcript.",
+      "related": [
+        "G69"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/1a02b0/"
+    },
+    {
+      "id": "QW-ACT-R62",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R62.ts",
+      "name": "Element in sequential focus order has visible focus",
+      "criteria": [
+        "2.4.7"
+      ],
+      "act": [
+        "oj04fd"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "This rule checks that each element in sequential focus order has some visible focus indication.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/oj04fd/"
+    },
+    {
+      "id": "QW-ACT-R63",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R63.ts",
+      "name": "Document has a landmark with non-repeated content",
+      "criteria": [],
+      "act": [
+        "b40fd1"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that each page has an element with a landmark semantic role starting with non-repeated content",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/b40fd1/"
+    },
+    {
+      "id": "QW-ACT-R64",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R64.ts",
+      "name": "Document has heading for non-repeated content",
+      "criteria": [],
+      "act": [
+        "047fe0"
+      ],
+      "techniques": [
+        "H69"
+      ],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that the non-repeated content contains a heading",
+      "related": [
+        "H69"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/047fe0/"
+    },
+    {
+      "id": "QW-ACT-R65",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R65.ts",
+      "name": "Element with presentational children has no focusable content",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "307n5z"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that elements with a role that makes its children presentational do not contain focusable elements.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/307n5z/"
+    },
+    {
+      "id": "QW-ACT-R66",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R66.ts",
+      "name": "Menuitem has non-empty accessible name",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [
+        "m6b1q3"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that each element with a menuitem role has a non-empty accessible name.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/m6b1q3/"
+    },
+    {
+      "id": "QW-ACT-R67",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R67.ts",
+      "name": "Important letter spacing in style attributes is wide enough",
+      "criteria": [
+        "1.4.12"
+      ],
+      "act": [
+        "24afc2"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the style attribute is not used to prevent adjusting letter-spacing by using !important, except if it's at least 0.12 times the font size.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/24afc2/"
+    },
+    {
+      "id": "QW-ACT-R68",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R68.ts",
+      "name": "Important line height in style attributes is wide enough",
+      "criteria": [
+        "1.4.12"
+      ],
+      "act": [
+        "78fd32"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the style attribute is not used to prevent adjusting line-height by using !important, except if it's at least 1.5 times the font size.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/78fd32/"
+    },
+    {
+      "id": "QW-ACT-R69",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R69.ts",
+      "name": "Important word spacing in style attributes is wide enough",
+      "criteria": [
+        "1.4.12"
+      ],
+      "act": [
+        "9e45ec"
+      ],
+      "techniques": [],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the style attribute is not used to prevent adjusting word-spacing by using !important, except if it's at least 0.16 times the font size.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/9e45ec/"
+    },
+    {
+      "id": "QW-ACT-R70",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R70.ts",
+      "name": "Iframe with interactive elements is not excluded from tab-order",
+      "criteria": [
+        "2.1.1"
+      ],
+      "act": [
+        "akn7bn"
+      ],
+      "techniques": [
+        "G202"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "This rule checks that iframe elements which contain an interactive (tabbable) element are not excluded from sequential focus navigation.",
+      "related": [
+        "G202"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/akn7bn/"
+    },
+    {
+      "id": "QW-ACT-R71",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R71.ts",
+      "name": "Meta element has no refresh delay (no exception)",
+      "criteria": [
+        "2.2.4",
+        "3.2.5"
+      ],
+      "act": [
+        "bisz58"
+      ],
+      "techniques": [
+        "G110",
+        "H76"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that the meta element is not used for delayed redirecting or refreshing.",
+      "related": [
+        "G110",
+        "H76"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/bisz58/"
+    },
+    {
+      "id": "QW-ACT-R73",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R73.ts",
+      "name": "Block of repeated content is collapsible",
+      "criteria": [],
+      "act": [
+        "3e12e1"
+      ],
+      "techniques": [
+        "SCR28"
+      ],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that repeated blocks of content are collapsible.",
+      "related": [
+        "SCR28"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/3e12e1/"
+    },
+    {
+      "id": "QW-ACT-R74",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R74.ts",
+      "name": "Document has an instrument to move focus to non-repeated content",
+      "criteria": [],
+      "act": [
+        "ye5d6e"
+      ],
+      "techniques": [
+        "G1",
+        "G123",
+        "G124"
+      ],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that there is an instrument to move focus to non-repeated content in the page.",
+      "related": [
+        "G1",
+        "G123",
+        "G124"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/ye5d6e/"
+    },
+    {
+      "id": "QW-ACT-R75",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R75.ts",
+      "name": "Bypass Blocks of Repeated Content",
+      "criteria": [
+        "2.4.1"
+      ],
+      "act": [
+        "cf77f2"
+      ],
+      "techniques": [
+        "G1",
+        "G123",
+        "G124",
+        "H69",
+        "SCR28"
+      ],
+      "outcomes": [
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that each page has a mechanism to bypass repeated blocks of content.",
+      "related": [
+        "G1",
+        "G123",
+        "G124",
+        "H69",
+        "SCR28"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/cf77f2/",
+      "composite": {
+        "implementation": "disjunction",
+        "rules": [
+          "QW-ACT-R63",
+          "QW-ACT-R64",
+          "QW-ACT-R73",
+          "QW-ACT-R74"
+        ]
+      }
+    },
+    {
+      "id": "QW-ACT-R76",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R76.ts",
+      "name": "Text has enhanced contrast",
+      "criteria": [
+        "1.4.6"
+      ],
+      "act": [
+        "09o5cg"
+      ],
+      "techniques": [
+        "G17",
+        "G18"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "This rule checks that the highest possible contrast of every text character with its background meets the enhanced contrast requirement.",
+      "related": [
+        "G17",
+        "G18"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/09o5cg/"
+    },
+    {
+      "id": "QW-ACT-R77",
+      "module": "act-rules",
+      "file": "packages/act-rules/src/rules/QW-ACT-R77.ts",
+      "name": "ARIA required ID references exist",
+      "criteria": [],
+      "act": [
+        "in6db8"
+      ],
+      "techniques": [
+        "ARIA5"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This rule checks that every ID reference required by WAI-ARIA exists.",
+      "related": [
+        "ARIA5"
+      ],
+      "url": "https://www.w3.org/WAI/standards-guidelines/act/rules/in6db8/"
+    },
+    {
+      "id": "QW-WCAG-T1",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T1.ts",
+      "name": "Providing text alternatives for the area elements of image maps",
+      "criteria": [
+        "1.1.1",
+        "2.4.4",
+        "2.4.9"
+      ],
+      "act": [],
+      "techniques": [
+        "H24"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "This technique checks the text alternative of area elements of images maps",
+      "related": [
+        "G91",
+        "H30"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H24"
+    },
+    {
+      "id": "QW-WCAG-T2",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T2.ts",
+      "name": "Using caption elements to associate data table captions with data tables",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H39"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "This technique checks the caption element is correctly use on tables",
+      "related": [
+        "H51",
+        "H73",
+        "F46"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H39"
+    },
+    {
+      "id": "QW-WCAG-T3",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T3.ts",
+      "name": "Providing a description for groups of form controls using fieldset and legend elements",
+      "criteria": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "act": [],
+      "techniques": [
+        "H71"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "This technique checks the correct use of the description element for form controls",
+      "related": [
+        "H44",
+        "H65"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H71"
+    },
+    {
+      "id": "QW-WCAG-T4",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T4.ts",
+      "name": "Using the summary attribute of the table element to give an overview of data tables",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H73"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "This technique checks the correct use of the summary attribute for table elements",
+      "related": [
+        "H39",
+        "H51",
+        "F46"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H73"
+    },
+    {
+      "id": "QW-WCAG-T5",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T5.ts",
+      "name": "Using alt attributes on images used as submit buttons",
+      "criteria": [
+        "1.1.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H36"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "This technique checks all input elements that are buttons use alt text",
+      "related": [
+        "G94"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H36"
+    },
+    {
+      "id": "QW-WCAG-T6",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T6.ts",
+      "name": "Using both keyboard and other device-specific functions",
+      "criteria": [
+        "2.1.1"
+      ],
+      "act": [],
+      "techniques": [
+        "SCR20"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "The objective of this technique is to verify the parity of keyboard-specific and mouse-specific events when code that has a scripting function associated with an event is used",
+      "related": [
+        "G90"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/client-side-script/SCR20"
+    },
+    {
+      "id": "QW-WCAG-T7",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T7.ts",
+      "name": "Providing definitions for abbreviations by using the abbr element",
+      "criteria": [
+        "3.1.4"
+      ],
+      "act": [],
+      "techniques": [
+        "H28"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The objective of this technique is to provide expansions or definitions for abbreviations by using the abbr element",
+      "related": [
+        "G91",
+        "H30"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H28"
+    },
+    {
+      "id": "QW-WCAG-T8",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T8.ts",
+      "name": "Failure of Success Criterion 1.1.1 and 1.2.1 due to using text alternatives that are not alternatives",
+      "criteria": [
+        "1.1.1",
+        "1.2.1"
+      ],
+      "act": [],
+      "techniques": [
+        "F30"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "This describes a failure condition for all techniques involving text alternatives. If the text in the \"text alternative\" cannot be used in place of the non-text content without losing information or function then it fails because it is not, in fact, an alternative to the non-text content.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F30"
+    },
+    {
+      "id": "QW-WCAG-T9",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T9.ts",
+      "name": "Organizing a page using headings",
+      "criteria": [
+        "1.3.1",
+        "2.4.10"
+      ],
+      "act": [],
+      "techniques": [
+        "G141"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "The objective of this technique is to ensure that sections have headings that identify them and that the heading are used in the correct order",
+      "related": [
+        "G91",
+        "H30"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/general/G141"
+    },
+    {
+      "id": "QW-WCAG-T10",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T10.ts",
+      "name": "Combining adjacent image and text links for the same resource",
+      "criteria": [
+        "1.1.1",
+        "2.4.4",
+        "2.4.9"
+      ],
+      "act": [],
+      "techniques": [
+        "H2"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "The objective of this technique is to provide both text and iconic representations of links without making the web page more confusing or difficult for keyboard users or assistive technology users. Since different users finding text and icons more usable, providing both can improve the accessibility of the link.",
+      "related": [
+        "G91",
+        "G94",
+        "H30",
+        "C9",
+        "F89"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H2"
+    },
+    {
+      "id": "QW-WCAG-T11",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T11.ts",
+      "name": "Providing text alternatives on applet elements",
+      "criteria": [
+        "1.1.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H35"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "Provide a text alternative for an applet by using the alt attribute to label an applet and providing the text alternative in the body of the applet element. In this technique, both mechanisms are required due to the varying support of the alt attribute and applet body text by user agents.",
+      "related": [
+        "G94"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H35"
+    },
+    {
+      "id": "QW-WCAG-T12",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T12.ts",
+      "name": "Failure of Success Criterion 1.3.1 due to using th elements, caption elements, or non-empty summary attributes in layout tables",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "F46"
+      ],
+      "outcomes": [
+        "warning"
+      ],
+      "description": "The objective of this technique is to describe a failure that occurs when a table used only for layout includes either th elements, a summary attribute, or a caption element. This is a failure because it uses structural (or semantic) markup only for presentation. The intent of the HTML and XHTML table elements is to present data.",
+      "related": [
+        "H39",
+        "H51",
+        "H73"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F46"
+    },
+    {
+      "id": "QW-WCAG-T13",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T13.ts",
+      "name": "Failure of Success Criterion 2.2.2 due to using the blink element",
+      "criteria": [
+        "2.2.2"
+      ],
+      "act": [],
+      "techniques": [
+        "F47"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The blink element, while not part of the official HTML or XHTML specification, is supported by many user agents. It causes any text inside the element to blink at a predetermined rate. This cannot be interrupted by the user, nor can it be disabled as a preference. The blinking continues as long as the page is displayed. Therefore, content that uses blink fails the Success Criterion because blinking can continue for more than three seconds.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F47"
+    },
+    {
+      "id": "QW-WCAG-T14",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T14.ts",
+      "name": "Using id and headers attributes to associate data cells with header cells in data tables",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H43"
+      ],
+      "outcomes": [
+        "failed",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "This technique checks if data cells are associated with header cells in data tables",
+      "related": [],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H43"
+    },
+    {
+      "id": "QW-WCAG-T15",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T15.ts",
+      "name": "Using the link element and navigation tools",
+      "criteria": [
+        "2.4.5",
+        "2.4.8"
+      ],
+      "act": [],
+      "techniques": [
+        "H59"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed",
+        "inapplicable"
+      ],
+      "description": "The objective of this technique is to describe how the link element can provide metadata about the position of an HTML page within a set of Web pages or can assist in locating content with a set of Web pages.",
+      "related": [
+        "G1",
+        "G63",
+        "G64",
+        "G123"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H59"
+    },
+    {
+      "id": "QW-WCAG-T16",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T16.ts",
+      "name": "Using HTML according to spec",
+      "criteria": [
+        "4.1.1",
+        "4.1.2"
+      ],
+      "act": [],
+      "techniques": [
+        "H88"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "This technique checks that the HTML or XHTML web page follows the specification",
+      "related": [
+        "H74",
+        "H75"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H88"
+    },
+    {
+      "id": "QW-WCAG-T17",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T17.ts",
+      "name": "Positioning labels to maximize predictability of relationships",
+      "criteria": [
+        "1.3.1",
+        "3.3.2"
+      ],
+      "act": [],
+      "techniques": [
+        "G162"
+      ],
+      "outcomes": [
+        "failed",
+        "warning",
+        "passed"
+      ],
+      "description": "This technique checks the correct position of labels in forms",
+      "related": [
+        "H44",
+        "H71",
+        "H65",
+        "G131",
+        "G167"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/general/G162.html"
+    },
+    {
+      "id": "QW-WCAG-T18",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T18.ts",
+      "name": "Using table markup to present tabular information",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H51"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The objective of this technique is to present tabular information in a way that preserves relationships within the information even when users cannot see the table or the presentation format is changed. Using the table element with the child elements tr, th, and td makes these relationships perceivable.",
+      "related": [
+        "H39",
+        "H43",
+        "H63"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H51"
+    },
+    {
+      "id": "QW-WCAG-T19",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T19.ts",
+      "name": "Providing submit buttons",
+      "criteria": [
+        "3.2.2"
+      ],
+      "act": [],
+      "techniques": [
+        "H32"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The objective of this technique is to provide a mechanism that allows users to explicitly request changes of context. The intended use of a submit button is to generate an HTTP request that submits data entered in a form, so it is an appropriate control to use for causing a change of context.",
+      "related": [
+        "G80",
+        "H36",
+        "H84"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H32"
+    },
+    {
+      "id": "QW-WCAG-T20",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T20.ts",
+      "name": "Supplementing link text with the title attribute",
+      "criteria": [
+        "2.4.4",
+        "2.4.9"
+      ],
+      "act": [],
+      "techniques": [
+        "H33"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "Supplementing link text with the title attribute",
+      "related": [
+        "C7",
+        "H30"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H33"
+    },
+    {
+      "id": "QW-WCAG-T21",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T21.ts",
+      "name": "Failure of Success Criteria 2.4.4, 2.4.9 and 4.1.2 due to not providing an accessible name for an image which is the only content in a link",
+      "criteria": [
+        "2.4.4",
+        "2.4.9",
+        "4.1.2"
+      ],
+      "act": [],
+      "techniques": [
+        "F89"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This technique checks the text alternative of images which are the only content of a link",
+      "related": [
+        "H2",
+        "H30",
+        "ARIA7",
+        "ARIA8"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F89"
+    },
+    {
+      "id": "QW-WCAG-T22",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T22.ts",
+      "name": "Failure of Success Criterion 3.2.1 and 3.2.5 due to opening a new window as soon as a new page is loaded",
+      "criteria": [
+        "3.2.5"
+      ],
+      "act": [],
+      "techniques": [
+        "F52"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The objective of this technique is to ensure that pages do not disorient users by opening up one or more new windows that automatically attain focus as soon as a page is loaded.",
+      "related": [
+        "G107"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F52"
+    },
+    {
+      "id": "QW-WCAG-T23",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T23.ts",
+      "name": "Adding a link at the top of each page that goes directly to the main content area",
+      "criteria": [
+        "2.4.1"
+      ],
+      "act": [],
+      "techniques": [
+        "G1"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "The objective of this technique is to provide a mechanism to bypass blocks of material that are repeated on multiple Web pages by skipping directly to the main content of the Web page.",
+      "related": [
+        "G123",
+        "G124"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/general/G1"
+    },
+    {
+      "id": "QW-WCAG-T24",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T24.ts",
+      "name": "Failure of Success Criteria 2.1.1, 2.4.7, and 3.2.1 due to using script to remove focus when focus is received",
+      "criteria": [
+        "2.1.1",
+        "2.4.7",
+        "3.2.1"
+      ],
+      "act": [],
+      "techniques": [
+        "F55"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "Content that normally receives focus when the content is accessed by keyboard may have this focus removed by scripting.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F55"
+    },
+    {
+      "id": "QW-WCAG-T25",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T25.ts",
+      "name": "Using the scope attribute to associate header cells and data cells in data tables",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H63"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "The objective of this technique is to associate header cells with data cells in complex tables using the scope attribute.",
+      "related": [
+        "H43",
+        "H51"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H63"
+    },
+    {
+      "id": "QW-WCAG-T26",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T26.ts",
+      "name": "Failure of Success Criterion 4.1.2 due to using script to make div or span a user interface control in HTML without providing a role for the control",
+      "criteria": [
+        "4.1.2"
+      ],
+      "act": [],
+      "techniques": [
+        "F59"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This failure demonstrates how using generic HTML elements to create user interface controls can make the controls inaccessible to assistive technology.",
+      "related": [
+        "F42"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F59"
+    },
+    {
+      "id": "QW-WCAG-T27",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T27.ts",
+      "name": "Failure of Success Criterion 1.4.8 due to using text that is justified (aligned to both the left and the right margins)",
+      "criteria": [
+        "1.4.8"
+      ],
+      "act": [],
+      "techniques": [
+        "F88"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This failure describes situations where blocks of text that are justified (aligned to both the left and the right margins) occurs in HTML, using the \"align\" attribute.",
+      "related": [
+        "C22"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F88"
+    },
+    {
+      "id": "QW-WCAG-T28",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T28.ts",
+      "name": "Using `percent, em, names` for font sizes",
+      "criteria": [
+        "1.4.4",
+        "1.4.5",
+        "1.4.8",
+        "1.4.9"
+      ],
+      "act": [],
+      "techniques": [
+        "C12",
+        "C13",
+        "C14"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This technique checks that all font-size attribute uses percent, em or names",
+      "related": [
+        "C12",
+        "C13",
+        "C14"
+      ],
+      "url": {
+        "C12": "https://www.w3.org/WAI/WCAG21/Techniques/css/C12",
+        "C13": "https://www.w3.org/WAI/WCAG21/Techniques/css/C13",
+        "C14": "https://www.w3.org/WAI/WCAG21/Techniques/css/C14"
+      }
+    },
+    {
+      "id": "QW-WCAG-T29",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T29.ts",
+      "name": "Specifying alignment either to the left or right in CSS",
+      "criteria": [
+        "1.4.8"
+      ],
+      "act": [],
+      "techniques": [
+        "C19"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "This technique describes how to align blocks of text either left or right by setting the CSS text-align property.",
+      "related": [],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/css/C19"
+    },
+    {
+      "id": "QW-WCAG-T30",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T30.ts",
+      "name": "Failure of Success Criterion 2.2.2 due to using text-decoration:blink without a mechanism to stop it in less than five seconds",
+      "criteria": [
+        "2.2.2"
+      ],
+      "act": [],
+      "techniques": [
+        "F4"
+      ],
+      "outcomes": [
+        "failed"
+      ],
+      "description": "CSS defines the blink value for the text-decoration property. When used, it causes any text in elements with this property to blink at a predetermined rate. This cannot be interrupted by the user, nor can it be disabled as a user agent preference. The blinking continues as long as the page is displayed. Therefore, content that uses text-decoration:blink fails the Success Criterion because blinking can continue for more than three seconds.",
+      "related": [
+        "SCR22"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F4"
+    },
+    {
+      "id": "QW-WCAG-T31",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T31.ts",
+      "name": "Failure of Success Criterion 1.4.3, 1.4.6 and 1.4.8 due to specifying foreground colors without specifying background colors or vice versa",
+      "criteria": [
+        "1.4.3",
+        "1.4.6",
+        "1.4.8"
+      ],
+      "act": [],
+      "techniques": [
+        "F24"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "Users with vision loss or cognitive, language and learning challenges often prefer specific foreground and background color combinations. In some cases, individuals with low vision will find it much easier to see a Web page that has white text on a black background, and they may have set their user agent to present this contrast. Many user agents make it possible for users to choose a preference about the foreground or background colors they would like to see without overriding all author-specified styles. This makes it possible for users to view pages where colors have not been specified by the author in their preferred color combination.",
+      "related": [
+        "C23",
+        "C25"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/failures/F24"
+    },
+    {
+      "id": "QW-WCAG-T32",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T32.ts",
+      "name": "Using ol, ul and dl for lists or groups of links",
+      "criteria": [
+        "1.3.1"
+      ],
+      "act": [],
+      "techniques": [
+        "H48"
+      ],
+      "outcomes": [
+        "failed",
+        "warning"
+      ],
+      "description": "The objective of this technique is to create lists of related items using list elements appropriate for their purposes",
+      "related": [
+        "H40"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/html/H48"
+    },
+    {
+      "id": "QW-WCAG-T33",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T33.ts",
+      "name": "Using description lists - dd,dt",
+      "criteria": [
+        "3.1.3"
+      ],
+      "act": [],
+      "techniques": [
+        "H40"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "Ensures <dt> and <dd> elements are contained by a <dl>",
+      "related": [
+        "G62"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/general/G62"
+    },
+    {
+      "id": "QW-WCAG-T34",
+      "module": "wcag-techniques",
+      "file": "packages/wcag-techniques/src/techniques/QW-WCAG-T34.ts",
+      "name": "Using description lists - dl",
+      "criteria": [
+        "3.1.3"
+      ],
+      "act": [],
+      "techniques": [
+        "H40"
+      ],
+      "outcomes": [
+        "failed",
+        "passed"
+      ],
+      "description": "Ensures <dl> elements are structured correctly. <dl> elements must only directly contain properly-ordered <dt> and <dd> groups, <script>, <template> or <div> elements",
+      "related": [
+        "G62"
+      ],
+      "url": "https://www.w3.org/WAI/WCAG21/Techniques/general/G62"
+    }
+  ]
+}

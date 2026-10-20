@@ -1,0 +1,528 @@
+{
+  "schema": "criteria-base/1",
+  "standard": "WCAG 2.2",
+  "levels": ["A", "AA"],
+  "note": "Hand-authored base data of the 55 criteria, from PLAN.md Appendix A and REVIEW-1.md section 6. build.py merges it with the axe-core and ACT sources into criteria.json. Do not edit criteria.json by hand.",
+  "fields": {
+    "method": "auto | auto+review | person. See PLAN.md section 7.1.",
+    "test_groups": "page | template | site | process. Where the automatic test or the finder runs. See PLAN.md section 5.3.",
+    "conditions": "For the three auto criteria: the conditions under which a script decides.",
+    "non_interference": "One of the four criteria of WCAG 2.2 conformance requirement 5.2.5.",
+    "finder_reliable": "True when the engine can give the result 'No content found' for this criterion. False when the finder is a heuristic.",
+    "context_dependent": "True when the answer to a review question depends on the context of the item, so the question fingerprint includes the context.",
+    "person_task": "A task that a person does at each audit, with or without candidates from the engine. Null when candidates drive the person check.",
+    "affects": "First assessment of the groups of PLAN.md section 3.1 that the criterion protects most: visual, auditory, physical, speech, cognitive, seizure."
+  },
+  "criteria": [
+    {
+      "id": "1.1.1", "name": "Non-text Content", "level": "A", "since": "2.0", "slug": "non-text-content",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds images, icons, and image buttons with no text alternative.",
+      "review_or_person_check": "AI compares each text alternative with its image, in its context. A person confirms the sample.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": true, "person_task": null,
+      "affects": ["visual"],
+      "notes": "The correct alternative depends on the context. The same image can need different alternatives on different pages."
+    },
+    {
+      "id": "1.2.1", "name": "Audio-only and Video-only (Prerecorded)", "level": "A", "since": "2.0", "slug": "audio-only-and-video-only-prerecorded",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds each audio file, video file, and embedded player.",
+      "review_or_person_check": "Make sure that a transcript or an equal alternative is there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Find each audio-only and video-only file. Make sure that a transcript or an equal alternative is there.",
+      "affects": ["auditory", "visual"],
+      "notes": "Players in iframes can hide media from the finder."
+    },
+    {
+      "id": "1.2.2", "name": "Captions (Prerecorded)", "level": "A", "since": "2.0", "slug": "captions-prerecorded",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds each video with synchronized audio. A caption track is a hint only, because captions can also be in the video file.",
+      "review_or_person_check": "Make sure that captions are there and are correct.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Play each video with audio. Make sure that captions are there and are correct.",
+      "affects": ["auditory"],
+      "notes": "A missing track element is not a failure signal. The criterion applies only to synchronized media."
+    },
+    {
+      "id": "1.2.3", "name": "Audio Description or Media Alternative (Prerecorded)", "level": "A", "since": "2.0", "slug": "audio-description-or-media-alternative-prerecorded",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds each video. A description track is a hint only, because the audio itself can give the visual information.",
+      "review_or_person_check": "Make sure that an audio description or a text alternative is there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Play each video. Make sure that an audio description or a full text alternative is there.",
+      "affects": ["visual"],
+      "notes": null
+    },
+    {
+      "id": "1.2.4", "name": "Captions (Live)", "level": "AA", "since": "2.0", "slug": "captions-live",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds live video players.",
+      "review_or_person_check": "Make sure that live captions are there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Find each live video. Make sure that live captions are there.",
+      "affects": ["auditory"],
+      "notes": null
+    },
+    {
+      "id": "1.2.5", "name": "Audio Description (Prerecorded)", "level": "AA", "since": "2.0", "slug": "audio-description-prerecorded",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds each video. A description track is a hint only.",
+      "review_or_person_check": "Make sure that an audio description is there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Play each video. Make sure that an audio description is there.",
+      "affects": ["visual"],
+      "notes": null
+    },
+    {
+      "id": "1.3.1", "name": "Info and Relationships", "level": "A", "since": "2.0", "slug": "info-and-relationships",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Tests labels, table headers, lists, and groups in the code. The landmark and heading-order rules are best practice. They give notes, not issues of 1.3.1.",
+      "review_or_person_check": "AI finds text that looks like a heading, a list, or a table but has no such code.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "The axe-core rules for landmarks, regions, and heading order have no WCAG tag."
+    },
+    {
+      "id": "1.3.2", "name": "Meaningful Sequence", "level": "A", "since": "2.0", "slug": "meaningful-sequence",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Compares the order in the code with the order on the screen.",
+      "review_or_person_check": "AI reads the content in code order and examines the sense.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "1.3.3", "name": "Sensory Characteristics", "level": "A", "since": "2.0", "slug": "sensory-characteristics",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds instructions with words for shape, color, size, position, or sound.",
+      "review_or_person_check": "AI and a person examine each instruction.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "auditory", "cognitive"],
+      "notes": "The finder is a word list. It can miss instructions."
+    },
+    {
+      "id": "1.3.4", "name": "Orientation", "level": "AA", "since": "2.1", "slug": "orientation",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Loads each page in portrait and in landscape. Finds CSS that rotates or hides content on the orientation media feature.",
+      "review_or_person_check": "A person decides if a lock is essential.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "The approved ACT rule covers only CSS on the orientation media feature. The axe-core rule is experimental and off."
+    },
+    {
+      "id": "1.3.5", "name": "Identify Input Purpose", "level": "AA", "since": "2.1", "slug": "identify-input-purpose",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Tests the autocomplete value of each field that has one. Flags fields for personal data with no value.",
+      "review_or_person_check": "AI decides if a flagged field collects data about the user. A person confirms the sample.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "physical"],
+      "notes": "The ACT rule and axe-core only validate an attribute that is there. A field with no attribute needs judgment."
+    },
+    {
+      "id": "1.4.1", "name": "Use of Color", "level": "A", "since": "2.0", "slug": "use-of-color",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds links in text that only color shows.",
+      "review_or_person_check": "AI examines screenshots for states, errors, and charts that only color shows.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": null
+    },
+    {
+      "id": "1.4.2", "name": "Audio Control", "level": "A", "since": "2.0", "slug": "audio-control",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds audio that starts automatically and plays for more than 3 seconds. Looks for a control that can pause, stop, or change the volume.",
+      "review_or_person_check": "A person confirms the control, and examines embedded players.",
+      "conditions": null, "non_interference": true, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "Non-interference criterion. The test runs on each page and each state, with the cookie banner open. The ACT rule is proposed. The axe-core rule only flags for review."
+    },
+    {
+      "id": "1.4.3", "name": "Contrast (Minimum)", "level": "AA", "since": "2.0", "slug": "contrast-minimum",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Calculates the contrast of all text from the code and the styles, including placeholder text and text on hover and focus. The limits are 4.5:1, and 3:1 for large text, which is 18 point or 14 point bold. Flags text on an image or a gradient.",
+      "review_or_person_check": "AI and a person decide the exceptions: inactive controls, decoration, invisible text, text in a picture with other significant content, and logotypes.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": "W3C says to take the colors from the code and the styles, not from the screen."
+    },
+    {
+      "id": "1.4.4", "name": "Resize Text", "level": "AA", "since": "2.0", "slug": "resize-text",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Emulates 200% zoom. Finds a block of zoom, which is an automatic failure. Flags text that is cut or hidden.",
+      "review_or_person_check": "A person confirms that the cut content is not available on focus or after activation. Captions and images of text are exceptions.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": "Playwright has no zoom function. The engine uses half the viewport width and a device scale factor of 2. The zoom block has an approved ACT rule."
+    },
+    {
+      "id": "1.4.5", "name": "Images of Text", "level": "AA", "since": "2.0", "slug": "images-of-text",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "AI with vision finds images that contain text. Finds an image of text next to the same text, which passes.",
+      "review_or_person_check": "A person decides the definition and the exceptions: a picture with other significant content, 'customizable', and 'essential', for example a logo.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": null
+    },
+    {
+      "id": "1.4.10", "name": "Reflow", "level": "AA", "since": "2.1", "slug": "reflow",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Sets the width to 320 CSS px for vertical content, and the height to 256 CSS px for horizontal content. Finds a scroll in two directions and cut content.",
+      "review_or_person_check": "A person decides the exceptions for each part with two dimensions: maps, diagrams, video, data tables, and toolbars.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": "Content that moves to a new position is not a loss."
+    },
+    {
+      "id": "1.4.11", "name": "Non-text Contrast", "level": "AA", "since": "2.1", "slug": "non-text-contrast",
+      "method": "auto+review", "test_groups": ["page", "template"],
+      "automatic_test": "Calculates the contrast of control borders and focus rings.",
+      "review_or_person_check": "AI and a person examine icons and charts.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": null
+    },
+    {
+      "id": "1.4.12", "name": "Text Spacing", "level": "AA", "since": "2.1", "slug": "text-spacing",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Applies the WCAG spacing values. Flags text that is cut or that overlaps.",
+      "review_or_person_check": "A person confirms that the content is not available, for example after an ellipsis. Images of text and canvas are out of the scope.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "The approved ACT rules cover only inline styles with !important. The axe-core rule avoid-inline-spacing is not consistent with them (W3C report, research question 2), so the own test stays necessary."
+    },
+    {
+      "id": "1.4.13", "name": "Content on Hover or Focus", "level": "AA", "since": "2.1", "slug": "content-on-hover-or-focus",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Moves the pointer and the focus to each control. Tests the new content with Esc and with the pointer.",
+      "review_or_person_check": "A person confirms the results.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "physical", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "2.1.1", "name": "Keyboard", "level": "A", "since": "2.0", "slug": "keyboard",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Finds controls that the keyboard cannot get to or operate.",
+      "review_or_person_check": "A person tests complex controls, for example a map or an editor.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": null
+    },
+    {
+      "id": "2.1.2", "name": "No Keyboard Trap", "level": "A", "since": "2.0", "slug": "no-keyboard-trap",
+      "method": "auto+review", "test_groups": ["page", "template"],
+      "automatic_test": "Moves through all controls with Tab and Shift+Tab. Flags a trap.",
+      "review_or_person_check": "A person confirms that the page does not tell the user how to leave. A dialog that the user knows how to leave passes.",
+      "conditions": null, "non_interference": true, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "Non-interference criterion. The Tab pass runs on each page and each state, with the cookie banner open."
+    },
+    {
+      "id": "2.1.4", "name": "Character Key Shortcuts", "level": "A", "since": "2.1", "slug": "character-key-shortcuts",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Presses each character key in the protected mode. Finds shortcuts, and the listeners for single keys.",
+      "review_or_person_check": "A person makes sure that you can stop or change a shortcut.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "speech"],
+      "notes": "Key presses on a live site run only in the protected mode of PLAN.md section 4.5."
+    },
+    {
+      "id": "2.2.1", "name": "Timing Adjustable", "level": "A", "since": "2.0", "slug": "timing-adjustable",
+      "method": "auto+review", "test_groups": ["page", "process"],
+      "automatic_test": "Fails a meta refresh with a delay between 1 and 72,000 seconds. Finds timers that redirect.",
+      "review_or_person_check": "A person tests the time limits of sessions.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Test the time limits of sessions and of each process.",
+      "affects": ["physical", "cognitive", "visual"],
+      "notes": "The approved ACT rule bc659a fails a meta refresh. The session limits stay with a person."
+    },
+    {
+      "id": "2.2.2", "name": "Pause, Stop, Hide", "level": "A", "since": "2.0", "slug": "pause-stop-hide",
+      "method": "auto+review", "test_groups": ["page", "template"],
+      "automatic_test": "Flags content that moves, blinks, or scrolls for more than 5 seconds. Flags all content that updates automatically, with no time limit.",
+      "review_or_person_check": "A person makes sure that a control can pause, stop, or hide it, or that it is essential.",
+      "conditions": null, "non_interference": true, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "visual", "physical"],
+      "notes": "Non-interference criterion. The five seconds apply only to information that moves, blinks, or scrolls. There is no five-second exception for content that updates automatically."
+    },
+    {
+      "id": "2.3.1", "name": "Three Flashes or Below Threshold", "level": "A", "since": "2.0", "slug": "three-flashes-or-below-threshold",
+      "method": "person", "test_groups": ["page"],
+      "automatic_test": "Finds animation and video.",
+      "review_or_person_check": "A person or a special tool measures the flash rate.",
+      "conditions": null, "non_interference": true, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Look for content that flashes. Measure the flash rate of each candidate with a tool.",
+      "affects": ["seizure"],
+      "notes": "Non-interference criterion. The finder gives candidates only."
+    },
+    {
+      "id": "2.4.1", "name": "Bypass Blocks", "level": "A", "since": "2.0", "slug": "bypass-blocks",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds the skip link and the landmarks.",
+      "review_or_person_check": "A person confirms which blocks repeat on many pages, and that a way to bypass them is there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "The axe-core rule only flags for review. The ACT rule is a proposed composite."
+    },
+    {
+      "id": "2.4.2", "name": "Page Titled", "level": "A", "since": "2.0", "slug": "page-titled",
+      "method": "auto+review", "test_groups": ["page", "site"],
+      "automatic_test": "Finds pages with no title and pages with the same title.",
+      "review_or_person_check": "AI examines if the title describes the page.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": true, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "2.4.3", "name": "Focus Order", "level": "A", "since": "2.0", "slug": "focus-order",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Compares the focus order with the visual order. Tests the focus in dialogs.",
+      "review_or_person_check": "A person confirms that the order keeps the meaning.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "2.4.4", "name": "Link Purpose (In Context)", "level": "A", "since": "2.0", "slug": "link-purpose-in-context",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds links with no name, and links with general text such as 'read more'.",
+      "review_or_person_check": "AI examines each link text in its context.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": true, "person_task": null,
+      "affects": ["visual", "physical", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "2.4.5", "name": "Multiple Ways", "level": "AA", "since": "2.0", "slug": "multiple-ways",
+      "method": "auto+review", "test_groups": ["site"],
+      "automatic_test": "Looks for navigation, search, and a sitemap. Finds pages that no link points to.",
+      "review_or_person_check": "A person confirms.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive", "physical"],
+      "notes": "Pages that are a step in a process are an exception."
+    },
+    {
+      "id": "2.4.6", "name": "Headings and Labels", "level": "AA", "since": "2.0", "slug": "headings-and-labels",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Collects each heading and label with its content. Reports empty headings and labels under 1.3.1, 3.3.2, or 4.1.2, because 2.4.6 does not require headings.",
+      "review_or_person_check": "AI examines if each heading and label describes its content.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": true, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": null
+    },
+    {
+      "id": "2.4.7", "name": "Focus Visible", "level": "AA", "since": "2.0", "slug": "focus-visible",
+      "method": "auto", "test_groups": ["template"],
+      "automatic_test": "Sends real Tab events, scrolls each control into view, and compares a screenshot of the full viewport with focus and with no focus. Ignores animation.",
+      "review_or_person_check": "None. The research confirms the test on the ACT cases.",
+      "conditions": "A script decides only with real Tab events, the control scrolled into view, a comparison of the full viewport, and animation ignored. A new issue needs the same result in two renders.",
+      "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "The approved ACT rule oj04fd has only partial automatic implementations."
+    },
+    {
+      "id": "2.4.11", "name": "Focus Not Obscured (Minimum)", "level": "AA", "since": "2.2", "slug": "focus-not-obscured-minimum",
+      "method": "auto", "test_groups": ["template"],
+      "automatic_test": "Tests if a fixed header, banner, or widget hides the control that has focus completely, in the initial positions.",
+      "review_or_person_check": "None. Content that the user opened and can close does not count.",
+      "conditions": "A script decides only 'entirely hidden', in the initial positions of the fixed elements. Content that the user opened and can close without a move of the focus does not count.",
+      "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "No ACT rule and no axe-core rule exist."
+    },
+    {
+      "id": "2.5.1", "name": "Pointer Gestures", "level": "A", "since": "2.1", "slug": "pointer-gestures",
+      "method": "person", "test_groups": ["page", "template"],
+      "automatic_test": "Finds sliders, carousels, and maps that use gestures.",
+      "review_or_person_check": "A person makes sure that one pointer can do the function.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Find each function that uses a gesture with more than one point or a path. Make sure that one pointer can do it.",
+      "affects": ["physical"],
+      "notes": null
+    },
+    {
+      "id": "2.5.2", "name": "Pointer Cancellation", "level": "A", "since": "2.1", "slug": "pointer-cancellation",
+      "method": "auto+review", "test_groups": ["template"],
+      "automatic_test": "Finds controls that act when the pointer goes down.",
+      "review_or_person_check": "A person confirms one of four options: no down-event, abort or undo, up reversal, or essential.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "cognitive"],
+      "notes": "Frameworks delegate events at the root, so a listener test cannot see each control."
+    },
+    {
+      "id": "2.5.3", "name": "Label in Name", "level": "A", "since": "2.1", "slug": "label-in-name",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Compares the visible label with the accessible name of widgets with aria-label or aria-labelledby.",
+      "review_or_person_check": "AI examines labels in images of text. A symbol is not a label.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["speech", "visual"],
+      "notes": "The ACT rule is proposed. The axe-core rule label-content-name-mismatch is on by default in 4.14.0, and it covers only widgets with aria-label or aria-labelledby."
+    },
+    {
+      "id": "2.5.4", "name": "Motion Actuation", "level": "A", "since": "2.1", "slug": "motion-actuation",
+      "method": "person", "test_groups": ["template"],
+      "automatic_test": "Finds listeners for device motion in the browser, and in the source code.",
+      "review_or_person_check": "A person tests the alternative control.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Find each function that the motion of the device starts. Make sure that a control can do it, and that the user can switch the motion off.",
+      "affects": ["physical"],
+      "notes": "Research question 7 compares the listener test with the search in the source code."
+    },
+    {
+      "id": "2.5.7", "name": "Dragging Movements", "level": "AA", "since": "2.2", "slug": "dragging-movements",
+      "method": "person", "test_groups": ["template"],
+      "automatic_test": "Finds elements that you can drag, from the drag and pointer listeners.",
+      "review_or_person_check": "A person makes sure that a function with no drag is there.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Find each function that needs a drag. Make sure that a single pointer can do it with no drag.",
+      "affects": ["physical"],
+      "notes": "No ACT rule and no axe-core rule exist."
+    },
+    {
+      "id": "2.5.8", "name": "Target Size (Minimum)", "level": "AA", "since": "2.2", "slug": "target-size-minimum",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Measures the size of each target and the space around it. A slider is one target. Overlapped areas do not count.",
+      "review_or_person_check": "A person decides the exceptions 'equivalent' and 'essential'.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["physical", "visual"],
+      "notes": "No ACT rule exists. The axe-core rule target-size is off by default, and the engine switches it on (research question 2). The minimum is 24 by 24 CSS px, or an equal spacing."
+    },
+    {
+      "id": "3.1.1", "name": "Language of Page", "level": "A", "since": "2.0", "slug": "language-of-page",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Tests that the language attribute is there and is valid. Compares it with the language that the page uses most.",
+      "review_or_person_check": "A person confirms a mismatch on a short or mixed page.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "The presence and the validity of the attribute have approved ACT rules. The match with the text has a proposed rule."
+    },
+    {
+      "id": "3.1.2", "name": "Language of Parts", "level": "AA", "since": "2.0", "slug": "language-of-parts",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds text in a different language with no language attribute.",
+      "review_or_person_check": "AI and a person confirm short text.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "Proper names and technical terms are exceptions."
+    },
+    {
+      "id": "3.2.1", "name": "On Focus", "level": "A", "since": "2.0", "slug": "on-focus",
+      "method": "auto", "test_groups": ["template"],
+      "automatic_test": "Moves the focus to each control in the protected mode. Fails a change of page, window, or focus. Flags content that changes the meaning.",
+      "review_or_person_check": "None for the automatic failure. A review decides the flagged content changes.",
+      "conditions": "A script decides only a change of page, window, or focus. Content that changes the meaning goes to the review. A menu that opens or a tab control is not a change of context by itself.",
+      "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive", "physical"],
+      "notes": "A change of context includes a move of the focus and content that changes the meaning."
+    },
+    {
+      "id": "3.2.2", "name": "On Input", "level": "A", "since": "2.0", "slug": "on-input",
+      "method": "auto+review", "test_groups": ["template", "process"],
+      "automatic_test": "Changes the value of each select, checkbox, and radio button. Types in fields where permitted. Finds a change of page or window.",
+      "review_or_person_check": "A person makes sure that the page gave a warning.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive", "physical"],
+      "notes": "Text entry runs only where PLAN.md section 4.5 permits."
+    },
+    {
+      "id": "3.2.3", "name": "Consistent Navigation", "level": "AA", "since": "2.0", "slug": "consistent-navigation",
+      "method": "auto+review", "test_groups": ["site"],
+      "automatic_test": "Compares the relative order of the navigation on all pages of a set. Permits insertions and removals.",
+      "review_or_person_check": "A person confirms the differences.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "visual"],
+      "notes": "The scope is a set of web pages."
+    },
+    {
+      "id": "3.2.4", "name": "Consistent Identification", "level": "AA", "since": "2.0", "slug": "consistent-identification",
+      "method": "auto+review", "test_groups": ["site"],
+      "automatic_test": "Finds controls with the same function but different names.",
+      "review_or_person_check": "AI and a person confirm.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "visual"],
+      "notes": null
+    },
+    {
+      "id": "3.2.6", "name": "Consistent Help", "level": "A", "since": "2.2", "slug": "consistent-help",
+      "method": "auto+review", "test_groups": ["site"],
+      "automatic_test": "Finds contact links and help links. Compares their order in the code on all pages of a set, at each width.",
+      "review_or_person_check": "A person confirms.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive"],
+      "notes": "The order is the serialized order, in the same page variation. No ACT rule and no axe-core rule exist."
+    },
+    {
+      "id": "3.3.1", "name": "Error Identification", "level": "A", "since": "2.0", "slug": "error-identification",
+      "method": "auto+review", "test_groups": ["template", "process"],
+      "automatic_test": "Sends incorrect data in forms where permitted. Tests how each error shows.",
+      "review_or_person_check": "AI examines the error text.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "cognitive"],
+      "notes": "A form submission runs only on staging or with permission."
+    },
+    {
+      "id": "3.3.2", "name": "Labels or Instructions", "level": "A", "since": "2.0", "slug": "labels-or-instructions",
+      "method": "auto+review", "test_groups": ["page"],
+      "automatic_test": "Finds fields with no visible label.",
+      "review_or_person_check": "AI examines if the instructions are sufficient.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "visual"],
+      "notes": null
+    },
+    {
+      "id": "3.3.3", "name": "Error Suggestion", "level": "AA", "since": "2.0", "slug": "error-suggestion",
+      "method": "auto+review", "test_groups": ["template", "process"],
+      "automatic_test": "Collects the error messages from the form tests.",
+      "review_or_person_check": "AI examines if each message tells how to correct the error.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive", "visual"],
+      "notes": null
+    },
+    {
+      "id": "3.3.4", "name": "Error Prevention (Legal, Financial, Data)", "level": "AA", "since": "2.0", "slug": "error-prevention-legal-financial-data",
+      "method": "person", "test_groups": ["page", "process"],
+      "automatic_test": "Finds forms for payment, orders, and legal data, forms that change or delete data of the user, and forms with test answers.",
+      "review_or_person_check": "A person tests if you can check, correct, or cancel the data.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Do each process with legal, financial, or user data. Make sure that the user can reverse, check, or confirm the data.",
+      "affects": ["cognitive", "physical", "visual"],
+      "notes": null
+    },
+    {
+      "id": "3.3.7", "name": "Redundant Entry", "level": "A", "since": "2.2", "slug": "redundant-entry",
+      "method": "person", "test_groups": ["process"],
+      "automatic_test": "Finds processes with more than one step.",
+      "review_or_person_check": "A person does the process and looks for data that you must type again.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false,
+      "person_task": "Do each process with more than one step. Look for data that the user must type again in the same process.",
+      "affects": ["cognitive", "physical"],
+      "notes": "No ACT rule and no axe-core rule exist."
+    },
+    {
+      "id": "3.3.8", "name": "Accessible Authentication (Minimum)", "level": "AA", "since": "2.2", "slug": "accessible-authentication-minimum",
+      "method": "auto+review", "test_groups": ["page", "template"],
+      "automatic_test": "Finds login forms. Tests paste and autocomplete in their fields, because a block fails unless an alternative exists. Finds a CAPTCHA.",
+      "review_or_person_check": "A person makes sure that a method with no cognitive function test is there, or one of the exceptions: alternative, mechanism, object recognition, or personal content.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["cognitive"],
+      "notes": "The term is 'cognitive function test'. A CAPTCHA with transcribed audio does not meet the alternative exception. No ACT rule and no axe-core rule exist."
+    },
+    {
+      "id": "4.1.2", "name": "Name, Role, Value", "level": "A", "since": "2.0", "slug": "name-role-value",
+      "method": "auto+review", "test_groups": ["page", "template"],
+      "automatic_test": "Tests the name, the role, and the ARIA code of each control. Operates controls in the protected mode and tests if the state changes.",
+      "review_or_person_check": "A person tests custom controls with a screen reader.",
+      "conditions": null, "non_interference": false, "finder_reliable": true, "context_dependent": false, "person_task": null,
+      "affects": ["visual", "physical"],
+      "notes": null
+    },
+    {
+      "id": "4.1.3", "name": "Status Messages", "level": "AA", "since": "2.1", "slug": "status-messages",
+      "method": "auto+review", "test_groups": ["template", "process"],
+      "automatic_test": "Does actions. Finds new content that is not in a live region and does not take the focus.",
+      "review_or_person_check": "AI and a person confirm that the text is a status message, and the type of the live region.",
+      "conditions": null, "non_interference": false, "finder_reliable": false, "context_dependent": false, "person_task": null,
+      "affects": ["visual"],
+      "notes": "A message that takes the focus is not a status message."
+    }
+  ]
+}

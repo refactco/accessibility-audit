@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/page/1",
+  "title": "Accessibility Audit page result (one line of pages.jsonl)",
+  "description": "One page: its template, its states, and the result of each criterion at each width. The states roll up into the page result. The results for each state are in runs/, not in Git. See PLAN.md sections 7.2 and 8.1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "url", "template", "set", "states", "run", "tested", "results"],
+  "properties": {
+    "schema": { "const": "page/1" },
+    "url": { "type": "string" },
+    "template": { "oneOf": [{ "type": "string" }, { "type": "null" }] },
+    "set": { "type": "string", "description": "The set of web pages, for the site tests." },
+    "sample": { "type": "boolean", "description": "True when the page is in the sample for the template tests." },
+    "process": { "oneOf": [{ "type": "string" }, { "type": "null" }], "description": "The process that this page is a step of, or null." },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "actions"],
+        "properties": {
+          "id": { "type": "string" },
+          "actions": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "run": { "type": "string", "description": "The run that gave these results." },
+    "tested": { "type": "boolean" },
+    "not_tested_reason": { "enum": ["did not load", "page limit", "time budget", "removed", "skipped", "permission"] },
+    "http_status": { "type": "integer" },
+    "content_hash": { "type": "string" },
+    "results": {
+      "type": "object",
+      "description": "Keyed by the width in CSS px, then by the criterion ID.",
+      "propertyNames": { "pattern": "^[0-9]{3,4}$" },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "pattern": "^[1-4]\\.[1-5]\\.[0-9]{1,2}$" },
+        "additionalProperties": {
+          "enum": ["failed", "needs review", "needs a person", "no issue found", "no content found", "not tested", "passed", "not applicable"]
+        }
+      }
+    },
+    "issues": { "type": "array", "items": { "type": "string", "pattern": "^ISS-[0-9a-f]{8}$" }, "description": "The issues that have an occurrence on this page." }
+  }
+}

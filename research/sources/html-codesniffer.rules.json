@@ -1,0 +1,1765 @@
+{
+  "engine": "html-codesniffer",
+  "package": "html_codesniffer",
+  "version": "2.5.1",
+  "commit": "c187a4b42716b26cd913a18c2205cd873aaffddf",
+  "commit_date": "2022-08-15",
+  "source": "https://github.com/squizlabs/HTML_CodeSniffer (Standards/WCAG2AAA/Sniffs/**/*.js, Standards/WCAG2A/ruleset.js, Standards/WCAG2AA/ruleset.js, Standards/WCAG2AAA/ruleset.js, package.json, README.markdown)",
+  "extracted_on": "2026-10-13",
+  "method": "Shallow git clone; the sniff files were parsed as text with a Python script: every HTMLCS.addMessage(...) call was located with a parenthesis-depth scanner, the first argument gave the level (literal constant, a local variable resolved from its assignments in the enclosing method, or a method parameter attributed to the wrapper sniff that passes a literal level) and the fourth argument gave the code (string literal, a code variable resolved from its base assignments and += suffixes, or a line-checked manual table for the H49.<Tag> and H91.<Control> patterns). Ruleset membership comes from the include list in Standards/WCAG2AA/ruleset.js, which the engine uses verbatim as the sniff list (HTMLCS.js _registerStandard). Counts are call sites, not run-time occurrences.",
+  "wcag_version": "WCAG 2.1 (README.markdown links https://www.w3.org/TR/WCAG21/; ruleset description 'Web Content Accessibility Guidelines (WCAG) 2.1 AA'; sniffs exist for the 2.1-only criteria 1.3.4, 1.3.5, 1.4.10-1.4.13, 2.1.4, 2.5.1-2.5.6 and 4.1.3; no WCAG 2.2 criteria such as 2.4.11, 2.5.7, 2.5.8, 3.2.6, 3.3.7 or 3.3.8)",
+  "message_levels": {
+    "ERROR": 1,
+    "WARNING": 2,
+    "NOTICE": 3
+  },
+  "sniff_files_total": 80,
+  "sniffs_in_wcag2aa": 52,
+  "addmessage_call_sites_total": 200,
+  "caveats": [
+    "Counts are addMessage call sites by level, not the number of distinct codes and not run-time message counts.",
+    "1_3_1.js line 159 chooses ERROR or WARNING at run time; it is counted once under each level.",
+    "The two G141 heading-order call sites in 1_3_1.js take their level from the caller, so they are counted under 1_3_1_A.js (WARNING, used by WCAG2A and WCAG2AA) and 1_3_1_AAA.js (ERROR, used by WCAG2AAA), not under 1_3_1.js.",
+    "1_4_3_Contrast.js is a helper object with no register() or messages; the WCAG2AA ruleset still lists it. 1_4_3.js (4.5:1 / 3:1) and 1_4_6.js (7:1 / 4.5:1) call its testContrastRatio() and emit the messages.",
+    "4_1_2.js builds H91.<Control>.Name and H91.<Control>.Value codes from element names at run time; they are listed as H91.*.Name and H91.*.Value.",
+    "2_5_2.js and 2_5_4.js pass an empty code string to addMessage; it is listed as \"\".",
+    "A sniff file 1_2_3.js exists, but only the WCAG2A ruleset includes it; the WCAG2AA and WCAG2AAA rulesets omit it (1.2.5 audio description covers 1.2.3 at AA). Likewise WCAG2AAA omits 2.2.1, 2.3.1, 2.4.4, 3.3.4 and 1_4_3 in favour of the stricter AAA criteria.",
+    "No sniff files exist for 2.1.3 and 2.4.10 (AAA); no messages are defined for them.",
+    "The level constants are HTMLCS.ERROR = 1, HTMLCS.WARNING = 2, HTMLCS.NOTICE = 3 (HTMLCS.js lines 28-30)."
+  ],
+  "wcag2aa_by_criterion": {
+    "1.1.1": {
+      "ERROR": 13,
+      "WARNING": 1,
+      "NOTICE": 6
+    },
+    "1.2.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 2
+    },
+    "1.2.2": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.2.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.2.5": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.3.1": {
+      "ERROR": 20,
+      "WARNING": 21,
+      "NOTICE": 5
+    },
+    "1.3.2": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.3.3": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.3.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.3.5": {
+      "ERROR": 8,
+      "WARNING": 1,
+      "NOTICE": 2
+    },
+    "1.4.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.2": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.3": {
+      "ERROR": 1,
+      "WARNING": 5,
+      "NOTICE": 0
+    },
+    "1.4.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.5": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.10": {
+      "ERROR": 0,
+      "WARNING": 3,
+      "NOTICE": 1
+    },
+    "1.4.11": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.12": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "1.4.13": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.1.1": {
+      "ERROR": 0,
+      "WARNING": 7,
+      "NOTICE": 0
+    },
+    "2.1.2": {
+      "ERROR": 0,
+      "WARNING": 1,
+      "NOTICE": 0
+    },
+    "2.1.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.2.1": {
+      "ERROR": 2,
+      "WARNING": 0,
+      "NOTICE": 0
+    },
+    "2.2.2": {
+      "ERROR": 1,
+      "WARNING": 1,
+      "NOTICE": 1
+    },
+    "2.3.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.4.1": {
+      "ERROR": 2,
+      "WARNING": 1,
+      "NOTICE": 2
+    },
+    "2.4.2": {
+      "ERROR": 3,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.4.3": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.4.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 2
+    },
+    "2.4.5": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.4.6": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.4.7": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.5.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "2.5.2": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 3
+    },
+    "2.5.3": {
+      "ERROR": 0,
+      "WARNING": 1,
+      "NOTICE": 1
+    },
+    "2.5.4": {
+      "ERROR": 0,
+      "WARNING": 1,
+      "NOTICE": 1
+    },
+    "3.1.1": {
+      "ERROR": 3,
+      "WARNING": 0,
+      "NOTICE": 0
+    },
+    "3.1.2": {
+      "ERROR": 2,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.2.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.2.2": {
+      "ERROR": 1,
+      "WARNING": 0,
+      "NOTICE": 0
+    },
+    "3.2.3": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.2.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.3.1": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.3.2": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.3.3": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "3.3.4": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    },
+    "4.1.1": {
+      "ERROR": 1,
+      "WARNING": 0,
+      "NOTICE": 0
+    },
+    "4.1.2": {
+      "ERROR": 3,
+      "WARNING": 5,
+      "NOTICE": 0
+    },
+    "4.1.3": {
+      "ERROR": 0,
+      "WARNING": 0,
+      "NOTICE": 1
+    }
+  },
+  "sniffs": [
+    {
+      "criterion": "1.1.1",
+      "sniff": "Principle1.Guideline1_1.1_1_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_1/1_1_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 13,
+        "WARNING": 1,
+        "NOTICE": 6
+      },
+      "codes": [
+        "H30.2",
+        "H67.1",
+        "H67.2",
+        "H37",
+        "G94.Image",
+        "H36",
+        "G94.Button",
+        "H24",
+        "H24.2",
+        "G73,G74",
+        "H2.EG5",
+        "H2.EG4",
+        "H2.EG3",
+        "H53,ARIA6",
+        "G94,G92.Object,ARIA6",
+        "H35.3",
+        "H35.2",
+        "G94,G92.Applet"
+      ],
+      "description": "Non-Text Content - registers for: _top, img"
+    },
+    {
+      "criterion": "1.2.1",
+      "sniff": "Principle1.Guideline1_2.1_2_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 2
+      },
+      "codes": [
+        "G158",
+        "G159,G166"
+      ],
+      "description": "Audio-only and Video-only (Prerecorded) - registers for: object, embed, applet, bgsound, audio, video"
+    },
+    {
+      "criterion": "1.2.2",
+      "sniff": "Principle1.Guideline1_2.1_2_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G87,G93"
+      ],
+      "description": "Captions (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.3",
+      "sniff": "Principle1.Guideline1_2.1_2_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_3.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": true,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G69,G78,G173,G8"
+      ],
+      "description": "Audio Description or Media Alternative (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.4",
+      "sniff": "Principle1.Guideline1_2.1_2_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G9,G87,G93"
+      ],
+      "description": "Captions (Live) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.5",
+      "sniff": "Principle1.Guideline1_2.1_2_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_5.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G78,G173,G8"
+      ],
+      "description": "Audio Description (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.6",
+      "sniff": "Principle1.Guideline1_2.1_2_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G54,G81"
+      ],
+      "description": "Sign Language (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.7",
+      "sniff": "Principle1.Guideline1_2.1_2_7",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_7.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G8"
+      ],
+      "description": "Extended Audio Description (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.8",
+      "sniff": "Principle1.Guideline1_2.1_2_8",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_8.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G69,G159"
+      ],
+      "description": "Media Alternative (Prerecorded) - registers for: object, embed, applet, video"
+    },
+    {
+      "criterion": "1.2.9",
+      "sniff": "Principle1.Guideline1_2.1_2_9",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_2/1_2_9.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G150,G151,G157"
+      ],
+      "description": "Audio-only (Live) - registers for: object, embed, applet, bgsound, audio"
+    },
+    {
+      "criterion": "1.3.1",
+      "sniff": "Principle1.Guideline1_3.1_3_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 20,
+        "WARNING": 19,
+        "NOTICE": 5
+      },
+      "codes": [
+        "F92,ARIA4",
+        "H44.NonExistent",
+        "H44.NonExistentFragment",
+        "H44.NotFormControl",
+        "H65",
+        "ARIA6",
+        "ARIA16,ARIA9",
+        "F68.Hidden",
+        "F68.HiddenAttr",
+        "F68",
+        "H49.Strike",
+        "H49.Tt",
+        "H49.Big",
+        "H49.Center",
+        "H49.Font",
+        "H49.AlignAttr",
+        "H49.B",
+        "H49.I",
+        "H49.U",
+        "H49.S",
+        "H49.Small",
+        "H42",
+        "H63.3",
+        "H63.2",
+        "H43.ScopeAmbiguous",
+        "H43.IncorrectAttr",
+        "H43.HeadersRequired",
+        "H43.MissingHeaderIds",
+        "H43.MissingHeadersAttrs",
+        "H43,H63",
+        "H63.1",
+        "H73.3.LayoutTable",
+        "H39,H73.4",
+        "H73.3.Check",
+        "H73.3.NoSummary",
+        "H39.3.LayoutTable",
+        "H39.3.Check",
+        "H39.3.NoCaption",
+        "H71.NoLegend",
+        "H85.2",
+        "H71.SameName",
+        "H48.1",
+        "H48.2",
+        "H42.2",
+        "H48",
+        "LayoutTable",
+        "DataTable"
+      ],
+      "description": "Info and Relationships - registers for: _top, p, div, input, select, textarea, button, table, fieldset, form, h1, h2, h3, h4, h5, h6",
+      "notes": "Lines 785, 788 emit G141 with a level passed in by the caller; they are not counted here but under the callers: Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1_A.js (WARNING), Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1_AAA.js (ERROR). Line 159 picks ERROR (H44.NonExistent) or WARNING (H44.NonExistentFragment) at run time, so it is counted once under each level. H49.<Tag> codes were expanded from the selectors on lines 354 and 368."
+    },
+    {
+      "criterion": "1.3.1",
+      "sniff": "Principle1.Guideline1_3.1_3_1_A",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1_A.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 2,
+        "NOTICE": 0
+      },
+      "codes": [
+        "G141"
+      ],
+      "description": "Info and Relationships - registers for: _top (level-A variant: heading-order check at WARNING)",
+      "notes": "Wrapper sniff: it calls a method of Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1.js with a fixed level; the messages counted here are emitted by that method (lines 785, 788) at the level this wrapper passes."
+    },
+    {
+      "criterion": "1.3.1",
+      "sniff": "Principle1.Guideline1_3.1_3_1_AAA",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1_AAA.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 2,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "G141"
+      ],
+      "description": "Info and Relationships - registers for: _top (level-AAA variant: heading-order check at ERROR)",
+      "notes": "Wrapper sniff: it calls a method of Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_1.js with a fixed level; the messages counted here are emitted by that method (lines 785, 788) at the level this wrapper passes."
+    },
+    {
+      "criterion": "1.3.2",
+      "sniff": "Principle1.Guideline1_3.1_3_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G57"
+      ],
+      "description": "Meaningful Sequence - registers for: _top"
+    },
+    {
+      "criterion": "1.3.3",
+      "sniff": "Principle1.Guideline1_3.1_3_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G96"
+      ],
+      "description": "Sensory Characteristics - registers for: _top"
+    },
+    {
+      "criterion": "1.3.4",
+      "sniff": "Principle1.Guideline1_3.1_3_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Orientation - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "1.3.5",
+      "sniff": "Principle1.Guideline1_3.1_3_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_5.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 8,
+        "WARNING": 1,
+        "NOTICE": 2
+      },
+      "codes": [
+        "H98"
+      ],
+      "description": "Identify Input Purpose - registers for: _top, input, select, textarea"
+    },
+    {
+      "criterion": "1.3.6",
+      "sniff": "Principle1.Guideline1_3.1_3_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_3/1_3_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "ARIA11"
+      ],
+      "description": "Identify Purpose - registers for: _top"
+    },
+    {
+      "criterion": "1.4.1",
+      "sniff": "Principle1.Guideline1_4.1_4_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G14,G182"
+      ],
+      "description": "Use of Colour - registers for: _top"
+    },
+    {
+      "criterion": "1.4.2",
+      "sniff": "Principle1.Guideline1_4.1_4_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "F23"
+      ],
+      "description": "Audio Control - registers for: object, embed, applet, bgsound, audio, video"
+    },
+    {
+      "criterion": "1.4.3",
+      "sniff": "Principle1.Guideline1_4.1_4_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 1,
+        "WARNING": 3,
+        "NOTICE": 0
+      },
+      "codes": [
+        "G18.Abs",
+        "G145.Abs",
+        "G18.BgImage",
+        "G145.BgImage",
+        "G18.Alpha",
+        "G145.Alpha",
+        "G18.Fail",
+        "G145.Fail"
+      ],
+      "description": "Contrast (Minimum) - registers for: _top",
+      "notes": "The code is built at run time: G18 (normal text, 4.5:1) or G145 (large text, 3:1) plus .Abs, .BgImage, .Alpha (WARNING) or .Fail (ERROR); every base/suffix combination is listed. Uses testContrastRatio() from 1_4_3_Contrast.js."
+    },
+    {
+      "criterion": "1.4.3",
+      "sniff": "Principle1.Guideline1_4.1_4_3_Contrast",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_3_Contrast.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [],
+      "description": "Contrast (Minimum) - helper object without register()/process(); provides contrast-ratio functions used by other sniffs"
+    },
+    {
+      "criterion": "1.4.3",
+      "sniff": "Principle1.Guideline1_4.1_4_3_F24",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_3_F24.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 2,
+        "NOTICE": 0
+      },
+      "codes": [
+        "F24.BGColour",
+        "F24.FGColour"
+      ],
+      "description": "Contrast (Minimum) - registers for: _top (failure F24: colour set without background or vice versa)"
+    },
+    {
+      "criterion": "1.4.4",
+      "sniff": "Principle1.Guideline1_4.1_4_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G142"
+      ],
+      "description": "Resize Text - registers for: _top"
+    },
+    {
+      "criterion": "1.4.5",
+      "sniff": "Principle1.Guideline1_4.1_4_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_5.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G140,C22,C30.AALevel"
+      ],
+      "description": "Images of Text - registers for: _top"
+    },
+    {
+      "criterion": "1.4.6",
+      "sniff": "Principle1.Guideline1_4.1_4_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 1,
+        "WARNING": 2,
+        "NOTICE": 0
+      },
+      "codes": [
+        "G18.Abs",
+        "G17.Abs",
+        "G18.BgImage",
+        "G17.BgImage",
+        "G18.Fail",
+        "G17.Fail"
+      ],
+      "description": "Contrast (Enhanced) - registers for: _top",
+      "notes": "The code is built at run time: G17 (normal text, 7:1) or G18 (large text, 4.5:1) plus .Abs, .BgImage (WARNING) or .Fail (ERROR); every base/suffix combination is listed. Uses testContrastRatio() from 1_4_3_Contrast.js."
+    },
+    {
+      "criterion": "1.4.7",
+      "sniff": "Principle1.Guideline1_4.1_4_7",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_7.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G56"
+      ],
+      "description": "Low or No Background Audio - registers for: object, embed, applet, bgsound, audio"
+    },
+    {
+      "criterion": "1.4.8",
+      "sniff": "Principle1.Guideline1_4.1_4_8",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_8.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 5
+      },
+      "codes": [
+        "G148,G156,G175",
+        "H87,C20",
+        "C19,G172,G169",
+        "G188,C21",
+        "H87,G146,C26"
+      ],
+      "description": "Visual Presentation - registers for: _top"
+    },
+    {
+      "criterion": "1.4.9",
+      "sniff": "Principle1.Guideline1_4.1_4_9",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_9.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G140,C22,C30.NoException"
+      ],
+      "description": "Images of Text (No Exception) - registers for: _top"
+    },
+    {
+      "criterion": "1.4.10",
+      "sniff": "Principle1.Guideline1_4.1_4_10",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_10.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 3,
+        "NOTICE": 1
+      },
+      "codes": [
+        "C32,C31,C33,C38,SCR34,G206"
+      ],
+      "description": "Reflow - registers for: _top, pre, meta"
+    },
+    {
+      "criterion": "1.4.11",
+      "sniff": "Principle1.Guideline1_4.1_4_11",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_11.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G195,G207,G18,G145,G174,F78"
+      ],
+      "description": "Non-text Contrast - registers for: _top"
+    },
+    {
+      "criterion": "1.4.12",
+      "sniff": "Principle1.Guideline1_4.1_4_12",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_12.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "C36,C35"
+      ],
+      "description": "Text Spacing - registers for: _top"
+    },
+    {
+      "criterion": "1.4.13",
+      "sniff": "Principle1.Guideline1_4.1_4_13",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle1/Guideline1_4/1_4_13.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "F95"
+      ],
+      "description": "Content on Hover or Focus - registers for: _top"
+    },
+    {
+      "criterion": "2.1.1",
+      "sniff": "Principle2.Guideline2_1.2_1_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_1/2_1_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 7,
+        "NOTICE": 0
+      },
+      "codes": [
+        "G90",
+        "SCR20.DblClick",
+        "SCR20.MouseOver",
+        "SCR20.MouseOut",
+        "SCR20.MouseMove",
+        "SCR20.MouseDown",
+        "SCR20.MouseUp"
+      ],
+      "description": "Keyboard - registers for: _top"
+    },
+    {
+      "criterion": "2.1.2",
+      "sniff": "Principle2.Guideline2_1.2_1_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_1/2_1_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 1,
+        "NOTICE": 0
+      },
+      "codes": [
+        "F10"
+      ],
+      "description": "No Keyboard Trap - registers for: object, applet, embed"
+    },
+    {
+      "criterion": "2.1.4",
+      "sniff": "Principle2.Guideline2_1.2_1_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_1/2_1_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Character Key Shortcuts - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.2.1",
+      "sniff": "Principle2.Guideline2_2.2_2_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 2,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "F40.2",
+        "F41.2"
+      ],
+      "description": "Timing Adjustable - registers for: meta"
+    },
+    {
+      "criterion": "2.2.2",
+      "sniff": "Principle2.Guideline2_2.2_2_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 1,
+        "WARNING": 1,
+        "NOTICE": 1
+      },
+      "codes": [
+        "SCR33,SCR22,G187,G152,G186,G191",
+        "F4",
+        "F47"
+      ],
+      "description": "Pause, Stop, Hide - registers for: _top, blink"
+    },
+    {
+      "criterion": "2.2.3",
+      "sniff": "Principle2.Guideline2_2.2_2_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_3.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G5"
+      ],
+      "description": "No Timing - registers for: _top"
+    },
+    {
+      "criterion": "2.2.4",
+      "sniff": "Principle2.Guideline2_2.2_2_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_4.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "SCR14"
+      ],
+      "description": "Interruptions - registers for: _top"
+    },
+    {
+      "criterion": "2.2.5",
+      "sniff": "Principle2.Guideline2_2.2_2_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_5.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G105,G181"
+      ],
+      "description": "Re-authenticating - registers for: _top"
+    },
+    {
+      "criterion": "2.2.6",
+      "sniff": "Principle2.Guideline2_2.2_2_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_2/2_2_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Timeouts - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.3.1",
+      "sniff": "Principle2.Guideline2_3.2_3_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_3/2_3_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G19,G176"
+      ],
+      "description": "Three Flashes or Below Threshold - registers for: _top"
+    },
+    {
+      "criterion": "2.3.2",
+      "sniff": "Principle2.Guideline2_3.2_3_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_3/2_3_2.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G19"
+      ],
+      "description": "Three Flashes - registers for: _top"
+    },
+    {
+      "criterion": "2.3.3",
+      "sniff": "Principle2.Guideline2_3.2_3_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_3/2_3_3.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "C39"
+      ],
+      "description": "Animation from Interactions - registers for: _top"
+    },
+    {
+      "criterion": "2.4.1",
+      "sniff": "Principle2.Guideline2_4.2_4_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 2,
+        "WARNING": 1,
+        "NOTICE": 2
+      },
+      "codes": [
+        "H64.1",
+        "H64.2",
+        "G1,G123,G124,H69",
+        "G1,G123,G124.NoSuchID",
+        "G1,G123,G124.NoSuchIDFragment"
+      ],
+      "description": "Bypass Blocks - registers for: iframe, a, area, _top"
+    },
+    {
+      "criterion": "2.4.2",
+      "sniff": "Principle2.Guideline2_4.2_4_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 3,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "H25.1.NoHeadEl",
+        "H25.1.NoTitleEl",
+        "H25.1.EmptyTitle",
+        "H25.2"
+      ],
+      "description": "Page Titled - registers for: html"
+    },
+    {
+      "criterion": "2.4.3",
+      "sniff": "Principle2.Guideline2_4.2_4_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "H4.2"
+      ],
+      "description": "Focus Order - registers for: _top"
+    },
+    {
+      "criterion": "2.4.4",
+      "sniff": "Principle2.Guideline2_4.2_4_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 2
+      },
+      "codes": [
+        "H77,H78,H79,H80,H81,H33",
+        "H77,H78,H79,H80,H81"
+      ],
+      "description": "Link Purpose (In Context) - registers for: a"
+    },
+    {
+      "criterion": "2.4.5",
+      "sniff": "Principle2.Guideline2_4.2_4_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_5.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G125,G64,G63,G161,G126,G185"
+      ],
+      "description": "Multiple Ways - registers for: _top"
+    },
+    {
+      "criterion": "2.4.6",
+      "sniff": "Principle2.Guideline2_4.2_4_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_6.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G130,G131"
+      ],
+      "description": "Headings and Labels - registers for: _top"
+    },
+    {
+      "criterion": "2.4.7",
+      "sniff": "Principle2.Guideline2_4.2_4_7",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_7.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G149,G165,G195,C15,SCR31"
+      ],
+      "description": "Focus Visible - registers for: _top"
+    },
+    {
+      "criterion": "2.4.8",
+      "sniff": "Principle2.Guideline2_4.2_4_8",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_8.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 3,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H59.1",
+        "H59.2a",
+        "H59.2b"
+      ],
+      "description": "Location - registers for: link"
+    },
+    {
+      "criterion": "2.4.9",
+      "sniff": "Principle2.Guideline2_4.2_4_9",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_4/2_4_9.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "H30"
+      ],
+      "description": "Link Purpose (Link Only) - registers for: a"
+    },
+    {
+      "criterion": "2.5.1",
+      "sniff": "Principle2.Guideline2_5.2_5_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Pointer Gestures - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.5.2",
+      "sniff": "Principle2.Guideline2_5.2_5_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 3
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Pointer Cancellation - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.5.3",
+      "sniff": "Principle2.Guideline2_5.2_5_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 1,
+        "NOTICE": 1
+      },
+      "codes": [
+        "F96"
+      ],
+      "description": "Label In Name - registers for: _top, a, button, label, input"
+    },
+    {
+      "criterion": "2.5.4",
+      "sniff": "Principle2.Guideline2_5.2_5_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 1,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Motion Actuation - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.5.5",
+      "sniff": "Principle2.Guideline2_5.2_5_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_5.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Target Size - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "2.5.6",
+      "sniff": "Principle2.Guideline2_5.2_5_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle2/Guideline2_5/2_5_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Concurrent Input Mechanisms - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    },
+    {
+      "criterion": "3.1.1",
+      "sniff": "Principle3.Guideline3_1.3_1_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 3,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H57.2",
+        "H57.3.Lang",
+        "H57.3.XmlLang"
+      ],
+      "description": "Language of Page - registers for: html"
+    },
+    {
+      "criterion": "3.1.2",
+      "sniff": "Principle3.Guideline3_1.3_1_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 2,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "H58",
+        "H58.1.Lang",
+        "H58.1.XmlLang"
+      ],
+      "description": "Language of Parts - registers for: _top"
+    },
+    {
+      "criterion": "3.1.3",
+      "sniff": "Principle3.Guideline3_1.3_1_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_3.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "H40,H54,H60,G62,G70"
+      ],
+      "description": "Unusual Words - registers for: _top"
+    },
+    {
+      "criterion": "3.1.4",
+      "sniff": "Principle3.Guideline3_1.3_1_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_4.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G102,G55,G62,H28,G97"
+      ],
+      "description": "Abbreviations - registers for: _top"
+    },
+    {
+      "criterion": "3.1.5",
+      "sniff": "Principle3.Guideline3_1.3_1_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_5.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G86,G103,G79,G153,G160"
+      ],
+      "description": "Reading Level - registers for: _top"
+    },
+    {
+      "criterion": "3.1.6",
+      "sniff": "Principle3.Guideline3_1.3_1_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_1/3_1_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 3,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H62.1.HTML5",
+        "H62.1.XHTML11",
+        "H62.2"
+      ],
+      "description": "Pronunciation - registers for: ruby"
+    },
+    {
+      "criterion": "3.2.1",
+      "sniff": "Principle3.Guideline3_2.3_2_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_2/3_2_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G107"
+      ],
+      "description": "On Focus - registers for: input, textarea, button, select"
+    },
+    {
+      "criterion": "3.2.2",
+      "sniff": "Principle3.Guideline3_2.3_2_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_2/3_2_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 1,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H32.2"
+      ],
+      "description": "On Input - registers for: form"
+    },
+    {
+      "criterion": "3.2.3",
+      "sniff": "Principle3.Guideline3_2.3_2_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_2/3_2_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G61"
+      ],
+      "description": "Consistent Navigation - registers for: _top"
+    },
+    {
+      "criterion": "3.2.4",
+      "sniff": "Principle3.Guideline3_2.3_2_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_2/3_2_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G197"
+      ],
+      "description": "Consistent Identification - registers for: _top"
+    },
+    {
+      "criterion": "3.2.5",
+      "sniff": "Principle3.Guideline3_2.3_2_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_2/3_2_5.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 1,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H83.3"
+      ],
+      "description": "Change on Request - registers for: a"
+    },
+    {
+      "criterion": "3.3.1",
+      "sniff": "Principle3.Guideline3_3.3_3_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G83,G84,G85"
+      ],
+      "description": "Error Identification - registers for: form"
+    },
+    {
+      "criterion": "3.3.2",
+      "sniff": "Principle3.Guideline3_3.3_3_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G131,G89,G184,H90"
+      ],
+      "description": "Labels or Instructions - registers for: form"
+    },
+    {
+      "criterion": "3.3.3",
+      "sniff": "Principle3.Guideline3_3.3_3_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G177"
+      ],
+      "description": "Error Suggestion - registers for: form"
+    },
+    {
+      "criterion": "3.3.4",
+      "sniff": "Principle3.Guideline3_3.3_3_4",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_4.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": false,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G98,G99,G155,G164,G168.LegalForms"
+      ],
+      "description": "Error Prevention (Legal, Financial, Data) - registers for: form"
+    },
+    {
+      "criterion": "3.3.5",
+      "sniff": "Principle3.Guideline3_3.3_3_5",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_5.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G71,G184,G193"
+      ],
+      "description": "Help - registers for: form"
+    },
+    {
+      "criterion": "3.3.6",
+      "sniff": "Principle3.Guideline3_3.3_3_6",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle3/Guideline3_3/3_3_6.js",
+      "in_wcag2aa": false,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        "G98,G99,G155,G164,G168.AllForms"
+      ],
+      "description": "Error Prevention (All) - registers for: form"
+    },
+    {
+      "criterion": "4.1.1",
+      "sniff": "Principle4.Guideline4_1.4_1_1",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle4/Guideline4_1/4_1_1.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 1,
+        "WARNING": 0,
+        "NOTICE": 0
+      },
+      "codes": [
+        "F77"
+      ],
+      "description": "Parsing - registers for: _top"
+    },
+    {
+      "criterion": "4.1.2",
+      "sniff": "Principle4.Guideline4_1.4_1_2",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle4/Guideline4_1/4_1_2.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": true,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 3,
+        "WARNING": 5,
+        "NOTICE": 0
+      },
+      "codes": [
+        "H91.*.Name",
+        "H91.*.Value",
+        "H91.A.Empty",
+        "H91.A.EmptyWithName",
+        "H91.A.EmptyNoId",
+        "H91.A.NoHref",
+        "H91.A.Placeholder",
+        "H91.A.NoContent"
+      ],
+      "description": "Name, Role, Value - registers for: _top",
+      "notes": "H91.*.Name / H91.*.Value stand for H91.<Control>.Name / .Value; <Control> is built from the form control's element name or input type at run time (for example InputText, Button, Select)."
+    },
+    {
+      "criterion": "4.1.3",
+      "sniff": "Principle4.Guideline4_1.4_1_3",
+      "file": "Standards/WCAG2AAA/Sniffs/Principle4/Guideline4_1/4_1_3.js",
+      "in_wcag2aa": true,
+      "in_wcag2a": false,
+      "in_wcag2aaa": true,
+      "messages": {
+        "ERROR": 0,
+        "WARNING": 0,
+        "NOTICE": 1
+      },
+      "codes": [
+        ""
+      ],
+      "description": "Status Messages - registers for: _top",
+      "notes": "Some messages pass an empty code (\"\") so the message has no technique suffix."
+    }
+  ]
+}

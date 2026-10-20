@@ -1,0 +1,1566 @@
+{
+ "schema": "seeded-faults/1",
+ "site": "site",
+ "serve_at": "http://127.0.0.1:8080/",
+ "expected_values": [
+  "failed",
+  "needs review",
+  "needs a person"
+ ],
+ "deciders": {
+  "engine": "The engine gives the result with no AI and no person.",
+  "ai": "The engine raises a question with evidence, and the AI answers it. A person confirms the sample.",
+  "person": "Since 2026-10-14 no fault has this decider: the AI answers every question with the facts of the engine, and the verifier checks it. A person can still answer."
+ },
+ "base_expected": {
+  "note": "The result of each criterion on the base site, with no fault, as the engine gives it. Criteria not listed give 'no issue found'.",
+  "1.2.1": "needs review",
+  "1.2.2": "no content found",
+  "1.2.3": "no content found",
+  "1.2.4": "not tested",
+  "1.2.5": "no content found",
+  "1.4.3_note": "axe-core cannot decide the contrast of the text in the open directions dialog, because the dialog overlaps the page. The engine measures the pixels and finds no issue.",
+  "1.4.5": "needs review",
+  "2.4.4": "needs review",
+  "2.4.4_note": "The articles page has a card with a Read more link. Its heading gives the context, so the AI must answer no issue. The question is a truth of no issue for the verifier.",
+  "2.3.1": "no content found",
+  "2.5.1": "no content found",
+  "2.5.4": "no content found",
+  "2.5.7": "needs review",
+  "3.3.4": "needs review",
+  "3.3.7": "no issue found",
+  "3.3.7_note": "The order process tests the redundant entry. The review step fills the email, so there is no candidate.",
+  "3.3.8": "needs review"
+ },
+ "faults": [
+  {
+   "id": "F01-image-no-alt",
+   "criterion": "1.1.1",
+   "title": "The market image has no alt attribute",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "width=\"640\" height=\"240\" alt=\"A row of three market stalls with striped awnings. The stalls hold fruit, bread, and fish.\"",
+     "replace": "width=\"640\" height=\"240\""
+    }
+   ],
+   "page": "index.html",
+   "element": "figure img",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "content",
+   "solution": "Give the image an alt attribute that describes the stalls."
+  },
+  {
+   "id": "F02-image-empty-alt",
+   "criterion": "1.1.1",
+   "title": "The market image is marked decorative with an empty alt, but it carries information",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "alt=\"A row of three market stalls with striped awnings. The stalls hold fruit, bread, and fish.\"",
+     "replace": "alt=\"\""
+    }
+   ],
+   "page": "index.html",
+   "element": "figure img",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Replace the empty alt with a description, because the caption refers to the picture."
+  },
+  {
+   "id": "F03-image-alt-file-name",
+   "criterion": "1.1.1",
+   "title": "The alt text of the market image is the file name",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "alt=\"A row of three market stalls with striped awnings. The stalls hold fruit, bread, and fish.\"",
+     "replace": "alt=\"market.svg\""
+    }
+   ],
+   "page": "index.html",
+   "element": "figure img",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Replace the file name with a description of the stalls."
+  },
+  {
+   "id": "F04-icon-button-no-name",
+   "criterion": "4.1.2",
+   "also": [
+    "1.1.1"
+   ],
+   "title": "The share button of the mackerel has an icon only and no accessible name",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<button type=\"button\" class=\"icon-button\" aria-label=\"Share Mackerel\">",
+     "replace": "<button type=\"button\" class=\"icon-button\">"
+    }
+   ],
+   "page": "products.html",
+   "element": "li[data-price=\"12\"] .icon-button:nth-child(2)",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Add aria-label=\"Share Mackerel\" to the button, or visible text."
+  },
+  {
+   "id": "F05-table-no-headers",
+   "criterion": "1.3.1",
+   "title": "The produce table has no header cells",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<tr><th scope=\"col\">Month</th><th scope=\"col\">Fruit</th><th scope=\"col\">Vegetable</th></tr>",
+     "replace": "<tr><td>Month</td><td>Fruit</td><td>Vegetable</td></tr>"
+    },
+    {
+     "file": "articles.html",
+     "find": "<tr><th scope=\"row\">March</th>",
+     "replace": "<tr><td>March</td>"
+    },
+    {
+     "file": "articles.html",
+     "find": "<tr><th scope=\"row\">April</th>",
+     "replace": "<tr><td>April</td>"
+    },
+    {
+     "file": "articles.html",
+     "find": "<tr><th scope=\"row\">May</th>",
+     "replace": "<tr><td>May</td>"
+    }
+   ],
+   "page": "articles.html",
+   "element": "table",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Mark the first row and the first column as header cells with th and scope."
+  },
+  {
+   "id": "F06-label-not-associated",
+   "criterion": "4.1.2",
+   "also": [
+    "1.3.1",
+    "3.3.2"
+   ],
+   "title": "The name field of the contact form has a label that is not associated with it",
+   "edits": [
+    {
+     "file": "help.html",
+     "find": "<label for=\"contact-name\">Your name</label>",
+     "replace": "<label>Your name</label>"
+    }
+   ],
+   "page": "help.html",
+   "element": "#contact-name",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Give the label a for attribute with the id of the field."
+  },
+  {
+   "id": "F07-visual-order-differs",
+   "criterion": "1.3.2",
+   "title": "The steps show in the reverse of their code order",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n.steps { display: flex; flex-direction: column-reverse; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": ".steps",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Remove the column-reverse style, or put the steps in the code in the order that they show."
+  },
+  {
+   "id": "F08-sensory-instruction",
+   "criterion": "1.3.3",
+   "title": "The instruction for the tabs refers to shape, color, and position only",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<p id=\"tabs-help\">Select the Summer tab to see the articles of the summer.</p>",
+     "replace": "<p id=\"tabs-help\">Click the round green button on the right to see the articles of the summer.</p>"
+    }
+   ],
+   "page": "articles.html",
+   "element": "#tabs-help",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Name the control in the instruction: Select the Summer tab."
+  },
+  {
+   "id": "F09-orientation-lock",
+   "criterion": "1.3.4",
+   "title": "A style rotates the page in portrait, so that it is readable in landscape only",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n@media (orientation: portrait) { body { transform: rotate(90deg); transform-origin: left top; width: 100vh; } }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "body",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Remove the rotation on the orientation media feature."
+  },
+  {
+   "id": "F10-autocomplete-invalid",
+   "criterion": "1.3.5",
+   "title": "The email field has an autocomplete value with a typing error",
+   "edits": [
+    {
+     "file": "order.html",
+     "find": "autocomplete=\"email\" aria-describedby=\"email-hint\" required>",
+     "replace": "autocomplete=\"emial\" aria-describedby=\"email-hint\" required>"
+    }
+   ],
+   "page": "order.html",
+   "element": "#email",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Correct the value to autocomplete=\"email\"."
+  },
+  {
+   "id": "F11-autocomplete-missing",
+   "criterion": "1.3.5",
+   "title": "The name field collects the name of the user with no autocomplete attribute",
+   "edits": [
+    {
+     "file": "order.html",
+     "find": "<input type=\"text\" id=\"name\" name=\"name\" autocomplete=\"name\" required>",
+     "replace": "<input type=\"text\" id=\"name\" name=\"name\" required>"
+    }
+   ],
+   "page": "order.html",
+   "element": "#name",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add autocomplete=\"name\" to the field."
+  },
+  {
+   "id": "F12-links-by-color-only",
+   "criterion": "1.4.1",
+   "title": "The links in the text have no underline, and their color differs from the text by less than 3:1",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\nmain p a { text-decoration: none; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "main p a",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Keep the underline on links in text, or give the link color a contrast of 3:1 with the text and a second cue on hover and focus."
+  },
+  {
+   "id": "F13-audio-autoplay",
+   "criterion": "1.4.2",
+   "title": "The recording plays automatically for five seconds and has no controls",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<audio controls src=\"media/tone.wav\">Your browser does not play audio.</audio>",
+     "replace": "<audio autoplay src=\"media/tone.wav\">Your browser does not play audio.</audio>"
+    }
+   ],
+   "page": "index.html",
+   "element": "audio",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "non_interference": true,
+   "solution": "Remove autoplay, or add controls that can pause or stop the audio."
+  },
+  {
+   "id": "F14-text-contrast-low",
+   "criterion": "1.4.3",
+   "title": "The body text is light gray on white, with a contrast of 3.3:1",
+   "edits": [
+    {
+     "file": "styles.css",
+     "find": "--text: #1f2933;",
+     "replace": "--text: #8a8a8a;"
+    }
+   ],
+   "page": "index.html",
+   "element": "main p",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Use a text color with a contrast of at least 4.5:1 on white, for example #1f2933."
+  },
+  {
+   "id": "F15-placeholder-contrast-low",
+   "criterion": "1.4.3",
+   "title": "The placeholder of the email field is light gray, with a contrast of 1.9:1",
+   "edits": [
+    {
+     "file": "order.html",
+     "find": "aria-describedby=\"email-hint\" required>",
+     "replace": "aria-describedby=\"email-hint\" placeholder=\"name@example.com\" required>"
+    },
+    {
+     "file": "styles.css",
+     "append": "\ninput::placeholder { color: #c0c0c0; opacity: 1; }\n"
+    }
+   ],
+   "page": "order.html",
+   "element": "#email",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Give the placeholder a color with a contrast of at least 4.5:1, for example #52606d."
+  },
+  {
+   "id": "F16-zoom-blocked",
+   "criterion": "1.4.4",
+   "title": "The viewport meta tag blocks the zoom",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">",
+     "replace": "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no\">"
+    }
+   ],
+   "page": "index.html",
+   "element": "meta[name=viewport]",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Remove maximum-scale and user-scalable from the viewport meta tag."
+  },
+  {
+   "id": "F17-header-cut-at-zoom",
+   "criterion": "1.4.4",
+   "also": [
+    "1.4.10"
+   ],
+   "title": "The header has a fixed height and hides its links when they wrap at 200% zoom or at a small width",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\nheader.site { height: 56px; overflow: hidden; flex-wrap: nowrap; }\n@media (max-width: 480px) { header.site { flex-direction: row; } }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "header.site",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Remove the fixed height and let the header wrap."
+  },
+  {
+   "id": "F18-image-of-text",
+   "criterion": "1.4.5",
+   "title": "The delivery banner is an image of text",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<div class=\"banner\" id=\"promo\">Free delivery on orders above 40 euros.</div>",
+     "replace": "<div class=\"banner\" id=\"promo\"><img src=\"media/promo-text.svg\" width=\"480\" height=\"60\" alt=\"Free delivery above 40 euros\"></div>"
+    }
+   ],
+   "page": "index.html",
+   "element": "#promo img",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Replace the image with styled text."
+  },
+  {
+   "id": "F19-no-reflow",
+   "criterion": "1.4.10",
+   "title": "The product cards have a minimum width of 720 px and need a horizontal scroll at 320 px",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n.cards { min-width: 720px; }\n"
+    }
+   ],
+   "page": "products.html",
+   "element": ".cards",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Remove the minimum width, so that the cards stack at small widths."
+  },
+  {
+   "id": "F20-control-border-contrast-low",
+   "criterion": "1.4.11",
+   "title": "The borders of the fields and buttons are light gray, with a contrast of 1.5:1",
+   "edits": [
+    {
+     "file": "styles.css",
+     "find": "--border: #6b7280;",
+     "replace": "--border: #d1d5db;"
+    }
+   ],
+   "page": "order.html",
+   "element": "input[type=text]",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Use a border color with a contrast of at least 3:1 on white, for example #6b7280."
+  },
+  {
+   "id": "F21-focus-ring-contrast-low",
+   "criterion": "1.4.11",
+   "also": [
+    "2.4.7"
+   ],
+   "title": "The focus ring is a pale pink with a contrast of 1.2:1 on white",
+   "edits": [
+    {
+     "file": "styles.css",
+     "find": "--focus: #b3261e;",
+     "replace": "--focus: #ffe4e1;"
+    }
+   ],
+   "page": "index.html",
+   "element": "a[href]",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Use a focus color with a contrast of at least 3:1 with the background, for example #b3261e."
+  },
+  {
+   "id": "F22-inline-spacing-important",
+   "criterion": "1.4.12",
+   "title": "A paragraph fixes its letter spacing and line height with !important in a style attribute",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<p>The table shows the produce of the spring months.</p>",
+     "replace": "<p style=\"letter-spacing: 0 !important; line-height: 1.2 !important;\">The table shows the produce of the spring months.</p>"
+    }
+   ],
+   "page": "articles.html",
+   "element": "main > p[style]",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Remove the !important spacing from the style attribute."
+  },
+  {
+   "id": "F23-text-cut-with-spacing",
+   "criterion": "1.4.12",
+   "title": "The cards have a fixed height and cut their text when the user applies the text spacing",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n.card { height: 150px; overflow: hidden; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": ".card",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "solution": "Remove the fixed height of the cards.",
+   "also": [
+    "1.4.4"
+   ]
+  },
+  {
+   "id": "F24-tooltip-not-dismissible",
+   "criterion": "1.4.13",
+   "title": "The Brix tooltip does not close with Esc and closes when the pointer moves onto it",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "    document.addEventListener(\"keydown\", function (e) { if (e.key === \"Escape\") { hide(); } });\n",
+     "replace": ""
+    },
+    {
+     "file": "app.js",
+     "find": "    wrap.addEventListener(\"mouseleave\", hide);",
+     "replace": "    trigger.addEventListener(\"mouseleave\", hide);"
+    }
+   ],
+   "page": "articles.html",
+   "element": "button[aria-describedby=\"tip-brix\"]",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Close the tooltip with Esc, and keep it open while the pointer is on it."
+  },
+  {
+   "id": "F25-div-as-button",
+   "criterion": "2.1.1",
+   "also": [
+    "4.1.2"
+   ],
+   "title": "The Apply control is a div with a click handler, and the keyboard cannot reach it",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<button type=\"button\" id=\"apply-sort\">Apply</button>",
+     "replace": "<div id=\"apply-sort\" class=\"button-like\">Apply</div>"
+    },
+    {
+     "file": "styles.css",
+     "append": "\n.button-like { display: inline-block; padding: 8px 16px; border: 2px solid var(--border); border-radius: 6px; background: var(--panel); cursor: pointer; }\n"
+    }
+   ],
+   "page": "products.html",
+   "element": "#apply-sort",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Use a button element for the Apply control."
+  },
+  {
+   "id": "F26-tab-unreachable",
+   "criterion": "2.1.1",
+   "title": "The Summer tab has tabindex -1 and the arrow keys do nothing, so the keyboard cannot reach it",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "        if (e.key === \"ArrowRight\") { select(tabs[(i + 1) % tabs.length]); }\n        if (e.key === \"ArrowLeft\") { select(tabs[(i - 1 + tabs.length) % tabs.length]); }\n",
+     "replace": ""
+    }
+   ],
+   "page": "articles.html",
+   "element": "#tab-summer",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Move between the tabs with the arrow keys, or give each tab tabindex 0."
+  },
+  {
+   "id": "F27-keyboard-trap",
+   "criterion": "2.1.2",
+   "title": "A question field stops the Tab key, so the focus cannot leave it",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "  <div id=\"status\" class=\"status\" role=\"status\" aria-live=\"polite\"></div>\n</main>",
+     "replace": "  <div id=\"status\" class=\"status\" role=\"status\" aria-live=\"polite\"></div>\n  <div class=\"banner\"><label for=\"chat\">Ask a question</label><input type=\"text\" id=\"chat\" name=\"chat\"><script>document.getElementById(\"chat\").addEventListener(\"keydown\", function (e) { if (e.key === \"Tab\") { e.preventDefault(); } });</script></div>\n</main>"
+    }
+   ],
+   "page": "index.html",
+   "element": "#chat",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "non_interference": true,
+   "solution": "Remove the keydown handler that stops the Tab key."
+  },
+  {
+   "id": "F28-single-key-shortcut",
+   "criterion": "2.1.4",
+   "title": "The letter S moves the focus to the search field, with no modifier and no setting to switch it off",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<script src=\"app.js\"></script>",
+     "replace": "<script src=\"app.js\"></script>\n<script>document.addEventListener(\"keydown\", function (e) { if (e.key === \"s\" && !e.ctrlKey && !e.metaKey && !e.altKey && e.target.tagName !== \"INPUT\" && e.target.tagName !== \"TEXTAREA\") { e.preventDefault(); document.getElementById(\"q\").focus(); } });</script>"
+    }
+   ],
+   "page": "index.html",
+   "element": "#q",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Require a modifier key for the shortcut, or give a setting to switch it off."
+  },
+  {
+   "id": "F29-meta-refresh",
+   "criterion": "2.2.1",
+   "title": "The home page reloads itself every 30 seconds with a meta refresh",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<title>Home: Harbor Market</title>",
+     "replace": "<title>Home: Harbor Market</title>\n<meta http-equiv=\"refresh\" content=\"30\">"
+    }
+   ],
+   "page": "index.html",
+   "element": "meta[http-equiv=refresh]",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Remove the meta refresh."
+  },
+  {
+   "id": "F30-timer-redirect",
+   "criterion": "2.2.1",
+   "title": "The sign-in page goes to the home page after 20 seconds, with no warning and no way to extend the time",
+   "edits": [
+    {
+     "file": "account.html",
+     "find": "<script src=\"app.js\"></script>",
+     "replace": "<script src=\"app.js\"></script>\n<script>window.setTimeout(function () { window.location.href = \"index.html\"; }, 20000);</script>"
+    }
+   ],
+   "page": "account.html",
+   "element": null,
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Remove the timer, or warn the user and let them extend the time."
+  },
+  {
+   "id": "F31-banner-auto-update",
+   "criterion": "2.2.2",
+   "title": "The delivery banner changes its text every 3 seconds and has no pause control",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<div class=\"banner\" id=\"promo\">Free delivery on orders above 40 euros.</div>",
+     "replace": "<div class=\"banner\" id=\"promo\">Free delivery on orders above 40 euros.</div>\n<script>(function () { var m = [\"Free delivery on orders above 40 euros.\", \"New: mackerel from the Tuesday boats.\", \"Sourdough bread is baked at 5:00.\"], i = 0; window.setInterval(function () { i = (i + 1) % m.length; document.getElementById(\"promo\").textContent = m[i]; }, 3000); })();</script>"
+    }
+   ],
+   "page": "index.html",
+   "element": "#promo",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "non_interference": true,
+   "solution": "Add a pause control next to the banner, or stop the automatic change."
+  },
+  {
+   "id": "F32-marquee",
+   "criterion": "2.2.2",
+   "title": "The delivery banner scrolls across the page without an end and has no pause control",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n@keyframes slide { from { transform: translateX(100%); } to { transform: translateX(-100%); } }\n#promo { animation: slide 8s linear infinite; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "#promo",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "non_interference": true,
+   "solution": "Remove the animation, or add a pause control."
+  },
+  {
+   "id": "F33-flashing",
+   "criterion": "2.3.1",
+   "also": [
+    "1.4.3"
+   ],
+   "title": "The delivery banner flashes red and white five times each second over a large area",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n@keyframes flash { 0%, 49% { background: #ff0000; } 50%, 100% { background: #ffffff; } }\n#promo { animation: flash 0.2s step-end infinite; padding: 40px; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "#promo",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "design",
+   "non_interference": true,
+   "solution": "Remove the flash animation."
+  },
+  {
+   "id": "F34-no-bypass",
+   "criterion": "2.4.1",
+   "title": "The home page has no skip link and no landmarks",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<a class=\"skip-link\" href=\"#main\">Skip to main content</a>\n",
+     "replace": ""
+    },
+    {
+     "file": "index.html",
+     "find": "<header class=\"site\">",
+     "replace": "<div class=\"site-head\">"
+    },
+    {
+     "file": "index.html",
+     "find": "</header>",
+     "replace": "</div>"
+    },
+    {
+     "file": "index.html",
+     "find": "<nav class=\"primary\" aria-label=\"Main\">",
+     "replace": "<div class=\"primary\">"
+    },
+    {
+     "file": "index.html",
+     "find": "</nav>",
+     "replace": "</div>"
+    },
+    {
+     "file": "index.html",
+     "find": "<main id=\"main\">",
+     "replace": "<div id=\"main\">"
+    },
+    {
+     "file": "index.html",
+     "find": "</main>",
+     "replace": "</div>"
+    }
+   ],
+   "page": "index.html",
+   "element": ".site-head",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Restore the skip link, and use header, nav, and main elements."
+  },
+  {
+   "id": "F35-no-title",
+   "criterion": "2.4.2",
+   "title": "The home page has no title",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<title>Home: Harbor Market</title>\n",
+     "replace": ""
+    }
+   ],
+   "page": "index.html",
+   "element": "head",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Add a title element: Home: Harbor Market."
+  },
+  {
+   "id": "F36-same-title",
+   "criterion": "2.4.2",
+   "title": "The articles page and the products page have the same title, which does not describe them",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<title>Articles: Harbor Market</title>",
+     "replace": "<title>Harbor Market</title>"
+    },
+    {
+     "file": "products.html",
+     "find": "<title>Products: Harbor Market</title>",
+     "replace": "<title>Harbor Market</title>"
+    }
+   ],
+   "page": "articles.html",
+   "pages": [
+    "articles.html",
+    "products.html"
+   ],
+   "element": "head title",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Give each page a title with its topic first: Articles: Harbor Market."
+  },
+  {
+   "id": "F37-focus-order-tabindex",
+   "criterion": "2.4.3",
+   "title": "The footer links have positive tabindex values and get the focus before the content",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "    <li><a href=\"sitemap.html\">Sitemap</a></li>\n    <li><a href=\"help.html#contact\">Contact us</a></li>\n    <li><a href=\"privacy.html\">Privacy</a></li>",
+     "replace": "    <li><a href=\"sitemap.html\" tabindex=\"1\">Sitemap</a></li>\n    <li><a href=\"help.html#contact\" tabindex=\"2\">Contact us</a></li>\n    <li><a href=\"privacy.html\" tabindex=\"3\">Privacy</a></li>"
+    }
+   ],
+   "page": "index.html",
+   "element": "footer a",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Remove the tabindex attributes."
+  },
+  {
+   "id": "F38-read-more-links",
+   "criterion": "2.4.4",
+   "title": "Two links say Read more and go to different pages, with no context in the list items",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<li><a href=\"storage.html\">Read how to store bread for a week</a></li>",
+     "replace": "<li><a href=\"storage.html\">Read more</a></li>"
+    },
+    {
+     "file": "articles.html",
+     "find": "<li><a href=\"articles.html#produce\">Read the guide to seasonal produce</a></li>",
+     "replace": "<li><a href=\"articles.html#produce\">Read more</a></li>"
+    }
+   ],
+   "page": "articles.html",
+   "element": "#panel-spring a",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Say where each link goes: Read how to store bread for a week."
+  },
+  {
+   "id": "F39-link-no-name",
+   "criterion": "2.4.4",
+   "also": [
+    "4.1.2"
+   ],
+   "title": "The transcript link has an icon only and no accessible name",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<p><a href=\"media/transcript.html\">Read the transcript of the recording</a></p>",
+     "replace": "<p><a href=\"media/transcript.html\"><svg viewBox=\"0 0 20 20\" width=\"20\" height=\"20\"><path d=\"M4 3h12v14H4z\" fill=\"currentColor\"/></svg></a></p>"
+    }
+   ],
+   "page": "index.html",
+   "element": "a[href=\"media/transcript.html\"]",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Give the link text, or an aria-label that says Read the transcript of the recording."
+  },
+  {
+   "id": "F40-orphan-page",
+   "criterion": "2.4.5",
+   "title": "No link points to the bread storage article, and it is only in the XML sitemap",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "      <li><a href=\"storage.html\">Read how to store bread for a week</a></li>\n",
+     "replace": ""
+    },
+    {
+     "file": "sitemap.html",
+     "find": "      <ul>\n        <li><a href=\"storage.html\">How to store bread for a week</a></li>\n      </ul>\n",
+     "replace": ""
+    },
+    {
+     "file": "articles.html",
+     "find": "    <p><a href=\"storage.html\">Read more</a></p>\n",
+     "replace": "    <p>Read the article on the storage page.</p>\n"
+    }
+   ],
+   "page": "storage.html",
+   "element": null,
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Link to the article from the articles page and from the sitemap page."
+  },
+  {
+   "id": "F41-headings-not-descriptive",
+   "criterion": "2.4.6",
+   "title": "The headings of the storage article say Section 1 and Section 2",
+   "edits": [
+    {
+     "file": "storage.html",
+     "find": "<h2>Day 1 to 3</h2>",
+     "replace": "<h2>Section 1</h2>"
+    },
+    {
+     "file": "storage.html",
+     "find": "<h2>Day 4 to 7</h2>",
+     "replace": "<h2>Section 2</h2>"
+    }
+   ],
+   "page": "storage.html",
+   "element": "h2",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Use headings that describe the content: Day 1 to 3, Day 4 to 7."
+  },
+  {
+   "id": "F42-focus-not-visible",
+   "criterion": "2.4.7",
+   "title": "The focus outline is removed on all controls",
+   "edits": [
+    {
+     "file": "styles.css",
+     "find": "  outline: 3px solid var(--focus);\n  outline-offset: 2px;\n}",
+     "replace": "  outline: none;\n}"
+    }
+   ],
+   "page": "index.html",
+   "element": "a[href], button",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Restore the outline on :focus-visible."
+  },
+  {
+   "id": "F43-focus-hidden-by-sticky-header",
+   "criterion": "2.4.11",
+   "title": "A sticky header of 140 px hides the control that has the focus when the focus moves backwards",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\nheader.site { position: sticky; top: 0; background: #fff; z-index: 5; min-height: 140px; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "main a[href]",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Add scroll-padding-top equal to the header height, or make the header static."
+  },
+  {
+   "id": "F44-focus-hidden-by-fixed-banner",
+   "criterion": "2.4.11",
+   "title": "A fixed cookie banner with no close control hides the footer links when they get the focus",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<script src=\"app.js\"></script>",
+     "replace": "<div style=\"position: fixed; bottom: 0; left: 0; right: 0; height: 160px; background: #f1f5f9; border-top: 1px solid #6b7280; padding: 16px;\"><p>We use cookies for the cart. <a href=\"privacy.html\">Read the privacy page</a>.</p></div>\n<script src=\"app.js\"></script>"
+    }
+   ],
+   "page": "index.html",
+   "element": "footer a",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Add scroll-padding-bottom equal to the banner height, or let the user close the banner."
+  },
+  {
+   "id": "F45-gesture-only-map",
+   "criterion": "2.5.1",
+   "title": "The delivery area map needs a pinch to zoom and two fingers to pan, with no buttons",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<h2>Your delivery order</h2>",
+     "replace": "<h2>Delivery area</h2>\n  <div id=\"map\" style=\"height: 160px; border: 2px solid #6b7280; touch-action: none;\" role=\"region\" aria-label=\"Map of the delivery area. Pinch to zoom, drag with two fingers to pan.\"></div>\n  <script>(function () { var m = document.getElementById(\"map\"); m.addEventListener(\"touchmove\", function (e) { if (e.touches.length === 2) { e.preventDefault(); } }); m.addEventListener(\"wheel\", function (e) { e.preventDefault(); }); })();</script>\n  <h2>Your delivery order</h2>"
+    }
+   ],
+   "page": "products.html",
+   "element": "#map",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add zoom and pan buttons that work with one pointer."
+  },
+  {
+   "id": "F46-down-event",
+   "criterion": "2.5.2",
+   "title": "The Add to cart buttons act when the pointer goes down",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "    button.addEventListener(\"click\", function () {\n      announce(button.getAttribute(\"data-add-to-cart\") + \" was added to the cart.\");\n    });",
+     "replace": "    button.addEventListener(\"pointerdown\", function () {\n      announce(button.getAttribute(\"data-add-to-cart\") + \" was added to the cart.\");\n    });"
+    }
+   ],
+   "page": "products.html",
+   "element": "[data-add-to-cart]",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Act on the click event, which completes on the up event."
+  },
+  {
+   "id": "F47-label-not-in-name",
+   "criterion": "2.5.3",
+   "title": "The Apply button shows Apply but its accessible name is Sort the products",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<button type=\"button\" id=\"apply-sort\">Apply</button>",
+     "replace": "<button type=\"button\" id=\"apply-sort\" aria-label=\"Sort the products\">Apply</button>"
+    }
+   ],
+   "page": "products.html",
+   "element": "#apply-sort",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Remove the aria-label, or start it with the visible text: Apply the sort."
+  },
+  {
+   "id": "F48-motion-only",
+   "criterion": "2.5.4",
+   "title": "A shake of the device empties the cart, and no control does the same",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<script src=\"app.js\"></script>",
+     "replace": "<script src=\"app.js\"></script>\n<script>window.addEventListener(\"devicemotion\", function (e) { if (e.acceleration && Math.abs(e.acceleration.x) > 15) { document.getElementById(\"status\").textContent = \"The cart is empty.\"; } });</script>"
+    }
+   ],
+   "page": "products.html",
+   "element": null,
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add a button that empties the cart, and let the user switch the shake off."
+  },
+  {
+   "id": "F49-drag-only",
+   "criterion": "2.5.7",
+   "title": "The delivery order can only be changed with a drag",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<p>Drag an item, or use the buttons, to change the order of the delivery.</p>",
+     "replace": "<p>Drag an item to change the order of the delivery.</p>"
+    },
+    {
+     "file": "products.html",
+     "find": "<li draggable=\"true\"><span>Apples from Oak Farm</span><button type=\"button\" data-move=\"up\" aria-label=\"Move up: Apples from Oak Farm\">Move up</button><button type=\"button\" data-move=\"down\" aria-label=\"Move down: Apples from Oak Farm\">Move down</button></li>",
+     "replace": "<li draggable=\"true\"><span>Apples from Oak Farm</span></li>"
+    },
+    {
+     "file": "products.html",
+     "find": "<li draggable=\"true\"><span>Sourdough bread</span><button type=\"button\" data-move=\"up\" aria-label=\"Move up: Sourdough bread\">Move up</button><button type=\"button\" data-move=\"down\" aria-label=\"Move down: Sourdough bread\">Move down</button></li>",
+     "replace": "<li draggable=\"true\"><span>Sourdough bread</span></li>"
+    },
+    {
+     "file": "products.html",
+     "find": "<li draggable=\"true\"><span>Mackerel</span><button type=\"button\" data-move=\"up\" aria-label=\"Move up: Mackerel\">Move up</button><button type=\"button\" data-move=\"down\" aria-label=\"Move down: Mackerel\">Move down</button></li>",
+     "replace": "<li draggable=\"true\"><span>Mackerel</span></li>"
+    }
+   ],
+   "page": "products.html",
+   "element": "#delivery-order li",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add Move up and Move down buttons to each item."
+  },
+  {
+   "id": "F50-small-targets",
+   "criterion": "2.5.8",
+   "title": "The favorite and share buttons are 18 by 18 px with no space between them",
+   "edits": [
+    {
+     "file": "styles.css",
+     "find": ".icon-button { width: 44px; height: 44px; min-height: 0; padding: 0; display: inline-grid; place-items: center; }",
+     "replace": ".icon-button { width: 18px; height: 18px; min-height: 0; padding: 0; display: inline-grid; place-items: center; }"
+    },
+    {
+     "file": "styles.css",
+     "find": ".icon-row { display: flex; gap: 8px; margin-top: 8px; }",
+     "replace": ".icon-row { display: flex; gap: 0; margin-top: 8px; }"
+    }
+   ],
+   "page": "products.html",
+   "element": ".icon-button",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Make the buttons at least 24 by 24 px, or give them 24 px of space."
+  },
+  {
+   "id": "F51-no-lang",
+   "criterion": "3.1.1",
+   "title": "The home page has no lang attribute",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<html lang=\"en\">",
+     "replace": "<html>"
+    }
+   ],
+   "page": "index.html",
+   "element": "html",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Add lang=\"en\" to the html element."
+  },
+  {
+   "id": "F52-wrong-lang",
+   "criterion": "3.1.1",
+   "title": "The home page is in English but declares French",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<html lang=\"en\">",
+     "replace": "<html lang=\"fr\">"
+    }
+   ],
+   "page": "index.html",
+   "element": "html",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Change the lang attribute to en."
+  },
+  {
+   "id": "F53-quote-no-lang",
+   "criterion": "3.1.2",
+   "title": "The French quote has no lang attribute",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": "<blockquote lang=\"fr\">",
+     "replace": "<blockquote>"
+    }
+   ],
+   "page": "articles.html",
+   "element": "blockquote",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Add lang=\"fr\" to the blockquote."
+  },
+  {
+   "id": "F54-change-on-focus",
+   "criterion": "3.2.1",
+   "title": "The address field opens the help page when it gets the focus",
+   "edits": [
+    {
+     "file": "order.html",
+     "find": "<input type=\"text\" id=\"address\" name=\"address\" autocomplete=\"street-address\" required>",
+     "replace": "<input type=\"text\" id=\"address\" name=\"address\" autocomplete=\"street-address\" required onfocus=\"window.location.href='help.html'\">"
+    }
+   ],
+   "page": "order.html",
+   "element": "#address",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Remove the onfocus handler."
+  },
+  {
+   "id": "F55-change-on-input",
+   "criterion": "3.2.2",
+   "title": "A change of the Sort by select loads a new page with no warning",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<select id=\"sort\" name=\"sort\">",
+     "replace": "<select id=\"sort\" name=\"sort\" onchange=\"window.location.href='products.html?sort=' + this.value\">"
+    }
+   ],
+   "page": "products.html",
+   "element": "#sort",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Remove the onchange handler and keep the Apply button, or tell the user before the select that a change loads the page."
+  },
+  {
+   "id": "F56-nav-order-differs",
+   "criterion": "3.2.3",
+   "title": "The main navigation of the help page has a different order",
+   "edits": [
+    {
+     "file": "help.html",
+     "find": "      <li><a href=\"articles.html\">Articles</a></li>\n      <li><a href=\"products.html\">Products</a></li>\n      <li><a href=\"order.html\">Order</a></li>",
+     "replace": "      <li><a href=\"order.html\">Order</a></li>\n      <li><a href=\"articles.html\">Articles</a></li>\n      <li><a href=\"products.html\">Products</a></li>"
+    }
+   ],
+   "page": "help.html",
+   "element": "nav.primary",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Use the same order of the navigation links on all pages."
+  },
+  {
+   "id": "F57-search-button-named-go",
+   "criterion": "3.2.4",
+   "title": "The search button is named Go on the help page and Search on the other pages",
+   "edits": [
+    {
+     "file": "help.html",
+     "find": "<button type=\"submit\">Search</button>",
+     "replace": "<button type=\"submit\">Go</button>"
+    }
+   ],
+   "page": "help.html",
+   "element": ".site-search button",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Name the button Search on all pages."
+  },
+  {
+   "id": "F58-help-link-moved",
+   "criterion": "3.2.6",
+   "title": "The Help and Contact links are in the footer on the sign-in page and in the header on the other pages",
+   "edits": [
+    {
+     "file": "account.html",
+     "find": "    <a href=\"help.html\">Help</a>\n    <a href=\"help.html#contact\">Contact</a>\n    <a href=\"account.html\" aria-current=\"page\">Account</a>",
+     "replace": "    <a href=\"account.html\" aria-current=\"page\">Account</a>"
+    },
+    {
+     "file": "account.html",
+     "find": "  <p class=\"muted\">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>",
+     "replace": "  <p><a href=\"help.html\">Help</a> <a href=\"help.html#contact\">Contact</a></p>\n  <p class=\"muted\">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>"
+    }
+   ],
+   "page": "account.html",
+   "element": "footer",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Keep the Help and Contact links in the header, in the same order as on the other pages."
+  },
+  {
+   "id": "F59-error-by-color-only",
+   "criterion": "3.3.1",
+   "also": [
+    "1.4.1"
+   ],
+   "title": "The contact form shows an error only with a red border, with no text",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "      if (error) { error.textContent = message; }",
+     "replace": "      if (error) { error.textContent = \"\"; }"
+    },
+    {
+     "file": "app.js",
+     "find": "      if (errors.length) {",
+     "replace": "      if (false) {"
+    },
+    {
+     "file": "styles.css",
+     "append": "\n[aria-invalid=\"true\"] { border-color: #b3261e; }\n"
+    }
+   ],
+   "page": "help.html",
+   "element": "#contact-form",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Show the error in text next to the field and in the error summary."
+  },
+  {
+   "id": "F60-placeholder-labels",
+   "criterion": "3.3.2",
+   "title": "The contact form fields have placeholders and no visible labels",
+   "edits": [
+    {
+     "file": "help.html",
+     "find": "<label for=\"contact-name\">Your name</label>\n      <input type=\"text\" id=\"contact-name\" name=\"name\" autocomplete=\"name\" required>",
+     "replace": "<input type=\"text\" id=\"contact-name\" name=\"name\" autocomplete=\"name\" placeholder=\"Your name\" required>"
+    },
+    {
+     "file": "help.html",
+     "find": "<label for=\"contact-email\">Your email</label>\n      <p class=\"hint\" id=\"contact-email-hint\">For our answer, for example name@example.com.</p>\n      <input type=\"email\" id=\"contact-email\" name=\"email\" autocomplete=\"email\" aria-describedby=\"contact-email-hint\" required>",
+     "replace": "<input type=\"email\" id=\"contact-email\" name=\"email\" autocomplete=\"email\" placeholder=\"Your email\" required>"
+    },
+    {
+     "file": "help.html",
+     "find": "<label for=\"message\">Your message</label>\n      <textarea id=\"message\" name=\"message\" required></textarea>",
+     "replace": "<textarea id=\"message\" name=\"message\" placeholder=\"Your message\" required></textarea>"
+    }
+   ],
+   "page": "help.html",
+   "element": "#contact-form input, #contact-form textarea",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add a visible label to each field. A placeholder disappears when the user types."
+  },
+  {
+   "id": "F61-error-no-suggestion",
+   "criterion": "3.3.3",
+   "title": "The error for the delivery date says Invalid input, and no text near the field gives the format",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "        message = \"Enter \" + name.toLowerCase() + \" as a date in the format 2026-10-13.\";",
+     "replace": "        message = \"Invalid input.\";"
+    },
+    {
+     "file": "order.html",
+     "find": "<p class=\"hint\" id=\"date-hint\">Use the format 2026-10-13.</p>",
+     "replace": "<p class=\"hint\" id=\"date-hint\">Required.</p>"
+    }
+   ],
+   "page": "order.html",
+   "element": "#date",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Say how to correct the error: Enter the delivery date in the format 2026-10-13."
+  },
+  {
+   "id": "F62-no-review-step",
+   "criterion": "3.3.4",
+   "title": "The order form with the card number sends the order with no review step",
+   "edits": [
+    {
+     "file": "order.html",
+     "find": "data-validate data-next=\"order-review.html\" action=\"order-review.html\"",
+     "replace": "data-validate data-next=\"order-done.html\" action=\"order-done.html\""
+    },
+    {
+     "file": "order.html",
+     "find": "Continue to the review",
+     "replace": "Confirm the order"
+    }
+   ],
+   "page": "order.html",
+   "element": "#order-form",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Add a review step before the confirmation, or let the user cancel the order after the confirmation."
+  },
+  {
+   "id": "F63-redundant-entry",
+   "criterion": "3.3.7",
+   "title": "The review step asks for the email again, which the user gave in step 1",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "    var email = document.getElementById(\"confirm-email\");\n    if (email) { email.value = saved.email || \"\"; }\n",
+     "replace": ""
+    },
+    {
+     "file": "order-review.html",
+     "find": "<label for=\"confirm-email\">Email for the receipt</label>",
+     "replace": "<label for=\"confirm-email\">Enter your email again</label>"
+    }
+   ],
+   "page": "order-review.html",
+   "element": "#confirm-email",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Fill the email field with the value from step 1."
+  },
+  {
+   "id": "F64-paste-blocked",
+   "criterion": "3.3.8",
+   "title": "The password field blocks the paste and the autofill, and the sign-in link alternative is removed",
+   "edits": [
+    {
+     "file": "account.html",
+     "find": "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"current-password\" required>",
+     "replace": "<input type=\"password\" id=\"password\" name=\"password\" autocomplete=\"off\" onpaste=\"return false\" required>"
+    },
+    {
+     "file": "account.html",
+     "find": "  <p id=\"link\">No password? <a href=\"account.html#link\">Get a sign-in link by email</a>.</p>\n",
+     "replace": ""
+    }
+   ],
+   "page": "account.html",
+   "element": "#password",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Permit the paste and the autofill in the password field."
+  },
+  {
+   "id": "F65-captcha",
+   "criterion": "3.3.8",
+   "title": "The sign-in has a CAPTCHA with letters in an image, and no other method",
+   "edits": [
+    {
+     "file": "account.html",
+     "find": "    <button type=\"submit\" class=\"primary\">Sign in</button>",
+     "replace": "    <div class=\"field\">\n      <label for=\"captcha\">Type the letters in the image</label>\n      <img src=\"media/promo-text.svg\" width=\"240\" height=\"30\" alt=\"CAPTCHA\">\n      <input type=\"text\" id=\"captcha\" name=\"captcha\" autocomplete=\"off\" required>\n      <p class=\"error\" id=\"captcha-error\"></p>\n    </div>\n    <button type=\"submit\" class=\"primary\">Sign in</button>"
+    },
+    {
+     "file": "account.html",
+     "find": "  <p id=\"link\">No password? <a href=\"account.html#link\">Get a sign-in link by email</a>.</p>\n",
+     "replace": ""
+    }
+   ],
+   "page": "account.html",
+   "element": "#captcha",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Remove the CAPTCHA from the sign-in, or give a method with no cognitive function test."
+  },
+  {
+   "id": "F66-div-as-checkbox",
+   "criterion": "4.1.2",
+   "also": [
+    "2.1.1"
+   ],
+   "title": "The Fish filter is a div with a click handler, with no role, no name, and no state",
+   "edits": [
+    {
+     "file": "products.html",
+     "find": "<label><input type=\"checkbox\" name=\"category\" value=\"fish\" checked> Fish</label>",
+     "replace": "<div class=\"fake-check\" onclick=\"this.classList.toggle('on')\">Fish</div>"
+    },
+    {
+     "file": "styles.css",
+     "append": "\n.fake-check { cursor: pointer; display: inline-block; margin-right: 16px; }\n.fake-check::before { content: \"\\2610  \"; }\n.fake-check.on::before { content: \"\\2611  \"; }\n"
+    }
+   ],
+   "page": "products.html",
+   "element": ".fake-check",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Use a checkbox input with a label."
+  },
+  {
+   "id": "F67-expanded-state-not-updated",
+   "criterion": "4.1.2",
+   "title": "The disclosure buttons open their panel but keep aria-expanded false",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "      button.setAttribute(\"aria-expanded\", open ? \"false\" : \"true\");\n",
+     "replace": ""
+    }
+   ],
+   "page": "index.html",
+   "pages": [
+    "index.html",
+    "help.html"
+   ],
+   "element": ".disclosure > button",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Set aria-expanded to true when the panel opens, and to false when it closes."
+  },
+  {
+   "id": "F68-status-no-live-region",
+   "criterion": "4.1.3",
+   "title": "The cart message appears in a plain div, with no live region and no focus change",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "<div id=\"status\" class=\"status\" role=\"status\" aria-live=\"polite\"></div>",
+     "replace": "<div id=\"status\" class=\"status\"></div>"
+    }
+   ],
+   "page": "index.html",
+   "element": "#status",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "code",
+   "solution": "Give the message container role=\"status\"."
+  },
+  {
+   "id": "F70-audio-no-transcript",
+   "criterion": "1.2.1",
+   "title": "The recording has no transcript link",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "  <p><a href=\"media/transcript.html\">Read the transcript of the recording</a></p>\n",
+     "replace": ""
+    }
+   ],
+   "page": "index.html",
+   "element": "audio",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Add a link to a transcript of the recording next to the player."
+  },
+  {
+   "id": "F69-list-without-list-code",
+   "criterion": "1.3.1",
+   "title": "The steps look like a numbered list but are a paragraph with line breaks",
+   "edits": [
+    {
+     "file": "index.html",
+     "find": "  <ol class=\"steps\">\n    <li>Choose your products on the products page.</li>\n    <li>Give your details on the order page.</li>\n    <li>Review your order and confirm it.</li>\n  </ol>",
+     "replace": "  <p class=\"steps\">1. Choose your products on the products page.<br>2. Give your details on the order page.<br>3. Review your order and confirm it.</p>"
+    }
+   ],
+   "page": "index.html",
+   "element": ".steps",
+   "expected": "failed",
+   "decider": "ai",
+   "origin": "content",
+   "solution": "Use an ol element with one li for each step."
+  },
+  {
+   "id": "F71-dialog-without-exit",
+   "criterion": "2.1.2",
+   "title": "The directions dialog keeps the focus: Esc does not close it, and it has no Close button",
+   "edits": [
+    {
+     "file": "app.js",
+     "find": "    openMap.addEventListener(\"click\", function () { mapDialog.showModal(); });",
+     "replace": "    openMap.addEventListener(\"click\", function () { mapDialog.showModal(); });\n    mapDialog.addEventListener(\"cancel\", function (e) { e.preventDefault(); });"
+    },
+    {
+     "file": "index.html",
+     "find": "    <button type=\"button\" id=\"close-map\">Close</button>\n",
+     "replace": ""
+    }
+   ],
+   "page": "index.html",
+   "element": "#map-dialog",
+   "state": "click Show the directions to the pier",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "code",
+   "solution": "Let Esc close the dialog, and add a Close button inside it."
+  },
+  {
+   "id": "F72-panel-link-no-focus-style",
+   "criterion": "2.4.7",
+   "title": "The link in the opening hours panel shows no focus indicator",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n#hours a:focus-visible { outline: none; outline-offset: 0; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": "#hours a",
+   "state": "click Show the opening hours",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Remove the rule that hides the outline of the link in the panel."
+  },
+  {
+   "id": "F73-tab-panel-image-no-alt",
+   "criterion": "1.1.1",
+   "title": "The image in the Summer tab panel has no alt attribute",
+   "edits": [
+    {
+     "file": "articles.html",
+     "find": " alt=\"The fish stall at the end of the pier, with the morning catch on ice.\">",
+     "replace": ">"
+    }
+   ],
+   "page": "articles.html",
+   "element": "#panel-summer img",
+   "state": "click Summer",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "content",
+   "solution": "Add an alt attribute that says what the image shows."
+  },
+  {
+   "id": "F74-text-over-image-no-band",
+   "criterion": "1.4.3",
+   "title": "The text over the image lost its dark band, so white text sits on the light image",
+   "edits": [
+    {
+     "file": "styles.css",
+     "append": "\n.hero-text { background: transparent; }\n"
+    }
+   ],
+   "page": "index.html",
+   "element": ".hero-text",
+   "expected": "failed",
+   "decider": "engine",
+   "origin": "design",
+   "solution": "Give the text a solid or dark band behind it, or a text color with 4.5:1 against all parts of the image."
+  }
+ ]
+}

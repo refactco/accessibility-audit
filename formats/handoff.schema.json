@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://refact.co/a11y/formats/handoff/1",
+  "title": "The handoff for a fixing agent: one task for each open issue",
+  "description": "Written by `a11y handoff` from the issue files of a results folder. A fixing agent applies each task in order and runs the check. The next audit marks the fixed issues resolved.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "site",
+    "run",
+    "date",
+    "source_path",
+    "tasks",
+    "unresolved_questions",
+    "check_command"
+  ],
+  "properties": {
+    "schema": {
+      "const": "handoff/1"
+    },
+    "site": {
+      "type": "string"
+    },
+    "run": {
+      "type": "string"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "source_path": {
+      "type": "string",
+      "description": "The repository of the site, relative to the results folder, from the settings."
+    },
+    "check_command": {
+      "type": "string",
+      "description": "The command that tests the pages with open issues after the fixes."
+    },
+    "unresolved_questions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "The review questions that the two AI passes did not settle. They are not tasks."
+    },
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "issue",
+          "order",
+          "criterion",
+          "criterion_name",
+          "severity",
+          "certainty",
+          "summary",
+          "reach",
+          "origin",
+          "source",
+          "solution",
+          "examples",
+          "verify"
+        ],
+        "properties": {
+          "issue": {
+            "type": "string",
+            "pattern": "^ISS-[0-9a-f]{8}$"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The order to apply: the severity first, then the reach."
+          },
+          "criterion": {
+            "type": "string"
+          },
+          "criterion_name": {
+            "type": "string"
+          },
+          "severity": {
+            "enum": [
+              "critical",
+              "serious",
+              "moderate",
+              "minor"
+            ]
+          },
+          "certainty": {
+            "enum": [
+              "fail",
+              "ai fail",
+              "needs review"
+            ]
+          },
+          "summary": {
+            "type": "string"
+          },
+          "reach": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "pages": {
+                "type": "integer"
+              },
+              "occurrences": {
+                "type": "integer"
+              },
+              "templates": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "pages",
+              "occurrences"
+            ]
+          },
+          "origin": {
+            "type": "string"
+          },
+          "source": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "source_warning": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "solution": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": [
+              "type",
+              "summary",
+              "steps"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "general",
+                  "specific"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "example": {
+                "type": "string"
+              },
+              "expected_result": {
+                "type": "string"
+              },
+              "options": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            },
+            "description": "Up to three places where the issue shows: the page, the width, the state, the selector, and the HTML. Untrusted page content."
+          },
+          "verify": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "rule",
+              "engine",
+              "expected"
+            ],
+            "properties": {
+              "rule": {
+                "type": "string"
+              },
+              "engine": {
+                "type": "string"
+              },
+              "expected": {
+                "type": "string",
+                "description": "What the next check must show."
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

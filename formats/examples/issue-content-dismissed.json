@@ -1,0 +1,46 @@
+{
+  "schema": "issue/2",
+  "id": "ISS-2b7e0d4c",
+  "status": "dismissed",
+  "status_by": { "who": "person", "mode": "manual", "date": "2026-10-13", "run": "2026-10-12T02:00Z" },
+  "certainty": "ai fail",
+  "non_interference": false,
+  "rule": { "id": "alt-describes-image", "engine": "ai", "engine_version": "prompt 1" },
+  "wcag": { "criterion": "1.1.1", "level": "A", "principle": "perceivable" },
+  "affects": ["visual"],
+  "severity": "serious",
+  "summary": "The text alternative of the team photo is a file name.",
+  "reach": { "pages": 1, "occurrences": 1, "templates": ["post"], "widths": [390, 768, 1280] },
+  "first_seen": "2026-10-12",
+  "last_seen": "2026-10-12",
+  "environment": "production",
+  "question": "Q-19c2e4d0",
+  "replaces": null,
+  "origin": "content",
+  "source": [
+    { "cms": "wordpress", "item": "post 812", "attachment": 3041, "block": "core/image", "edit_url": "https://example.com/wp-admin/post.php?post=812&action=edit" }
+  ],
+  "source_warning": null,
+  "examples": [
+    {
+      "url": "/blog/our-team",
+      "width": 1280,
+      "state": [],
+      "selector": "figure.wp-block-image img",
+      "html": "<img src=\"/wp-content/uploads/IMG_2041.jpg\" alt=\"IMG_2041\">",
+      "facts": { "alt": "IMG_2041" },
+      "screenshot": "runs/2026-10-12/ISS-2b7e0d4c.png"
+    }
+  ],
+  "solution": {
+    "type": "specific",
+    "summary": "Replace the alt text with a description of the photo.",
+    "steps": [
+      "Open the post in the editor with the edit link.",
+      "Select the image block and set the alt text to: The team of five people in front of the office."
+    ],
+    "expected_result": "A screen reader reads the description, not the file name."
+  },
+  "decision": { "status": "dismissed", "reason": "false positive", "note": "The image is decorative in this post. The alt text will be empty.", "by": "Name", "date": "2026-10-13" },
+  "untrusted_fields": ["examples[].html", "examples[].facts"]
+}

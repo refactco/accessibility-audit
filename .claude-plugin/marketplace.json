@@ -1,0 +1,24 @@
+{
+  "name": "accessibility-audit",
+  "owner": {
+    "name": "Refact",
+    "email": "dev@refact.co"
+  },
+  "plugins": [
+    {
+      "name": "accessibility-audit",
+      "source": "./plugin",
+      "description": "The agent skill of Accessibility Audit: runs the WCAG 2.2 AA audit cycle on a site with no person (the audit, the AI answers, the verifier, the origin and the solution of each issue, and the handoff for a fixing agent). It never fixes the site.",
+      "author": {
+        "name": "Refact",
+        "email": "dev@refact.co"
+      },
+      "keywords": [
+        "accessibility",
+        "wcag",
+        "a11y",
+        "audit"
+      ]
+    }
+  ]
+}

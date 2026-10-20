@@ -1,0 +1,227 @@
+{
+  "schema": "config/1",
+  "site": {
+    "url": "https://refact.co",
+    "environment": "production",
+    "standard": "WCAG 2.2",
+    "level": "AA",
+    "languages": [
+      "en"
+    ],
+    "sets": [
+      {
+        "name": "site",
+        "patterns": [
+          "/**"
+        ]
+      }
+    ],
+    "cms": {
+      "type": "headless-wordpress",
+      "api_url": "https://refact.wpengine.com/wp-json/wp/v2",
+      "graphql_url": "https://refact.wpengine.com/graphql",
+      "source_path": ".."
+    }
+  },
+  "crawl": {
+    "widths": [
+      390,
+      768,
+      1280
+    ],
+    "max_pages": 1000,
+    "skip": [
+      "/api/**",
+      "/admin/**",
+      "/_next/**",
+      "/opengraph-image",
+      "/sitemap/**",
+      "/llms.txt",
+      "/**/*.md"
+    ],
+    "address_groups": [
+      {
+        "pattern": "/insights/*?page=*",
+        "limit": 5
+      },
+      {
+        "pattern": "/author/*?page=*",
+        "limit": 2
+      }
+    ],
+    "parameters": {
+      "keep": [
+        "page"
+      ]
+    },
+    "rate_limit": 2,
+    "permitted_domains": [
+      "refact.co",
+      "cdn.refact.co"
+    ],
+    "obey_robots": true,
+    "templates": [
+      {
+        "name": "home",
+        "pattern": "/",
+        "example_page": "/"
+      },
+      {
+        "name": "web-development",
+        "pattern": "/web-development",
+        "example_page": "/web-development"
+      },
+      {
+        "name": "industries-index",
+        "pattern": "/industries",
+        "example_page": "/industries"
+      },
+      {
+        "name": "technologies-index",
+        "pattern": "/technologies",
+        "example_page": "/technologies"
+      },
+      {
+        "name": "service",
+        "pattern": "/services/*",
+        "example_page": "/services/ai-chatbot"
+      },
+      {
+        "name": "technology",
+        "pattern": "/technologies/*",
+        "example_page": "/technologies/aws"
+      },
+      {
+        "name": "industry",
+        "pattern": "/industries/*",
+        "example_page": "/industries/consulting"
+      },
+      {
+        "name": "work-index",
+        "pattern": "/work",
+        "example_page": "/work"
+      },
+      {
+        "name": "work",
+        "pattern": "/work/*",
+        "example_page": "/work/el-colectivo-506"
+      },
+      {
+        "name": "insights",
+        "pattern": "/insights",
+        "example_page": "/insights"
+      },
+      {
+        "name": "category",
+        "pattern": "/insights/*",
+        "example_page": "/insights/digital-product"
+      },
+      {
+        "name": "post",
+        "pattern": "/insights/*/*",
+        "example_page": "/insights/digital-product/client-portal-software-small-business"
+      },
+      {
+        "name": "author",
+        "pattern": "/author/*",
+        "example_page": "/author/saeedreza"
+      },
+      {
+        "name": "page",
+        "pattern": "/*",
+        "example_page": "/privacy-policy"
+      },
+      {
+        "name": "contact",
+        "pattern": "/contact",
+        "example_page": "/contact"
+      }
+    ],
+    "sample_pages": [
+      "/about",
+      "/discovery",
+      "/this-page-does-not-exist"
+    ],
+    "random_sample_share": 0.1
+  },
+  "interaction": {
+    "deny_list": [
+      "delete",
+      "remove",
+      "pay",
+      "buy",
+      "order",
+      "send",
+      "submit",
+      "subscribe",
+      "unsubscribe",
+      "log out",
+      "sign out",
+      "cancel"
+    ],
+    "tests_that_send_data": false,
+    "max_states_per_page": 10,
+    "processes": [
+      {
+        "name": "contact",
+        "environment": "staging",
+        "steps": [
+          {
+            "page": "/contact",
+            "action": "click 'Send'"
+          },
+          {
+            "page": "/contact",
+            "action": "fill 'Name' with 'Accessibility audit'"
+          },
+          {
+            "page": "/contact",
+            "action": "fill 'Work email' with 'audit@example.com'"
+          },
+          {
+            "page": "/contact",
+            "action": "fill 'Company' with 'Accessibility audit test'"
+          },
+          {
+            "page": "/contact",
+            "action": "fill 'Company website' with 'https://example.com'"
+          },
+          {
+            "page": "/contact",
+            "action": "select 'Not sure yet' in 'What do you need help with?'"
+          },
+          {
+            "page": "/contact",
+            "action": "fill 'Tell us about your project' with 'This is a test message from the accessibility audit. Please ignore it.'"
+          },
+          {
+            "page": "/contact",
+            "action": "click 'Send'"
+          },
+          {
+            "page": "/contact",
+            "action": "read the thank-you message"
+          }
+        ]
+      }
+    ]
+  },
+  "login": {
+    "method": "none"
+  },
+  "budgets": {
+    "concurrency": 4,
+    "time_budget_minutes": 240,
+    "max_pages": 1000,
+    "max_questions_per_audit": 500,
+    "max_issues_for_skill": 200
+  },
+  "baseline": {
+    "assistive_technologies": [
+      "VoiceOver on macOS with Safari"
+    ]
+  },
+  "schedule": {
+    "interval": "weekly"
+  }
+}

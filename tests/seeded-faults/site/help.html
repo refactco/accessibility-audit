@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help and contact: Harbor Market</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site">
+  <a class="brand" href="index.html">Harbor Market</a>
+  <nav class="primary" aria-label="Main">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="articles.html">Articles</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="order.html">Order</a></li>
+    </ul>
+  </nav>
+  <form class="site-search" role="search" action="search.html" method="get">
+    <label for="q" class="visually-hidden">Search the site</label>
+    <input type="search" id="q" name="q">
+    <button type="submit">Search</button>
+  </form>
+  <div class="util">
+    <a href="help.html" aria-current="page">Help</a>
+    <a href="help.html#contact">Contact</a>
+    <a href="account.html">Account</a>
+  </div>
+</header>
+<main id="main">
+  <h1>Help</h1>
+  <h2>Frequently asked questions</h2>
+  <div class="disclosure">
+    <button type="button" aria-expanded="false" aria-controls="faq-delivery">When does the delivery come?</button>
+    <div id="faq-delivery" hidden><p>On the date that you chose, between 8:00 and 12:00.</p></div>
+  </div>
+  <div class="disclosure">
+    <button type="button" aria-expanded="false" aria-controls="faq-cancel">Can I cancel an order?</button>
+    <div id="faq-cancel" hidden><p>Yes, until 18:00 on the day before the delivery. Send us a message with the order number.</p></div>
+  </div>
+
+  <h2 id="contact">Contact us</h2>
+  <p>Call us at +1 555 0100 from Tuesday to Saturday, 9:00 to 17:00, or send a message. All fields are required.</p>
+  <form id="contact-form" data-validate action="help.html" method="get" novalidate>
+    <div class="error-summary" tabindex="-1" hidden></div>
+    <div class="field">
+      <label for="contact-name">Your name</label>
+      <input type="text" id="contact-name" name="name" autocomplete="name" required>
+      <p class="error" id="contact-name-error"></p>
+    </div>
+    <div class="field">
+      <label for="contact-email">Your email</label>
+      <p class="hint" id="contact-email-hint">For our answer, for example name@example.com.</p>
+      <input type="email" id="contact-email" name="email" autocomplete="email" aria-describedby="contact-email-hint" required>
+      <p class="error" id="contact-email-error"></p>
+    </div>
+    <div class="field">
+      <label for="message">Your message</label>
+      <textarea id="message" name="message" required></textarea>
+      <p class="error" id="message-error"></p>
+    </div>
+    <button type="submit" class="primary">Send the message</button>
+    <p class="done status" tabindex="-1" hidden>Thank you. We answer within two days.</p>
+  </form>
+</main>
+<footer class="site">
+  <ul>
+    <li><a href="sitemap.html">Sitemap</a></li>
+    <li><a href="help.html#contact">Contact us</a></li>
+    <li><a href="privacy.html">Privacy</a></li>
+  </ul>
+  <p class="muted">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

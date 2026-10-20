@@ -1,0 +1,4561 @@
+{
+  "engine": "alfa",
+  "package": "@siteimprove/alfa-rules",
+  "version": "0.119.0",
+  "commit": "2faacabc47eaa9691c957eec291af4db1c387a0b",
+  "commit_date": "2026-10-03",
+  "source": "https://github.com/Siteimprove/alfa, folder packages/alfa-rules (src/sia-*/rule.ts, src/tags/, src/rules.ts, src/deprecated.ts, src/experimental.ts, package.json)",
+  "extracted_on": "2026-10-13",
+  "method": "Each packages/alfa-rules/src/sia-*/rule.ts was read as plain text (no repository code was run) and parsed with regular expressions: kind from Rule.Atomic.of / Rule.Composite.of; criteria, techniques, EAA clauses, ARIA and best-practice requirements from the Criterion/Technique/EAA/ARIA/BestPractice.of(\"...\") calls inside the requirements array; tags from the tags array; questions from Question.of(\"...\") calls in the rule file and, transitively, in the local helper modules it imports under src/common (type-only imports ignored); composite rules inherit the questions of the rules they compose. uses_oracle is true when the rule asks at least one question or imports Question. Descriptions come from a leading comment in rule.ts when present, otherwise from the first passing outcome message (Ok.of(...)) in the rule file or in its imported helper. The act field is filled only when a rule file names an ACT rule id, which none does.",
+  "notes": [
+    "uses_oracle: the rule can ask a question, directly, through a shared helper in src/common, or through a rule it composes; without an oracle those outcomes are cantTell. It does not mean that every outcome of the rule needs an answer.",
+    "questions_may_be_auto_answered: the rule or its helpers call .answerIf(...), so Alfa answers the question itself when it can compute the answer (for example text colours for the contrast rules) and asks the oracle only otherwise.",
+    "act: no rule file names an ACT rule id, so the field is always empty. The mapping from ACT rules to sia-r ids is published in the W3C ACT implementation reports, not in this repository.",
+    "stability: for three rules the Stability tag and the export list disagree (see summary.stability_tag_vs_export_list_mismatches); stability_by_export_list and the summary follow the export list.",
+    "sia-er8 and sia-er87 are experimental version-2 rules that share the uri of sia-r8 and sia-r87; sia-dr* are deprecated rules that keep the uri of the original rule number.",
+    "Seven rules have no requirements field at all (sia-r23, sia-r26, sia-r29, sia-r31, sia-r54, sia-r98, sia-r101); the media rules among them only feed composite rules, which carry the criteria.",
+    "eaa: clause numbers of EN 301 549 as declared with EAA.of(...) from @siteimprove/alfa-eaa."
+  ],
+  "tag_vocabulary": {
+    "Scope": [
+      "Page",
+      "Component"
+    ],
+    "Stability": [
+      "Stable",
+      "Experimental",
+      "Deprecated"
+    ],
+    "Version": "Version.N (version 1 is assumed when the tag is missing, per packages/alfa-rules/README.md)"
+  },
+  "summary": {
+    "rules": 104,
+    "atomic": 98,
+    "composite": 6,
+    "with_wcag_criterion": 68,
+    "by_stability_tag": {
+      "stable": 88,
+      "experimental": 10,
+      "deprecated": 4,
+      "untagged": 2
+    },
+    "by_export_list": {
+      "rules": 89,
+      "deprecated": 5,
+      "experimental": 10
+    },
+    "stability_tag_vs_export_list_mismatches": [
+      {
+        "id": "sia-dr83",
+        "tag": "stable",
+        "export_list": "deprecated"
+      },
+      {
+        "id": "sia-r111",
+        "tag": null,
+        "export_list": "stable"
+      },
+      {
+        "id": "sia-r113",
+        "tag": null,
+        "export_list": "stable"
+      }
+    ],
+    "uses_oracle": 38,
+    "uses_oracle_by_effective_stability": {
+      "stable": 27,
+      "experimental": 9,
+      "deprecated": 2
+    },
+    "stable_without_oracle": 62,
+    "distinct_criteria": [
+      "1.1.1",
+      "1.2.1",
+      "1.2.2",
+      "1.2.3",
+      "1.2.5",
+      "1.2.8",
+      "1.3.1",
+      "1.3.4",
+      "1.3.5",
+      "1.4.1",
+      "1.4.2",
+      "1.4.3",
+      "1.4.4",
+      "1.4.5",
+      "1.4.6",
+      "1.4.8",
+      "1.4.9",
+      "1.4.10",
+      "1.4.12",
+      "2.1.1",
+      "2.1.3",
+      "2.2.1",
+      "2.2.4",
+      "2.4.2",
+      "2.4.4",
+      "2.4.6",
+      "2.4.7",
+      "2.4.9",
+      "2.5.3",
+      "2.5.5",
+      "2.5.8",
+      "3.1.1",
+      "3.1.2",
+      "3.2.5",
+      "3.3.1",
+      "4.1.1",
+      "4.1.2"
+    ],
+    "criteria_with_stable_rule": [
+      "1.1.1",
+      "1.2.1",
+      "1.2.2",
+      "1.2.3",
+      "1.2.5",
+      "1.2.8",
+      "1.3.1",
+      "1.3.4",
+      "1.3.5",
+      "1.4.1",
+      "1.4.2",
+      "1.4.3",
+      "1.4.4",
+      "1.4.6",
+      "1.4.8",
+      "1.4.10",
+      "1.4.12",
+      "2.1.1",
+      "2.1.3",
+      "2.2.1",
+      "2.2.4",
+      "2.4.2",
+      "2.4.4",
+      "2.4.7",
+      "2.4.9",
+      "2.5.3",
+      "2.5.5",
+      "2.5.8",
+      "3.1.1",
+      "3.1.2",
+      "3.2.5",
+      "4.1.2"
+    ],
+    "criteria_with_stable_rule_without_oracle": [
+      "1.1.1",
+      "1.3.1",
+      "1.3.4",
+      "1.3.5",
+      "1.4.4",
+      "1.4.8",
+      "1.4.10",
+      "1.4.12",
+      "2.1.1",
+      "2.1.3",
+      "2.2.1",
+      "2.2.4",
+      "2.4.2",
+      "2.4.4",
+      "2.4.9",
+      "2.5.3",
+      "2.5.5",
+      "2.5.8",
+      "3.1.1",
+      "3.1.2",
+      "3.2.5",
+      "4.1.2"
+    ],
+    "criteria_without_stable_rule_without_oracle": [
+      "1.2.1",
+      "1.2.2",
+      "1.2.3",
+      "1.2.5",
+      "1.2.8",
+      "1.4.1",
+      "1.4.2",
+      "1.4.3",
+      "1.4.5",
+      "1.4.6",
+      "1.4.9",
+      "2.4.6",
+      "2.4.7",
+      "3.3.1",
+      "4.1.1"
+    ],
+    "note": "Effective stability = export list (src/rules.ts = stable, src/deprecated.ts, src/experimental.ts); it differs from the Stability tag only for the rules listed in stability_tag_vs_export_list_mismatches."
+  },
+  "warnings": [],
+  "rules": [
+    {
+      "id": "sia-dr3",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r3",
+      "file": "packages/alfa-rules/src/sia-dr3/rule.ts",
+      "kind": "atomic",
+      "stability": "deprecated",
+      "stability_by_export_list": "deprecated",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "deprecated"
+      ],
+      "criteria": [
+        "4.1.1"
+      ],
+      "techniques": [
+        "H93"
+      ],
+      "eaa": [
+        "9.4.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Deprecated"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "Deprecated. This rule has been deprecated because Success Criterion 4.1.1 has been removed from WCAG 2.2 and is considered always passing for HTML pages in WCAG 2.1.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-dr6",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r6",
+      "file": "packages/alfa-rules/src/sia-dr6/rule.ts",
+      "kind": "atomic",
+      "stability": "deprecated",
+      "stability_by_export_list": "deprecated",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "deprecated"
+      ],
+      "criteria": [
+        "3.1.1"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Deprecated"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "Deprecated. This rule has been deprecated because `xml:lang` attribute are not used anymore.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-dr34",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r34",
+      "file": "packages/alfa-rules/src/sia-dr34/rule.ts",
+      "kind": "atomic",
+      "stability": "deprecated",
+      "stability_by_export_list": "deprecated",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "deprecated"
+      ],
+      "criteria": [],
+      "techniques": [
+        "H96"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Deprecated"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "track-describes-video"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "track-describes-video"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/video-description-track-accurate.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "Deprecated. This rule has been deprecated and should not be used anymore. The composite rules have been updated to not use it.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-dr36",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r36",
+      "file": "packages/alfa-rules/src/sia-dr36/rule.ts",
+      "kind": "atomic",
+      "stability": "deprecated",
+      "stability_by_export_list": "deprecated",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "deprecated"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G78",
+        "H96"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Deprecated"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "track-describes-video"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "track-describes-video"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/video-description-track-accurate.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "Deprecated. This rule has been deprecated and should not be used anymore. The composite rules have been updated to not use it.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-dr83",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r83",
+      "file": "packages/alfa-rules/src/sia-dr83/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "deprecated",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "deprecated"
+      ],
+      "criteria": [
+        "1.4.4"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "Deprecated. This rule has been deprecated due to a too-strict interpretation of WCAG.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-er8",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r8",
+      "file": "packages/alfa-rules/src/sia-er8/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Experimental",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The form field has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-er87",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r87",
+      "file": "packages/alfa-rules/src/sia-er87/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "page",
+      "rule_version": 2,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G1"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Experimental",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "internal-reference",
+        "is-start-of-main",
+        "is-visible-when-focused"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "This version of R87 ask questions whose subject is not the target of the rule. The context of the question is still the test target (the document), but the subjects can be various elements (the first focusable element, or its destination once it's been identified as a link). This needs changes in Dory, Nemo, and likely databases to be stored; this needs changes in the Page Report to be able to...",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r1",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r1",
+      "file": "packages/alfa-rules/src/sia-r1/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.4.2"
+      ],
+      "techniques": [
+        "G88",
+        "H25"
+      ],
+      "eaa": [
+        "9.2.4.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The document has at least one `<title>` element",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r2",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r2",
+      "file": "packages/alfa-rules/src/sia-r2/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The image has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r4",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r4",
+      "file": "packages/alfa-rules/src/sia-r4/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "3.1.1"
+      ],
+      "techniques": [
+        "H57"
+      ],
+      "eaa": [
+        "9.3.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `lang` attribute exists and is neither empty nor only whitespace",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r5",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r5",
+      "file": "packages/alfa-rules/src/sia-r5/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "3.1.1"
+      ],
+      "techniques": [
+        "H57"
+      ],
+      "eaa": [
+        "9.3.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `lang` attribute has a valid primary language tag",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r7",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r7",
+      "file": "packages/alfa-rules/src/sia-r7/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "3.1.2"
+      ],
+      "techniques": [
+        "H58"
+      ],
+      "eaa": [
+        "9.3.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `lang` attribute has a valid primary language subtag",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r8",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r8",
+      "file": "packages/alfa-rules/src/sia-r8/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The form field has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r9",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r9",
+      "file": "packages/alfa-rules/src/sia-r9/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.2.1",
+        "2.2.4",
+        "3.2.5"
+      ],
+      "techniques": [
+        "G110",
+        "H76"
+      ],
+      "eaa": [
+        "9.2.2.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The refresh or redirect happens immediately",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r10",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r10",
+      "file": "packages/alfa-rules/src/sia-r10/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.5"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.5"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `autocomplete` attribute has a valid value",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r11",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r11",
+      "file": "packages/alfa-rules/src/sia-r11/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.4.4",
+        "2.4.9",
+        "4.1.2"
+      ],
+      "techniques": [
+        "G91"
+      ],
+      "eaa": [
+        "9.2.4.4",
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The link has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r12",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r12",
+      "file": "packages/alfa-rules/src/sia-r12/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The button has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r13",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r13",
+      "file": "packages/alfa-rules/src/sia-r13/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<iframe>` has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r14",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r14",
+      "file": "packages/alfa-rules/src/sia-r14/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.5.3"
+      ],
+      "techniques": [
+        "G208"
+      ],
+      "eaa": [
+        "9.2.5.3"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The visible text content of the element is included within its accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r15",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r15",
+      "file": "packages/alfa-rules/src/sia-r15/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "reference-equivalent-resources"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<iframe>` elements embed the same resource",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r16",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r16",
+      "file": "packages/alfa-rules/src/sia-r16/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1",
+        "4.1.2"
+      ],
+      "techniques": [
+        "ARIA5"
+      ],
+      "eaa": [
+        "9.1.3.1",
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element has all required states and properties",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r17",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r17",
+      "file": "packages/alfa-rules/src/sia-r17/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is neither tabbable nor has tabbable descendants",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r18",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r18",
+      "file": "packages/alfa-rules/src/sia-r18/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "ARIA5"
+      ],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/TR/wai-aria-1.2/#state_property_processing"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The attribute is allowed for the element on which it is specified",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r19",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r19",
+      "file": "packages/alfa-rules/src/sia-r19/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/TR/wai-aria-1.2/#propcharacteristic_value"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The attribute has a valid value",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r20",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r20",
+      "file": "packages/alfa-rules/src/sia-r20/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/TR/wai-aria-1.2/#state_prop_def"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The attribute is defined",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r21",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r21",
+      "file": "packages/alfa-rules/src/sia-r21/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "all-roles-valid"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element has only valid roles",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r22",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r22",
+      "file": "packages/alfa-rules/src/sia-r22/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-audio",
+        "has-captions",
+        "is-video-streaming"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has captions",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r23",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r23",
+      "file": "packages/alfa-rules/src/sia-r23/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "is-audio-streaming",
+        "is-playing",
+        "play-button",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [
+        "is-audio-streaming",
+        "is-playing",
+        "play-button",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/audio.ts",
+        "packages/alfa-rules/src/common/expectation/media-transcript.ts"
+      ],
+      "questions_may_be_auto_answered": true,
+      "description": "The `<audio>` element has a transcript that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r24",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r24",
+      "file": "packages/alfa-rules/src/sia-r24/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.8"
+      ],
+      "techniques": [
+        "G69"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/media-transcript.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has a transcript that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r25",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r25",
+      "file": "packages/alfa-rules/src/sia-r25/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-audio",
+        "has-description",
+        "is-video-streaming"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The visual information of the `<video>` element is available through audio",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r26",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r26",
+      "file": "packages/alfa-rules/src/sia-r26/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/media-text-alternative.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has a text alternative that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r27",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r27",
+      "file": "packages/alfa-rules/src/sia-r27/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.2"
+      ],
+      "techniques": [
+        "G87",
+        "G93",
+        "H95"
+      ],
+      "eaa": [
+        "9.1.2.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r22",
+        "sia-r31"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "has-captions",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "has-audio",
+        "has-captions",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has a text alternative for its audio content",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r28",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r28",
+      "file": "packages/alfa-rules/src/sia-r28/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1",
+        "4.1.2"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "eaa": [
+        "9.1.1.1",
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<input type=\"image\">` element has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r29",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r29",
+      "file": "packages/alfa-rules/src/sia-r29/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "is-audio-streaming",
+        "is-playing",
+        "label",
+        "play-button",
+        "text-alternative"
+      ],
+      "questions_from_helpers": [
+        "is-audio-streaming",
+        "is-playing",
+        "label",
+        "play-button",
+        "text-alternative"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/audio.ts",
+        "packages/alfa-rules/src/common/expectation/media-text-alternative.ts"
+      ],
+      "questions_may_be_auto_answered": true,
+      "description": "The `<audio>` element has a text alternative that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r30",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r30",
+      "file": "packages/alfa-rules/src/sia-r30/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.1"
+      ],
+      "techniques": [
+        "G158"
+      ],
+      "eaa": [
+        "9.1.2.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r23",
+        "sia-r29"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "is-audio-streaming",
+        "is-playing",
+        "label",
+        "play-button",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "is-audio-streaming",
+        "is-playing",
+        "label",
+        "play-button",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "The `<audio>` element has a text alternative",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r31",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r31",
+      "file": "packages/alfa-rules/src/sia-r31/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/media-text-alternative.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has a text alternative that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r32",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r32",
+      "file": "packages/alfa-rules/src/sia-r32/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G166"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-audio",
+        "has-audio-track",
+        "is-video-streaming"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has an audio track that describes its visual information",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r33",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r33",
+      "file": "packages/alfa-rules/src/sia-r33/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G159"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "is-video-streaming",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [
+        "has-audio",
+        "is-video-streaming",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/applicability/video.ts",
+        "packages/alfa-rules/src/common/expectation/media-transcript.ts"
+      ],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has a transcript that is perceivable",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r35",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r35",
+      "file": "packages/alfa-rules/src/sia-r35/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.1"
+      ],
+      "techniques": [
+        "G159",
+        "G166"
+      ],
+      "eaa": [
+        "9.1.2.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r26",
+        "sia-r32",
+        "sia-r33"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "has-audio-track",
+        "is-video-streaming",
+        "label",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "has-audio",
+        "has-audio-track",
+        "is-video-streaming",
+        "label",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has an alternative",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r37",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r37",
+      "file": "packages/alfa-rules/src/sia-r37/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.5"
+      ],
+      "techniques": [
+        "G8",
+        "G78",
+        "G173"
+      ],
+      "eaa": [
+        "9.1.2.5"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r25",
+        "sia-r31"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "has-description",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "has-audio",
+        "has-description",
+        "is-video-streaming",
+        "label",
+        "text-alternative"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has an audio description",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r38",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r38",
+      "file": "packages/alfa-rules/src/sia-r38/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.2.3",
+        "1.2.5",
+        "1.2.8"
+      ],
+      "techniques": [
+        "G8",
+        "G69",
+        "G78",
+        "G173"
+      ],
+      "eaa": [
+        "9.1.2.3",
+        "9.1.2.5"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r24",
+        "sia-r25",
+        "sia-r31"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "has-audio",
+        "has-description",
+        "is-video-streaming",
+        "label",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "has-audio",
+        "has-description",
+        "is-video-streaming",
+        "label",
+        "text-alternative",
+        "transcript",
+        "transcript-link"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<video>` element has an audio or text alternative",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r39",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r39",
+      "file": "packages/alfa-rules/src/sia-r39/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "name-describes-purpose"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The accessible name of the `<[name]>` element describes its purpose",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r40",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r40",
+      "file": "packages/alfa-rules/src/sia-r40/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/TR/wai-aria/#region",
+        "https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/#aria_lh_region"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The region has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r41",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r41",
+      "file": "packages/alfa-rules/src/sia-r41/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.4.9"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "reference-equivalent-resources"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The links resolve to the same resource",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r42",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r42",
+      "file": "packages/alfa-rules/src/sia-r42/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is owned by an element of its required context role",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r43",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r43",
+      "file": "packages/alfa-rules/src/sia-r43/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<[target]>` element has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r44",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r44",
+      "file": "packages/alfa-rules/src/sia-r44/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.4"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.4"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is not locked in orientation",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r45",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r45",
+      "file": "packages/alfa-rules/src/sia-r45/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [
+        "H43"
+      ],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `headers` attribute refers to cells in the same `<table>`",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r46",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r46",
+      "file": "packages/alfa-rules/src/sia-r46/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [
+        "H43"
+      ],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The header cell is assigned to a cell",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r47",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r47",
+      "file": "packages/alfa-rules/src/sia-r47/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.4",
+        "1.4.10"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.4"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<meta>` element does not restrict the ability to zoom",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r48",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r48",
+      "file": "packages/alfa-rules/src/sia-r48/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G60"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-audio",
+        "is-above-duration-threshold",
+        "is-below-audio-duration-threshold"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The total duration of audio output of the `<[name]>` element does not exceed 3 seconds",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r49",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r49",
+      "file": "packages/alfa-rules/src/sia-r49/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G170"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "audio-control-mechanism",
+        "has-audio",
+        "is-above-duration-threshold"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "The `<[name]>` element has a mechanism to pause or stop audio and the mechanism is perceivable",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r50",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r50",
+      "file": "packages/alfa-rules/src/sia-r50/rule.ts",
+      "kind": "composite",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.2"
+      ],
+      "techniques": [
+        "G60",
+        "G170",
+        "G171"
+      ],
+      "eaa": [
+        "9.1.4.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [
+        "sia-r48",
+        "sia-r49"
+      ],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "audio-control-mechanism",
+        "has-audio",
+        "is-above-duration-threshold",
+        "is-below-audio-duration-threshold"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [
+        "audio-control-mechanism",
+        "has-audio",
+        "is-above-duration-threshold",
+        "is-below-audio-duration-threshold"
+      ],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "The total duration of the autoplaying audio output of the element either lasts no longer than 3 seconds or a mechanism to pause or stop the audio is available",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r53",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r53",
+      "file": "packages/alfa-rules/src/sia-r53/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "headings-structured"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The heading is correctly ordered",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r54",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r54",
+      "file": "packages/alfa-rules/src/sia-r54/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The assertive region is atomic",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r55",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r55",
+      "file": "packages/alfa-rules/src/sia-r55/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/#aria_lh_step3"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "is-content-equivalent"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "No two `[role]` have the same name and different content.",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r56",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r56",
+      "file": "packages/alfa-rules/src/sia-r56/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/#aria_lh_step3"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "No two `[role]` have the same name.",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r57",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r57",
+      "file": "packages/alfa-rules/src/sia-r57/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [
+        "https://www.w3.org/WAI/ARIA/apg/practices/landmark-regions/#generalprinciplesoflandmarkdesign"
+      ],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The text is included in a landmark region",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r59",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r59",
+      "file": "packages/alfa-rules/src/sia-r59/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "document-has-headings"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The document has at least one heading element",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r60",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r60",
+      "file": "packages/alfa-rules/src/sia-r60/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "group-has-name"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The grouping element has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r61",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r61",
+      "file": "packages/alfa-rules/src/sia-r61/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "document-start-with-level-1-heading"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The document starts with a level 1 heading",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r62",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r62",
+      "file": "packages/alfa-rules/src/sia-r62/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": null,
+      "questions": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_helpers": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/expectation/contrast.ts"
+      ],
+      "questions_may_be_auto_answered": true,
+      "description": "The link is distinguishable from the surrounding text",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r63",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r63",
+      "file": "packages/alfa-rules/src/sia-r63/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<object>` element has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r64",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r64",
+      "file": "packages/alfa-rules/src/sia-r64/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [
+        "H42"
+      ],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The heading has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r65",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r65",
+      "file": "packages/alfa-rules/src/sia-r65/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.4.7"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.2.4.7"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-focus-indicator"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "The element has a visible focus indicator",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r66",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r66",
+      "file": "packages/alfa-rules/src/sia-r66/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.6"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_helpers": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/expectation/contrast.ts"
+      ],
+      "questions_may_be_auto_answered": true,
+      "description": "The highest possible contrast of the text is [highest]:1 which is above the required contrast of [threshold]:1",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r67",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r67",
+      "file": "packages/alfa-rules/src/sia-r67/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is marked as decorative and is not exposed",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r68",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r68",
+      "file": "packages/alfa-rules/src/sia-r68/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element owns elements as required by its semantic role",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r69",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r69",
+      "file": "packages/alfa-rules/src/sia-r69/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.3",
+        "1.4.6"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.3"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "type",
+      "questions": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_helpers": [
+        "background-colors",
+        "foreground-colors",
+        "ignored-interposed-elements"
+      ],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [
+        "packages/alfa-rules/src/common/expectation/contrast.ts"
+      ],
+      "questions_may_be_auto_answered": true,
+      "description": "The highest possible contrast of the text is [highest]:1 which is above the required contrast of [threshold]:1",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r70",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r70",
+      "file": "packages/alfa-rules/src/sia-r70/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "no-deprecated-elements"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The document doesn't contain any deprecated elements",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r71",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r71",
+      "file": "packages/alfa-rules/src/sia-r71/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.8"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The text of the paragraph is not justified",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r72",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r72",
+      "file": "packages/alfa-rules/src/sia-r72/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "paragraph-not-uppercase"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The text of the paragraph is not uppercased",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r73",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r73",
+      "file": "packages/alfa-rules/src/sia-r73/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.8"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The line height of the paragraph is at least 1.5",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r74",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r74",
+      "file": "packages/alfa-rules/src/sia-r74/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.8"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The font size is specified using a relative unit",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r75",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r75",
+      "file": "packages/alfa-rules/src/sia-r75/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "font-size-above-minimum"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The font size is greater than 9 pixels",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r76",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r76",
+      "file": "packages/alfa-rules/src/sia-r76/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The header element is a semantic header",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r77",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r77",
+      "file": "packages/alfa-rules/src/sia-r77/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The cell is assigned to an header cell",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r78",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r78",
+      "file": "packages/alfa-rules/src/sia-r78/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "heading-has-content"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "There is content between this heading and the next",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r79",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r79",
+      "file": "packages/alfa-rules/src/sia-r79/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "preformated-text-is-code-or-figure"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is visible.",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r80",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r80",
+      "file": "packages/alfa-rules/src/sia-r80/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.8"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The line height is specified using a relative unit",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r81",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r81",
+      "file": "packages/alfa-rules/src/sia-r81/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.4.4",
+        "2.4.9"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.2.4.4"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "reference-equivalent-resources"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The links resolve to the same resource",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r82",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r82",
+      "file": "packages/alfa-rules/src/sia-r82/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "3.3.1"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.3.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "error-indicator-describing-resolution",
+        "error-indicator-identifying-form-field",
+        "error-indicators"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "R82 ask questions whose subject is not the target of the rule. The context of the question is still the test target, but the subjects can be various other elements. This needs changes in Dory, Nemo, and likely databases to be stored; this needs changes in the Page Report to be able to highlight an element different from the test target.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r84",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r84",
+      "file": "packages/alfa-rules/src/sia-r84/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.1.1",
+        "2.1.3"
+      ],
+      "techniques": [
+        "G202"
+      ],
+      "eaa": [
+        "9.2.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The scrollable element is reachable through keyboard navigation",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r85",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r85",
+      "file": "packages/alfa-rules/src/sia-r85/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "paragraph-not-italics"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The text of the paragraph is not all italic",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r86",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r86",
+      "file": "packages/alfa-rules/src/sia-r86/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "element-marked-as-decorative-is-not-exposed"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element is marked as decorative and is not exposed",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r87",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r87",
+      "file": "packages/alfa-rules/src/sia-r87/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [],
+      "techniques": [
+        "G1"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [
+        "first-focusable-is-skip-link"
+      ],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "first-tabbable-is-internal-link",
+        "first-tabbable-is-visible",
+        "first-tabbable-reference",
+        "first-tabbable-reference-is-main"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "The first tabbable element in the document is a keyboard actionable link that is included in the accessibility tree and links to the main block of content of the document",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r90",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r90",
+      "file": "packages/alfa-rules/src/sia-r90/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element has no tabbable descendants",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r91",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r91",
+      "file": "packages/alfa-rules/src/sia-r91/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.12"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.12"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "letter-spacing is at least 0.12 times the font-size",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r92",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r92",
+      "file": "packages/alfa-rules/src/sia-r92/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.12"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.12"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "word-spacing is at least 0.16 times the font-size",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r93",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r93",
+      "file": "packages/alfa-rules/src/sia-r93/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.4.12"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.12"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "line-height is at least 1.5 times the font-size",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r94",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r94",
+      "file": "packages/alfa-rules/src/sia-r94/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The menuitem has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r95",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r95",
+      "file": "packages/alfa-rules/src/sia-r95/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 2,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.1.1",
+        "2.1.3"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.2.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable",
+        "Version.2"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The iframe has no negative tabindex",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r96",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r96",
+      "file": "packages/alfa-rules/src/sia-r96/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.2.4",
+        "3.2.5"
+      ],
+      "techniques": [
+        "G110",
+        "H76"
+      ],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The refresh or redirect happens immediately",
+      "description_source": "first passing outcome message in imported helper"
+    },
+    {
+      "id": "sia-r98",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r98",
+      "file": "packages/alfa-rules/src/sia-r98/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "main-landmark-elements"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "This rule asks which elements are the main landmarks of the page, then checks whether any of them starts with a visible, accessible heading.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r101",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r101",
+      "file": "packages/alfa-rules/src/sia-r101/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": false,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "has-repeated-content-before-main",
+        "main-landmark-elements"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": true,
+      "description": "This rule asks whether the page has repeated content before its main content, unless it can automatically answer false when there is no accessible content before the main element. It tries to locate the main landmarks (elements with role of main), and asks a question if it doesn't find any.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r109",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r109",
+      "file": "packages/alfa-rules/src/sia-r109/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "3.1.1"
+      ],
+      "techniques": [
+        "H57"
+      ],
+      "eaa": [
+        "9.3.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "document-language"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "This rule always asks for the language of the page, and compares it with the `lang` attribute. This is not a nice experience for the end user and shouldn't be used until backend can automatically determine the answer.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r110",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r110",
+      "file": "packages/alfa-rules/src/sia-r110/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "1.3.1"
+      ],
+      "techniques": [
+        "ARIA4",
+        "G108"
+      ],
+      "eaa": [
+        "9.1.3.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The element has a at least one valid role",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r111",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r111",
+      "file": "packages/alfa-rules/src/sia-r111/rule.ts",
+      "kind": "atomic",
+      "stability": null,
+      "stability_by_export_list": "stable",
+      "scope": null,
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.5.5"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [],
+      "has_requirements_field": true,
+      "has_tags_field": false,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "Target has sufficient size (44 CSS pixels)",
+      "description_source": "passing outcome messages in src/common/outcome/target-size.ts, selected manually; size from rule.ts"
+    },
+    {
+      "id": "sia-r113",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r113",
+      "file": "packages/alfa-rules/src/sia-r113/rule.ts",
+      "kind": "atomic",
+      "stability": null,
+      "stability_by_export_list": "stable",
+      "scope": null,
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "2.5.8"
+      ],
+      "techniques": [],
+      "eaa": [],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [],
+      "has_requirements_field": true,
+      "has_tags_field": false,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "Target has sufficient size (24 CSS pixels) or sufficient spacing",
+      "description_source": "passing outcome messages in src/common/outcome/target-size.ts, selected manually; size from rule.ts"
+    },
+    {
+      "id": "sia-r114",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r114",
+      "file": "packages/alfa-rules/src/sia-r114/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "page",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "2.4.2"
+      ],
+      "techniques": [
+        "G88",
+        "H25"
+      ],
+      "eaa": [
+        "9.2.4.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Page",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "is-title-descriptive"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "This rule always asks Whether the `<title>` of the page is descriptive. This is not a nice experience for the end user and shouldn't be used until backend can automatically determine the answer.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r115",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r115",
+      "file": "packages/alfa-rules/src/sia-r115/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "2.4.6"
+      ],
+      "techniques": [
+        "G130"
+      ],
+      "eaa": [
+        "9.2.4.6"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "is-heading-descriptive"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "This rule always asks Whether the heading is descriptive. This is not a nice experience for the end user and shouldn't be used until backend can automatically determine the answer.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r116",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r116",
+      "file": "packages/alfa-rules/src/sia-r116/rule.ts",
+      "kind": "atomic",
+      "stability": "stable",
+      "stability_by_export_list": "stable",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "rules"
+      ],
+      "criteria": [
+        "4.1.2"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.4.1.2"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Stable"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": false,
+      "question_import": null,
+      "questions": [],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "The `<summary>` element has an accessible name",
+      "description_source": "first passing outcome message in rule.ts"
+    },
+    {
+      "id": "sia-r117",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r117",
+      "file": "packages/alfa-rules/src/sia-r117/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "1.1.1"
+      ],
+      "techniques": [
+        "G94",
+        "G95"
+      ],
+      "eaa": [
+        "9.1.1.1"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "is-image-accessible-name-descriptive"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "This rule always asks whether the image accessible name is descriptive. This is not a nice experience for the end user and shouldn't be used until backend can automatically determine the answer.",
+      "description_source": "leading comment in rule.ts"
+    },
+    {
+      "id": "sia-r118",
+      "uri": "https://alfa.siteimprove.com/rules/sia-r118",
+      "file": "packages/alfa-rules/src/sia-r118/rule.ts",
+      "kind": "atomic",
+      "stability": "experimental",
+      "stability_by_export_list": "experimental",
+      "scope": "component",
+      "rule_version": 1,
+      "export_list": [
+        "experimental"
+      ],
+      "criteria": [
+        "1.4.5",
+        "1.4.9"
+      ],
+      "techniques": [],
+      "eaa": [
+        "9.1.4.5"
+      ],
+      "aria": [],
+      "best_practice": [],
+      "act": [],
+      "tags": [
+        "Scope.Component",
+        "Stability.Experimental"
+      ],
+      "has_requirements_field": true,
+      "has_tags_field": true,
+      "composes": [],
+      "uses_oracle": true,
+      "question_import": "value",
+      "questions": [
+        "does-image-contain-human-language-text",
+        "is-image-text-decorative",
+        "is-image-text-essential",
+        "is-image-text-incidental",
+        "is-image-text-redundant"
+      ],
+      "questions_from_helpers": [],
+      "questions_from_composed_rules": [],
+      "helper_files_asking_questions": [],
+      "questions_may_be_auto_answered": false,
+      "description": "This rule always asks whether the image contains text and, if so, whether any of the exceptions apply.",
+      "description_source": "leading comment in rule.ts"
+    }
+  ]
+}

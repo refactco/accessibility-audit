@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Products: Harbor Market</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site">
+  <a class="brand" href="index.html">Harbor Market</a>
+  <nav class="primary" aria-label="Main">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="articles.html">Articles</a></li>
+      <li><a href="products.html" aria-current="page">Products</a></li>
+      <li><a href="order.html">Order</a></li>
+    </ul>
+  </nav>
+  <form class="site-search" role="search" action="search.html" method="get">
+    <label for="q" class="visually-hidden">Search the site</label>
+    <input type="search" id="q" name="q">
+    <button type="submit">Search</button>
+  </form>
+  <div class="util">
+    <a href="help.html">Help</a>
+    <a href="help.html#contact">Contact</a>
+    <a href="account.html">Account</a>
+  </div>
+</header>
+<main id="main">
+  <h1>Products</h1>
+  <form id="filters" action="products.html" method="get">
+    <div class="field">
+      <label for="sort">Sort by</label>
+      <select id="sort" name="sort">
+        <option value="price-asc">Price, low to high</option>
+        <option value="price-desc">Price, high to low</option>
+      </select>
+    </div>
+    <fieldset>
+      <legend>Category</legend>
+      <label><input type="checkbox" name="category" value="fruit" checked> Fruit</label>
+      <label><input type="checkbox" name="category" value="bread" checked> Bread</label>
+      <label><input type="checkbox" name="category" value="fish" checked> Fish</label>
+    </fieldset>
+    <button type="button" id="apply-sort">Apply</button>
+  </form>
+
+  <ul class="cards" id="product-list">
+    <li class="card" data-price="2">
+      <h3>Apples from Oak Farm</h3>
+      <p>2 euros for each kilogram.</p>
+      <button type="button" class="primary" data-add-to-cart="Apples from Oak Farm">Add to cart</button>
+      <div class="icon-row">
+        <button type="button" class="icon-button" aria-pressed="false" aria-label="Add Apples from Oak Farm to favorites"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 17l-6.5-6.5a4 4 0 015.7-5.7L10 5.6l.8-.8a4 4 0 015.7 5.7z" fill="currentColor"/></svg></button>
+        <button type="button" class="icon-button" aria-label="Share Apples from Oak Farm"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M14 3a3 3 0 11-2.8 4L7.9 8.6a3 3 0 010 2.8l3.3 1.6A3 3 0 1111 15l-3.3-1.7a3 3 0 110-6.6L11 5a3 3 0 013-2z" fill="currentColor"/></svg></button>
+      </div>
+    </li>
+    <li class="card" data-price="4">
+      <h3>Sourdough bread</h3>
+      <p>4 euros for each loaf.</p>
+      <button type="button" class="primary" data-add-to-cart="Sourdough bread">Add to cart</button>
+      <div class="icon-row">
+        <button type="button" class="icon-button" aria-pressed="false" aria-label="Add Sourdough bread to favorites"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 17l-6.5-6.5a4 4 0 015.7-5.7L10 5.6l.8-.8a4 4 0 015.7 5.7z" fill="currentColor"/></svg></button>
+        <button type="button" class="icon-button" aria-label="Share Sourdough bread"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M14 3a3 3 0 11-2.8 4L7.9 8.6a3 3 0 010 2.8l3.3 1.6A3 3 0 1111 15l-3.3-1.7a3 3 0 110-6.6L11 5a3 3 0 013-2z" fill="currentColor"/></svg></button>
+      </div>
+    </li>
+    <li class="card" data-price="12">
+      <h3>Mackerel, whole</h3>
+      <p>12 euros for each kilogram.</p>
+      <button type="button" class="primary" data-add-to-cart="Mackerel">Add to cart</button>
+      <div class="icon-row">
+        <button type="button" class="icon-button" aria-pressed="false" aria-label="Add Mackerel to favorites"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M10 17l-6.5-6.5a4 4 0 015.7-5.7L10 5.6l.8-.8a4 4 0 015.7 5.7z" fill="currentColor"/></svg></button>
+        <button type="button" class="icon-button" aria-label="Share Mackerel"><svg viewBox="0 0 20 20" aria-hidden="true" focusable="false"><path d="M14 3a3 3 0 11-2.8 4L7.9 8.6a3 3 0 010 2.8l3.3 1.6A3 3 0 1111 15l-3.3-1.7a3 3 0 110-6.6L11 5a3 3 0 013-2z" fill="currentColor"/></svg></button>
+      </div>
+    </li>
+  </ul>
+
+  <h2>Your delivery order</h2>
+  <p>Drag an item, or use the buttons, to change the order of the delivery.</p>
+  <ul class="sortable" id="delivery-order">
+    <li draggable="true"><span>Apples from Oak Farm</span><button type="button" data-move="up" aria-label="Move up: Apples from Oak Farm">Move up</button><button type="button" data-move="down" aria-label="Move down: Apples from Oak Farm">Move down</button></li>
+    <li draggable="true"><span>Sourdough bread</span><button type="button" data-move="up" aria-label="Move up: Sourdough bread">Move up</button><button type="button" data-move="down" aria-label="Move down: Sourdough bread">Move down</button></li>
+    <li draggable="true"><span>Mackerel</span><button type="button" data-move="up" aria-label="Move up: Mackerel">Move up</button><button type="button" data-move="down" aria-label="Move down: Mackerel">Move down</button></li>
+  </ul>
+  <div id="status" class="status" role="status" aria-live="polite"></div>
+</main>
+<footer class="site">
+  <ul>
+    <li><a href="sitemap.html">Sitemap</a></li>
+    <li><a href="help.html#contact">Contact us</a></li>
+    <li><a href="privacy.html">Privacy</a></li>
+  </ul>
+  <p class="muted">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>

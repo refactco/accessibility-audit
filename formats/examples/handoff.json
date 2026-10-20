@@ -1,0 +1,27 @@
+{
+  "schema": "handoff/1",
+  "site": "https://www.example.com",
+  "run": "2026-10-14T16:05:12Z",
+  "date": "2026-10-14",
+  "source_path": ".",
+  "check_command": "a11y check accessibility-audit/config.json --out accessibility-audit",
+  "unresolved_questions": 2,
+  "tasks": [
+    {
+      "issue": "ISS-7f3a9c21",
+      "order": 1,
+      "criterion": "2.4.11",
+      "criterion_name": "Focus Not Obscured (Minimum)",
+      "severity": "serious",
+      "certainty": "fail",
+      "summary": "The control that has the focus is entirely hidden by other content.",
+      "reach": { "pages": 78, "occurrences": 120, "templates": ["post", "page"] },
+      "origin": "code",
+      "source": [{ "file": "apps/web/src/app/globals.css", "line": 12, "confidence": "probable", "method": "the sticky header rule" }],
+      "source_warning": null,
+      "solution": { "type": "specific", "summary": "Add scroll-padding-top for the sticky header.", "steps": ["Add scroll-padding-top: 96px to the html rule in globals.css."], "example": "html { scroll-padding-top: 96px; }", "expected_result": "The focused control is visible under the header on a backward Tab." },
+      "examples": [{ "url": "/", "width": 390, "state": [], "selector": "footer a", "html": "<a href=\"/about\">About</a>" }],
+      "verify": { "rule": "focus-entirely-hidden", "engine": "a11y", "expected": "The rule focus-entirely-hidden gives no occurrence on the pages of the issue, and the issue is resolved in the next check." }
+    }
+  ]
+}

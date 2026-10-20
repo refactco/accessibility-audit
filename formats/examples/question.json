@@ -1,0 +1,23 @@
+{
+  "schema": "question/2",
+  "id": "Q-19c2e4d0",
+  "kind": "review",
+  "issue": "ISS-2b7e0d4c",
+  "criterion": "1.1.1",
+  "fingerprint": "content:attachment-3041:in:post-812",
+  "item_hash": "sha256:9f2c1a7e4d3b8c5a",
+  "context": "The image is in the section 'Our team'. The text before it names the person.",
+  "question": "Does the text alternative describe the image?",
+  "evidence": { "image": "runs/2026-10-12/Q-19c2e4d0.png", "alt": "IMG_2041", "url": "/blog/our-team", "selector": "figure.wp-block-image img" },
+  "ai_answer": {
+    "value": "issue",
+    "confidence": "high",
+    "reason": "The text is a file name.",
+    "model": "claude-fable-5-1",
+    "prompt_version": "1",
+    "date": "2026-10-12"
+  },
+  "sample": true,
+  "person_answer": { "value": "issue", "by": "Name", "date": "2026-10-13", "note": "Agree." },
+  "pages": 1
+}

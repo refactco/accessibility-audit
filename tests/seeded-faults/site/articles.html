@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Articles: Harbor Market</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to main content</a>
+<header class="site">
+  <a class="brand" href="index.html">Harbor Market</a>
+  <nav class="primary" aria-label="Main">
+    <ul>
+      <li><a href="index.html">Home</a></li>
+      <li><a href="articles.html" aria-current="page">Articles</a></li>
+      <li><a href="products.html">Products</a></li>
+      <li><a href="order.html">Order</a></li>
+    </ul>
+  </nav>
+  <form class="site-search" role="search" action="search.html" method="get">
+    <label for="q" class="visually-hidden">Search the site</label>
+    <input type="search" id="q" name="q">
+    <button type="submit">Search</button>
+  </form>
+  <div class="util">
+    <a href="help.html">Help</a>
+    <a href="help.html#contact">Contact</a>
+    <a href="account.html">Account</a>
+  </div>
+</header>
+<main id="main">
+  <h1>Articles</h1>
+  <p id="tabs-help">Select the Summer tab to see the articles of the summer.</p>
+  <div role="tablist" aria-label="Season">
+    <button type="button" role="tab" id="tab-spring" aria-selected="true" aria-controls="panel-spring" tabindex="0">Spring</button>
+    <button type="button" role="tab" id="tab-summer" aria-selected="false" aria-controls="panel-summer" tabindex="-1">Summer</button>
+  </div>
+  <div role="tabpanel" id="panel-spring" aria-labelledby="tab-spring" tabindex="0">
+    <ul>
+      <li><a href="storage.html">Read how to store bread for a week</a></li>
+      <li><a href="articles.html#produce">Read the guide to seasonal produce</a></li>
+    </ul>
+  </div>
+  <div role="tabpanel" id="panel-summer" aria-labelledby="tab-summer" tabindex="0" hidden>
+    <img src="media/market.svg" width="320" height="120" alt="The fish stall at the end of the pier, with the morning catch on ice.">
+    <ul>
+      <li><a href="articles.html#fish">Read the fish market calendar</a></li>
+    </ul>
+  </div>
+
+  <section class="card" aria-labelledby="card-storage">
+    <h2 id="card-storage">How to store bread for a week</h2>
+    <p>Keep the loaf in a paper bag at room temperature, and freeze the slices you do not eat on the first day.</p>
+    <p><a href="storage.html">Read more</a></p>
+  </section>
+
+  <h2 id="produce">Seasonal produce guide</h2>
+  <p>The table shows the produce of the spring months.</p>
+  <table>
+    <caption>Produce of the spring months</caption>
+    <thead>
+      <tr><th scope="col">Month</th><th scope="col">Fruit</th><th scope="col">Vegetable</th></tr>
+    </thead>
+    <tbody>
+      <tr><th scope="row">March</th><td>Rhubarb</td><td>Leek</td></tr>
+      <tr><th scope="row">April</th><td>Rhubarb</td><td>Asparagus</td></tr>
+      <tr><th scope="row">May</th><td>Strawberry</td><td>Peas</td></tr>
+    </tbody>
+  </table>
+  <h3>Sweetness</h3>
+  <p>The growers measure the sugar of fruit in <span class="tip-wrap"><button type="button" aria-describedby="tip-brix">Brix</button><span role="tooltip" id="tip-brix" class="tip" hidden>Brix is the share of sugar in the juice. 12 Brix means 12 grams of sugar in 100 grams of juice.</span></span>. A ripe strawberry has 8 to 12 Brix.</p>
+  <h3>From the growers</h3>
+  <blockquote lang="fr"><p>Les fraises de mai sont les plus douces de l'année.</p></blockquote>
+  <p class="muted">A grower from the bay, in French: the strawberries of May are the sweetest of the year.</p>
+
+  <h2 id="fish">Fish market calendar</h2>
+  <p>The boats land cod in the winter, mackerel in the summer, and crab from May to September.</p>
+</main>
+<footer class="site">
+  <ul>
+    <li><a href="sitemap.html">Sitemap</a></li>
+    <li><a href="help.html#contact">Contact us</a></li>
+    <li><a href="privacy.html">Privacy</a></li>
+  </ul>
+  <p class="muted">Harbor Market is a test site of the Accessibility Audit project. Nothing is for sale.</p>
+</footer>
+<script src="app.js"></script>
+</body>
+</html>
