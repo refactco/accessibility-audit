@@ -2,6 +2,17 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.1.0, 2026-10-26
+
+The dry submit: form errors are tested on production, and no data leaves the browser. See `FORMS.md`.
+
+- The engine clicks the submit button of each form on the sample pages, first empty, then with incorrect values, each time in its own render. It tests the errors that the page shows: the form tests of the processes (3.3.1, 3.3.3), a new test for errors that a screen reader does not announce (4.1.3, `error-not-announced`), and the tests of a state on the error state.
+- A guard blocks each request that can carry the data: each request that is not GET, each page, frame, fetch, XHR, and beacon, each script that is not a `.js` file, each request to another host, and each address with a typed value. Service workers are off, and a WebSocket cannot send. A test proves it for eleven ways to send a form, with a control run that shows each way reaches the server when there is no guard.
+- A form that tried to send and showed no error checks on the server only. The coverage lists it, and its page does not count as tested for 3.3.1 and 3.3.3.
+- The setting `interaction.dry_submit`, `true` by default on each environment. The summary gives `coverage.forms_tested`.
+- The form tests accept a message that asks for a value, like "Enter your name", as the suggestion for an empty field (3.3.3). This applies to the processes too.
+- `FORMS.md`: the plan for the form tests, with the safe staging for the real submissions and the test account for the sign-in.
+
 ## 1.0.3, 2026-10-20
 
 The first public version.

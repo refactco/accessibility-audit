@@ -19,6 +19,7 @@ import { SITE_TEST_CRITERIA, collectSiteFacts, runSiteTests, type SiteFacts } fr
 import { applyState, bannerVisible, findStates, type StateAction } from "./own/states.ts";
 import { decideContrastQuestions } from "./own/contrast.ts";
 import { runProcesses, type ProcessRun } from "./process.ts";
+import { DRY_SUBMIT_CRITERIA, findForms, runDrySubmit, type DryRun, type FormCandidate } from "./own/dry-submit.ts";
 import { renderReport, type TemplateDifference } from "./report.ts";
 import { pageResults, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
@@ -35,7 +36,7 @@ export interface AuditOptions {
   log?: (line: string) => void; startedBy?: "schedule" | "person" | "skill";
 }
 
-export interface AuditResult { run: string; pages: PageRecord[]; issues: number; questions: number; durationSeconds: number; statesTested: number; processes: ProcessRun[] }
+export interface AuditResult { run: string; pages: PageRecord[]; issues: number; questions: number; durationSeconds: number; statesTested: number; processes: ProcessRun[]; dryRuns: DryRun[] }
 
 /** The non-interference criteria that run with the cookie banner open. */
 const NON_INTERFERENCE = new Set(["1.4.2", "2.1.2", "2.2.2", "2.3.1", "2.4.3"]);
@@ -137,6 +138,8 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     return null;
   };
   const candidatesOf = new Map<PageRecord, { width: number; states: StateAction[] }[]>();
+  // The forms of each sample page for the dry submit. A page with no form has an empty list, and counts as tested.
+  const formsOf = new Map<PageRecord, FormCandidate[]>();
   const bannerTested = new Set<string>();
 
   const auditOne = async (url: string) => {
@@ -200,6 +203,8 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         for (const c of PAGE_TEST_CRITERIA) tested.add(c);
         // The images of text look the same at every width: one pass at the first width, and the criterion counts as tested at all.
         if (w === first) { record.outcomes.push(...(await runImageOfTextTest(page, url, w, []))); tested.add("1.4.5"); }
+        // The forms for the dry submit, before the operate tests change the page.
+        if (record.sample && w === first && config.interaction.dry_submit) formsOf.set(record, await findForms(page));
         if (record.sample && (w === first || w === last)) {
           // The focus pass runs at the smallest and the largest width.
           record.outcomes.push(...(await runFocusTests(page, url, w, [], opened.blocked)));
@@ -311,6 +316,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   };
 
   let processRuns: ProcessRun[] = [];
+  const dryRuns: DryRun[] = [];
   try {
     await Promise.all(Array.from({ length: concurrency }, () => worker()));
 
@@ -342,6 +348,43 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       }
     };
     await Promise.all(Array.from({ length: concurrency }, () => stateWorker()));
+
+    // The dry submits, after the states, in the same order. A form that another page gave is not repeated. See FORMS.md.
+    const seenForms = new Set<string>();
+    const dryJobs: { record: PageRecord; form: FormCandidate }[] = [];
+    for (const p of [...formsOf.keys()].sort((a, b) => first_(a).localeCompare(first_(b)))) {
+      for (const f of formsOf.get(p)!) {
+        if (seenForms.has(f.signature)) continue;
+        seenForms.add(f.signature);
+        dryJobs.push({ record: p, form: f });
+      }
+    }
+    if (dryJobs.length) log(`${dryJobs.length} forms for the dry submit`);
+    let nextDry = 0;
+    const dryWorker = async () => {
+      for (;;) {
+        const job = dryJobs[nextDry++];
+        if (!job) return;
+        if ((Date.now() - started.getTime()) / 60000 > config.budgets.time_budget_minutes) { if (!budgetReached.includes("time")) budgetReached.push("time"); return; }
+        try {
+          const r = await runDrySubmit(browser, config, job.record, first, job.form, { contextOptions, limiter, siteLang, shoot });
+          dryRuns.push(r);
+          renders += r.renders;
+          statesTested += r.states;
+          log(`  dry submit ${pathOf(job.record.url)} '${job.form.name}': ${r.submissions.map((s) => `${s.variant} ${s.kind}${s.blocked.length ? ` (${s.blocked.length} blocked)` : ""}`).join(", ")}${r.error ? " - " + r.error : ""}`);
+        } catch (e) {
+          log(`  dry submit error at ${job.record.url}: ${(e as Error).message.split("\n")[0]}`);
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: concurrency }, () => dryWorker()));
+    // A sample page counts as tested for the form criteria, unless one of its forms checks on the server only or did not run.
+    const formResult = new Map(dryRuns.map((r) => [r.form.signature, r]));
+    for (const [p, forms] of formsOf) {
+      if (!p.tested) continue;
+      if (forms.some((f) => { const r = formResult.get(f.signature); return !r || !r.tested || r.serverOnly; })) continue;
+      for (const c of DRY_SUBMIT_CRITERIA) p.testedCriteria[first]?.add(c);
+    }
 
     // The site tests, on all pages together.
     const siteOutcomes = runSiteTests(pages, siteFacts, frontier.sitemapUrls, first);
@@ -396,9 +439,16 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   if (!config.crawl.cookie_banner) testsNotRun.push("the non-interference tests with the cookie banner open: the settings have no banner selector");
   else if (!bannerRan) testsNotRun.push("the non-interference tests with the cookie banner open: no banner was visible on the sample pages");
   if (config.interaction.max_states_per_page === 0) testsNotRun.push("states: max_states_per_page is 0");
-  if (!config.interaction.processes.length) testsNotRun.push("processes: the settings have none. The form tests (3.3.1, 3.3.3) and the redundant entry test (3.3.7) run in the processes only");
+  if (!config.interaction.dry_submit) testsNotRun.push("dry submit: dry_submit is false in the settings. The form tests (3.3.1, 3.3.3) run in the processes only");
+  for (const r of [...dryRuns].sort((a, b) => a.url.localeCompare(b.url))) {
+    const where = `the form '${r.form.name}' on ${pathOf(r.url)}`;
+    if (r.serverOnly) testsNotRun.push(`dry submit: ${where} checks its fields on the server only. Its errors and its success message need a process on staging`);
+    else if (r.unchanged) testsNotRun.push(`dry submit: ${where} did not change after the submission`);
+    else if (!r.tested) testsNotRun.push(`dry submit: ${where} was not tested: ${r.error}`);
+  }
+  if (!config.interaction.processes.length) testsNotRun.push("processes: the settings have none. The success message of a form and the redundant entry test (3.3.7) run in the processes only");
   for (const r of processRuns) if (!r.tested) testsNotRun.push(`process ${r.name}: ${r.reason}`);
-  if (config.interaction.processes.length && !processesTested) testsNotRun.push("form tests (3.3.1, 3.3.3) and redundant entry (3.3.7): they run in the processes only");
+  if (config.interaction.processes.length && !processesTested) testsNotRun.push("the success message of a form and redundant entry (3.3.7): they run in the processes only");
 
   // A random page whose template tests differ from the example page of its template.
   const rulesOf = (p: PageRecord) => new Set(p.outcomes.filter((o) => o.kind === "failed" && TEMPLATE_CRITERIA.has(o.criterion)).map((o) => o.rule));
@@ -415,7 +465,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
   }
 
-  const coverage = { pages_found: pages.length, pages_tested: tested.length, pages_not_tested: pages.length - tested.length, pages_in_sample: tested.filter((p) => p.sample).length, states_tested: statesTested, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
+  const coverage = { pages_found: pages.length, pages_tested: tested.length, pages_not_tested: pages.length - tested.length, pages_in_sample: tested.filter((p) => p.sample).length, states_tested: statesTested, forms_tested: dryRuns.filter((r) => r.tested).length, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
   const processes = Object.fromEntries(processRuns.map((r) => [r.name, r.tested ? { tested: true, ...processSummary(r.records, [first]) } : { tested: false, reason: r.reason || "not tested" }]));
   const overview = buildOverview(all, widths, criteria, issues, decisions);
   const summary = { schema: "summary/1", site: config.site.url, run, date, standard: "WCAG 2.2", level: "AA", versions, baseline, counts, coverage, criteria, processes, overview };
@@ -425,5 +475,5 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences, statesTested, decisions, skipped: frontier.skipped, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir), { run, date, kind: history.kind, counts, overview: history.overview }] });
   writeResults(outDir, { config, summary, pages: pageFiles, issues, questions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });
   log(`done: ${pages.length} pages, ${statesTested} states, ${processesTested} of ${config.interaction.processes.length} processes, ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions, ${durationSeconds} s`);
-  return { run, pages, issues: issues.length, questions: questions.length, durationSeconds, statesTested, processes: processRuns };
+  return { run, pages, issues: issues.length, questions: questions.length, durationSeconds, statesTested, processes: processRuns, dryRuns };
 }

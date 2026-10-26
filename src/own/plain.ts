@@ -84,6 +84,7 @@ const PLAIN: Record<string, Plain> = {
   "error-not-in-text": { title: "An error shown only by color", experience: "A person who does not see color cannot tell which field has the error." },
   "error-not-linked": { title: "An error not connected to its field", experience: "A screen reader does not say which field the error belongs to." },
   "error-without-suggestion": { title: "An error that does not say how to correct it", experience: "The form says that the entry is wrong, but not what is expected." },
+  "error-not-announced": { title: "Form errors that a screen reader does not announce", experience: "After a submission, the errors appear on the screen, but a screen reader says nothing, so a blind person does not know that the form failed." },
   "redundant-entry": { title: "The same data asked twice", experience: "A person must type the same information again in a later step." },
   "financial-form": { title: "A commitment with no review step", experience: "A person cannot check or correct the data before the order or the payment goes through." },
   "login-form": { title: "A sign-in that needs memory or a puzzle", experience: "A person who cannot remember a password, or cannot solve a CAPTCHA, cannot sign in." },

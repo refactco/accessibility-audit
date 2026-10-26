@@ -35,7 +35,7 @@ a11y check <config.json> --out accessibility-audit          the short check of t
 a11y refresh <config.json> --out accessibility-audit        the results with the answers and the decisions of today, no crawl
 ```
 
-Before the first audit, look for `accessibility-audit/config.json`. When it does not exist, ask the user for the address of the site and the environment, write the settings from the schema `formats/config.schema.json` of the package, and validate them with the audit command. The audit on production is read-only: the engine blocks form submissions and changes. A process that enters data runs on staging only, where the settings say so.
+Before the first audit, look for `accessibility-audit/config.json`. When it does not exist, ask the user for the address of the site and the environment, write the settings from the schema `formats/config.schema.json` of the package, and validate them with the audit command. The audit on production is read-only: the engine blocks form submissions and changes. The dry submit clicks the submit button of each form, empty and with incorrect values, and a guard in the browser blocks the data, so nothing reaches the site. A process that enters data runs on staging only, where the settings say so. When the coverage lists a form that checks on the server only, tell the user that its errors and its success message need a process on staging (see `FORMS.md` of the package).
 
 A full audit of a large site takes hours, so start it in the background and read the report when it ends. The engine prints the progress on the standard error stream.
 

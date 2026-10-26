@@ -115,6 +115,11 @@
           "type": "integer",
           "minimum": 0
         },
+        "forms_tested": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The forms that got a dry submit. See FORMS.md."
+        },
         "processes_tested": {
           "type": "integer",
           "minimum": 0

@@ -1,6 +1,6 @@
 {
   "name": "@refact/a11y",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "private": true,
   "description": "Accessibility Audit: finds what blocks people with disabilities on a website, where each problem comes from, and how to fix it. It does not fix.",
   "type": "module",
@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "npm run typecheck && npm run validate-formats && npm run seed-build && node tests/recurrence.mjs --serve && node tests/review.mjs --serve && node tests/seeded-faults/detect.mjs --serve --only F01,F05,F18,F74",
+    "test": "npm run typecheck && npm run validate-formats && npm run seed-build && node tests/recurrence.mjs --serve && node tests/review.mjs --serve && node tests/seeded-faults/detect.mjs --serve --only F01,F05,F18,F74 && node tests/dry-submit.mjs --serve",
     "audit": "node src/cli.ts audit",
     "build-criteria": "python3 -I criteria/build.py criteria/criteria.base.json criteria/sources/axe/rule-descriptions.md criteria/sources/act/testcases.json criteria/criteria.json",
     "validate-formats": "node formats/validate.mjs",
@@ -26,7 +26,8 @@
     "recurrence": "node tests/recurrence.mjs",
     "regroup": "node tools/regroup.mjs",
     "review": "node tests/review.mjs",
-    "cycle-eval": "node tests/cycle-eval.mjs"
+    "cycle-eval": "node tests/cycle-eval.mjs",
+    "dry-submit": "node tests/dry-submit.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",
