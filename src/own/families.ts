@@ -35,6 +35,7 @@ export const FAMILIES: Record<string, string> = {
   "change-of-context-on-input": "An issue when a change of a select loads a new page and no text before the select says so.",
   "error-not-linked": "An issue when the error text exists but nothing connects it to the field and the text does not name the field.",
   "error-without-suggestion": "An issue when the error does not say how to correct the input, like Invalid input.",
+  "error-not-announced": "An issue when the errors appear after a submission, the focus does not move to them, and a screen reader does not announce them. Not an issue when the errors are in a live region or an alert.",
   "hover-content": "An issue when content that appears on hover cannot be dismissed with Esc, or disappears when the pointer moves onto it.",
   "media-found": "A check for a person: play the media and look for the transcript, the captions, or the audio description that the question names.",
   "player-found": "A check for a person: play the media in the player and look for its alternatives.",

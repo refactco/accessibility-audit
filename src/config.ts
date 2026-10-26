@@ -18,7 +18,7 @@ export interface Config {
     cookie_banner?: { selector?: string; dismiss_selector?: string };
     templates: { name: string; pattern: string; example_page?: string }[]; sample_pages: string[]; random_sample_share: number;
   };
-  interaction: { deny_list: string[]; tests_that_send_data: boolean; max_states_per_page: number; processes: { name: string; environment: string; account?: string; steps: { page: string; action: string }[] }[] };
+  interaction: { deny_list: string[]; tests_that_send_data: boolean; dry_submit: boolean; max_states_per_page: number; processes: { name: string; environment: string; account?: string; steps: { page: string; action: string }[] }[] };
   login: { method: "none" | "form" | "storage_state"; login_url?: string; roles?: { name: string; secret_name: string }[] };
   budgets: { concurrency: number; time_budget_minutes: number; max_pages: number; max_questions_per_audit: number; max_issues_for_skill: number; sample_share: number };
   baseline: { assistive_technologies?: string[] };
@@ -34,7 +34,7 @@ export function configForUrl(url: string, environment: Config["site"]["environme
     schema: "config/1",
     site: { url: url.replace(/\/$/, ""), environment, standard: "WCAG 2.2", level: "AA", languages: [], sets: [{ name: "site", patterns: ["/**"] }] },
     crawl: { widths: [390, 768, 1280], max_pages: 500, skip: [], address_groups: [], parameters: { keep: [] }, rate_limit: 2, permitted_domains: [host], obey_robots: true, templates: [], sample_pages: [], random_sample_share: 0.1 },
-    interaction: { deny_list: DEFAULT_DENY, tests_that_send_data: environment !== "production", max_states_per_page: 10, processes: [] },
+    interaction: { deny_list: DEFAULT_DENY, tests_that_send_data: environment !== "production", dry_submit: true, max_states_per_page: 10, processes: [] },
     login: { method: "none" },
     budgets: { concurrency: 4, time_budget_minutes: 240, max_pages: 500, max_questions_per_audit: 500, max_issues_for_skill: 200, sample_share: 0.1 },
     baseline: { assistive_technologies: [] },

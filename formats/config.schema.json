@@ -115,6 +115,7 @@
           "description": "Names of controls that the tests never operate."
         },
         "tests_that_send_data": { "type": "boolean", "default": false, "description": "Permission for text entry and form submission. Never true on production without a test account." },
+        "dry_submit": { "type": "boolean", "default": true, "description": "The dry submit: the engine submits each form of the sample pages, empty and with incorrect values, and tests the error messages. A guard in the browser blocks each request that can carry the data, so nothing leaves the browser. It runs on each environment, also on production. See FORMS.md." },
         "max_states_per_page": { "type": "integer", "minimum": 0, "default": 10 },
         "processes": {
           "type": "array",

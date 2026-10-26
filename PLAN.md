@@ -19,6 +19,8 @@ Draft 2 applies all 47 findings of `REVIEW-1.md` and four decisions of 2026-10-1
 
 On 2026-10-13, you approved draft 2 and answered the open questions. Section 13 records the answers. Sections 1, 2, 5.1, 7.4, 10, 11, and 13 changed with them.
 
+On 2026-10-26, `FORMS.md` added the dry submit: the engine submits forms on production with a guard that keeps the data in the browser. Sections 4.5, 5.2, and 12 changed with it.
+
 ## 1. Summary
 
 **One-liner.**
@@ -200,7 +202,7 @@ The protected mode has these rules:
 
 - The engine can navigate, press keys, hover, focus, press Esc, and open menus, dialogs, tabs, and accordions.
 - The engine can change the value of a select, a checkbox, or a radio button.
-- The engine does not type text, submit a form, or drag.
+- The engine does not type text, submit a form, or drag. The exception is the dry submit of `FORMS.md`: the engine types a test value and submits a form, but a guard blocks each request that can carry the data.
 - The engine does not operate a control whose name is on the deny-list in the settings. Examples: "delete", "pay", "send", and "log out".
 - During each interaction, the browser blocks each network request that is not GET. It also blocks each navigation that the interaction starts. The engine records the blocked request or navigation as a fact.
 - A complete process runs only on staging or local, or on production with permission in the settings and a test account.
@@ -244,7 +246,7 @@ The template tests run on a sample. The sample has the five parts of WCAG-EM and
 
 **The states of a page**
 
-A state is a list of actions from the first load of a page, for example "click the menu button". The engine finds states from menus, dialogs, tabs, accordions, and the cookie banner. It uses the ARIA attributes, the details element, and the roles. The settings give the maximum of states for each page. The default is 10. A form error state needs a submission, so it runs only where section 4.5 permits.
+A state is a list of actions from the first load of a page, for example "click the menu button". The engine finds states from menus, dialogs, tabs, accordions, and the cookie banner. It uses the ARIA attributes, the details element, and the roles. The settings give the maximum of states for each page. The default is 10. A form error state needs a submission. The dry submit of `FORMS.md` makes it on each environment, with a guard that keeps the data in the browser. The errors of the server and the success message need a process, where section 4.5 permits.
 
 The fingerprint, the page result, and the issue file include the state.
 
@@ -713,6 +715,7 @@ After version 1, add these parts only if they are necessary:
 | Risk | Control |
 |---|---|
 | A test changes data on a live site | The protected mode on production: blocked requests, blocked navigations, no text entry, and the deny-list. Processes run on staging or with permission |
+| The dry submit sends a form on a live site | The guard of `FORMS.md` section 3.2, and a test that proves it for eleven ways to send a form |
 | A page contains text that looks like an instruction for an agent | The issue files name the untrusted fields. The skill writes only into the results folder |
 | Screenshots and HTML show personal data or tokens | The redaction of the HTML examples. The raw data and the screenshots behind a login stay out of Git |
 | The audit puts too much load on the site | The rate limit, the concurrency, and the page limits in the settings |

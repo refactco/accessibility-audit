@@ -55,11 +55,14 @@ The engine raises a question when a rule cannot decide. Each question names its 
 - `text-cut-at-zoom`, `text-cut-with-spacing`: a container cuts its text at 200% zoom or with the text spacing of 1.4.12. `issue` when the cut text is not available in another way. `no issue` when the container scrolls, or shows the text on focus, or the cut part is decorative.
 - `no-reflow`: the page needs a horizontal scroll at 320 px. `issue` unless the content needs two dimensions, for example a data table, a map, or a toolbar.
 
-## Processes and forms, 3.2.2, 3.3.1, 3.3.3, 3.3.4
+## Processes and forms, 3.2.2, 3.3.1, 3.3.3, 3.3.4, 4.1.3
+
+A question whose state starts with "dry submit" comes from the dry submit: the engine submitted the form, empty or with incorrect values, and a guard in the browser blocked the data. The page at rest does not show the errors. Decide from the facts and the screenshot. Do not submit the form yourself.
 
 - `change-of-context-on-input`: a select loads a new page on change. `issue` unless a text before the select says so.
 - `error-not-linked`: error text exists but nothing connects it to the field. `issue` unless the error text names the field in words.
 - `error-without-suggestion`: the error does not say how to correct the input. `issue` for "Invalid input"; `no issue` when the message or a visible hint next to the field gives the format or an example.
+- `error-not-announced`: after a submission, error text appears, the focus stays on the button, and no live region holds the text. `issue` unless `facts.live` holds the errors, or the focus moved to the errors or to a field with an error.
 - `financial-form`: a form that commits money, a legal action, or user data. This is a candidate for a person, not for you.
 
 ## When the evidence is not enough

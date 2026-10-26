@@ -72,6 +72,7 @@ The commands find `accessibility-audit/config.json` by themselves in the reposit
 ## What leaves the machine, and what it costs
 
 - The engine loads the pages of the site, as a browser does. On production it sends no form and changes nothing: the engine blocks every request that is not a read. Processes that enter data run on staging only, with test data.
+- The dry submit clicks the submit button of each form on the sample pages, empty and with incorrect values, to see the error messages. A guard in the browser blocks each request that can carry the data, so the site gets nothing. A test proves it for eleven ways to send a form. See `FORMS.md`.
 - The agents send the evidence of the questions, the HTML of the issues, and the screenshots to Claude, through your Claude Code account. Nothing else leaves the machine. The results stay in the repository of the site.
 - A cycle on a site of 700 pages used about 90 minutes and the work of seven agents.
 
@@ -94,7 +95,8 @@ Every file has a schema in `formats/`, and the engine validates each file before
 ## Limits
 
 - A result "no issue found" is not a pass. The product finds failures; it cannot prove conformance, and no tool can.
-- One criterion, live media (1.2.4), has no test. The form tests run only in a process on staging.
+- One criterion, live media (1.2.4), has no test.
+- The dry submit sees only the errors that a page shows before it sends. The errors of the server and the success message need a process on staging. A form that checks on the server only is listed in the coverage.
 - The engine does not operate the content of a frame, for example an embedded form, and it logs in only with a saved browser state.
 - The two AI answers come from one model, and they can be wrong in the same way. On the seeded test site both are right on every question. On real sites they agree on about 95 percent of the questions, and the rest stay unresolved.
 - Measured so far on two headless WordPress sites and one large WordPress site.
@@ -105,6 +107,7 @@ Every file has a schema in `formats/`, and the engine validates each file before
 npm test              the type check, the formats, and the seeded site: recurrence, review, and a few faults
 npm run detect        the detection of all 74 seeded faults
 npm run cycle-eval    the whole cycle on one seeded site, and the solution success rate
+npm run dry-submit    the dry submit sends nothing, and finds the form errors (also in npm test)
 ```
 
 The seeded site is a small correct site with 74 known faults, in `tests/seeded-faults/`. The numbers of the last measurements are in `tests/seeded-faults/*.md`: 74 of 74 faults found, 29 of 29 source files, 42 of 42 solutions that fixed their issue.

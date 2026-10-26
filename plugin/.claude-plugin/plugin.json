@@ -1,6 +1,6 @@
 {
   "name": "accessibility-audit",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "The agent skill of Accessibility Audit: runs the WCAG 2.2 AA audit engine on a site, answers the review questions from the evidence, finds the origin and the source file of each issue, writes a specific solution, and records the decisions of a person. It never fixes the site.",
   "author": {
     "name": "Refact",

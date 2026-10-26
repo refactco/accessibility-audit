@@ -74,7 +74,7 @@ const FIELDS = `(() => {
 })()`;
 
 /** The visible fields, each with its validity and the text that is linked to it or near it, and the visible alerts. */
-const FORM_STATE = `(() => {
+export const FORM_STATE = `(() => {
   ${HELPERS}
   const fields = Array.from(document.querySelectorAll("input:not([type=hidden]), select, textarea")).filter(visible).map((f) => {
     const invalid = f.getAttribute("aria-invalid") === "true" || !!(f.form && f.form.noValidate && f.matches(":invalid") && f.value);
@@ -83,23 +83,26 @@ const FORM_STATE = `(() => {
     const container = f.closest(".field, .form-group, .form-row, .form-item, .form-field, .input-group, .hs-form-field, label, li, p, fieldset") || f.parentElement;
     const near = container ? Array.from(container.querySelectorAll("*")).filter((e) => e !== f && visible(e) && !e.contains(f) && (e.innerText || "").trim() && !linked.includes(e)) : [];
     const texts = Array.from(new Set([...linked, ...near].map((e) => e.innerText.trim().replace(/\\s+/g, " ").slice(0, 160))));
-    return { selector: sel(f), html: html(f), item: item(f), label: nameOf(f), invalid, texts };
+    return { selector: sel(f), html: html(f), item: item(f), label: nameOf(f), invalid, texts, empty: !(f.value || "").trim() };
   });
   const alerts = Array.from(document.querySelectorAll("[role=alert], [aria-live=assertive], .error, .errors, .error-summary, [class*=error], [class*=invalid], [id*=error]")).filter((e) => visible(e) && (e.innerText || "").trim()).map((e) => e.innerText.trim().replace(/\\s+/g, " ").slice(0, 200));
   return { fields, alerts, text: (document.body.innerText || "").length };
 })()`;
 
-interface FormField { selector: string; html: string; item: string; label: string; invalid: boolean; texts: string[] }
-interface FormState { fields: FormField[]; alerts: string[]; text: number }
+export interface FormField { selector: string; html: string; item: string; label: string; invalid: boolean; texts: string[]; empty?: boolean }
+export interface FormState { fields: FormField[]; alerts: string[]; text: number }
 
-/** An error message gives a suggestion when it names the field, a format, an example, or a limit. */
-function hasSuggestion(message: string, label: string): boolean {
+/** An error message gives a suggestion when it names the field, a format, an example, or a limit.
+ *  For an empty field, a message that asks for a value, like "Enter your name", is the correction. */
+function hasSuggestion(message: string, label: string, empty = false): boolean {
   const words = label.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4);
   const m = message.toLowerCase();
+  if (empty && /\b(enter|type|provide|fill in|add|give|choose|select|pick)\b/.test(m)) return true;
   return words.some((w) => m.includes(w)) || /format|example|must|between|at least|at most|digits|characters|\d|@|select|choose|required/.test(m);
 }
 
-function formErrors(before: FormState, after: FormState): Found[] {
+/** The form tests: compares the form before and after a submission. The dry submit uses them too. */
+export function formErrors(before: FormState, after: FormState): Found[] {
   const found: Found[] = [];
   // A field counts when it became invalid, or when the text near it changed. Only the text that appeared after the action counts as error text.
   const textsBefore = (selector: string) => before.fields.find((x) => x.selector === selector)?.texts || [];
@@ -124,7 +127,7 @@ function formErrors(before: FormState, after: FormState): Found[] {
         solution: { summary: "Put the error text next to the field and connect it with aria-describedby.", steps: ["Add an error element after the field.", "Point aria-describedby of the field to it."] } });
     }
     for (const message of mine.slice(0, 2)) {
-      if (hasSuggestion(message, f.label)) continue;
+      if (hasSuggestion(message, f.label, f.empty)) continue;
       found.push({ criterion: "3.3.3", rule: "error-without-suggestion", kind: "cantTell", selector: f.selector, html: f.html, item: f.item, facts: { label: f.label, message },
         summary: `The error for "${f.label}" says "${message.slice(0, 80)}" and gives no suggestion for the correction.`, severity: "serious",
         question: `Does the error message "${message.slice(0, 120)}" tell the user how to correct the input of the field "${f.label}"?`,
