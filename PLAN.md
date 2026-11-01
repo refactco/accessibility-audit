@@ -34,7 +34,7 @@ The Accessibility Audit is an independent tool. Its command is `a11y`. It examin
 **What the product is not.**
 
 - It does not fix issues. It does not change the site, the code, or the content.
-- It is not a part of Refact OS, and it has no dependency on Refact OS.
+- It is a separate product, with no dependency on other internal tools.
 - It does not give a statement of conformance. Only a person can give the result "Passed".
 - Version 1 is not a hosted service, and it has no database server.
 
@@ -44,7 +44,7 @@ The product is one command-line program (the engine) and one skill for an AI age
 
 **Decisions that you made.**
 
-- The product is independent of Refact OS.
+- The product is independent of other internal tools.
 - The auditor finds, locates, and recommends. It does not fix.
 - The scope is the whole website, not one page.
 - The audit is automatic and recurrent. The default is one full audit each week.

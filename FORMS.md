@@ -13,7 +13,7 @@ The engine audits production. On production, it does not type text and does not 
 - The success message after a correct submission (4.1.3).
 - The sign-in steps (3.3.8).
 
-The audits of refact.co, fioredesigns.com, and credaily.com show the gap. All three settings files have `tests_that_send_data: false`. The contact process of refact.co runs on staging only, so each production audit reports it as "not tested". The report says: "The form tests (3.3.1, 3.3.3) run in the processes only."
+The audits of refact.co and of two client sites show the gap. All three settings files have `tests_that_send_data: false`. The contact process of refact.co runs on staging only, so each production audit reports it as "not tested". The report says: "The form tests (3.3.1, 3.3.3) run in the processes only."
 
 ## 2. The decision
 
@@ -27,7 +27,7 @@ The form test has three parts. Each part tests what it can test safely.
 
 Two other methods are not in this plan:
 
-- **A fake answer.** The engine answers the request in place of the server. This works only when the page reads a JSON answer, for example the newsletter of fioredesigns.com. It does not work for a Next.js server action (the contact form of refact.co, the login of fioredesigns.com) or for a classic Gravity Forms page (credaily.com). Also, when the server changes, the fake answer becomes incorrect and nothing shows it.
+- **A fake answer.** The engine answers the request in place of the server. This works only when the page reads a JSON answer, for example a newsletter form that sends to an API. It does not work for a Next.js server action, for example the contact form of refact.co, or for a classic Gravity Forms page. Also, when the server changes, the fake answer becomes incorrect and nothing shows it.
 - **An audit marker.** The site discards each submission that carries a marker. This gives the best result on production, but it puts audit code into each client site. Use it only for a site that has no staging.
 
 ## 3. Part 1: the dry submit
@@ -130,14 +130,14 @@ The status of each site:
 | Site | Staging | To do |
 |---|---|---|
 | refact.co | Safe since 2026-10-13. The Gravity Forms connections are off | Run the contact process with `pilots/refact.co.staging.config.json` |
-| credaily.com | Exists. reCAPTCHA v3 blocks the engine | Turn off the CAPTCHA on staging. Send the notifications to a team inbox. The HubSpot form on /advertise/ is never sent |
-| fioredesigns.com | Not checked | Find the staging front end. Point the newsletter to a test list in Klaviyo, or remove the key on staging |
+
+The status of each client site is in `forms-status.md`, in the results folder of the repository of that site. This repository is public, so it does not name client sites.
 
 ## 5. Part 3: the test account
 
 - Each site with a sign-in needs an account that the team owns, with a team inbox.
 - A person signs in one time and saves a storage state file. The settings name it in `login.roles`. The secret stays out of the repository.
-- credaily.com already has this plan: a reader account. fioredesigns.com has a login and a register page, so it needs an account too.
+- The status of the test account of each client site is in the same `forms-status.md` file.
 - Later: one sign-in with an incorrect password or code in each audit, to test the error message. This is a real request to production, so it needs a process with `environment: "production"`, the account, and `tests_that_send_data: true`. It must try only one time, so that the site does not lock the account.
 
 ## 6. Changes to the other documents
