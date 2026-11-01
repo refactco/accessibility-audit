@@ -24,11 +24,20 @@ export interface FormCandidate { selector: string; submit: string; name: string;
 const TEXT = "input:not([type]), input[type=text], input[type=email], input[type=tel], input[type=url], input[type=password], textarea";
 const USABLE = `const usable = (el) => visible(el) && !el.disabled && !el.readOnly && !el.closest("[aria-hidden=true], [inert]");`;
 const SUBMIT_TYPES = "button[type=submit], button:not([type]), input[type=submit], input[type=image]";
+/** A control in a fixed bar or panel that is outside the screen. A scroll cannot bring it into view, so a click cannot reach it. */
+const UNREACHABLE = `const unreachable = (el) => {
+  let fixed = false;
+  for (let a = el; a && a !== document.documentElement; a = a.parentElement) if (getComputedStyle(a).position === "fixed") { fixed = true; break; }
+  if (!fixed) return false;
+  const r = el.getBoundingClientRect();
+  return r.bottom > innerHeight + 1 || r.top < -1 || r.right > innerWidth + 1 || r.left < -1;
+};`;
 
 /** The forms of the page: a form element with a text field and a submit control. Not a search form. */
 const FIND_FORMS = `(() => {
   ${HELPERS}
   ${USABLE}
+  ${UNREACHABLE}
   const out = [];
   for (const form of Array.from(document.forms)) {
     if (form.getAttribute("role") === "search" || form.closest("[role=search]")) continue;
@@ -41,10 +50,20 @@ const FIND_FORMS = `(() => {
     let submit = [...Array.from(form.querySelectorAll(${JSON.stringify(SUBMIT_TYPES)})), ...owned].find((b) => visible(b) && !b.disabled);
     if (!submit) submit = Array.from(form.querySelectorAll("button, [role=button], input[type=button]")).find((b) => visible(b) && !b.disabled && /send|submit|subscribe|sign ?up|sign ?in|log ?in|join|register|continue|next|request|get started|apply/i.test(nameOf(b) || b.value || ""));
     if (!submit) continue;
+    // A form in a fixed bar or panel that is outside the screen shows only after an action, as a form in a closed dialog.
+    if (unreachable(submit)) continue;
     const name = (nameOf(submit) || submit.value || "").trim().replace(/\\s+/g, " ").slice(0, 60);
-    let action = "";
-    if (form.getAttribute("action")) { try { action = new URL(form.action).pathname; } catch { action = form.getAttribute("action"); } }
-    const signature = [action, (form.getAttribute("method") || "get").toLowerCase(), all.map((e) => (e.type || e.localName) + ":" + (e.getAttribute("name") || e.id || nameOf(e))).sort().join(","), name].join("|");
+    // A form that sends to its own page, for example a Gravity Forms form, is the same form on each page.
+    // The attribute, not form.action: a field with the name "action", common in WordPress forms, hides that property.
+    let action = "self";
+    const raw = form.getAttribute("action");
+    if (raw) {
+      try { const u = new URL(raw, location.href); action = u.origin === location.origin && u.pathname.replace(/\\/$/, "") === location.pathname.replace(/\\/$/, "") ? "self" : u.pathname; }
+      catch { action = raw; }
+    }
+    // The names of the hidden fields tell two forms with the same visible fields apart, for example two lists of one newsletter.
+    const hidden = Array.from(form.querySelectorAll("input[type=hidden]")).map((e) => e.getAttribute("name") || "").filter(Boolean).sort().join(",");
+    const signature = [action, (form.getAttribute("method") || "get").toLowerCase(), all.map((e) => (e.type || e.localName) + ":" + (e.getAttribute("name") || e.id || nameOf(e))).sort().join(","), hidden, name].join("|");
     out.push({ selector: sel(form), submit: sel(submit), name: name || form.getAttribute("aria-label") || form.id || "form", signature, html: html(form).slice(0, 300), item: item(form), textFields: fields.length });
   }
   return out;
@@ -146,12 +165,13 @@ export async function guardedContext(browser: Browser, config: Config, width: nu
 }
 
 /** What a submission showed. browser: the page checked the fields. native: the browser checked them. server: the form tried to
- *  send, so the site checks on the server only. none: nothing changed. error: the engine could not do the submission. */
-export type SubmissionKind = "browser" | "native" | "server" | "none" | "error";
+ *  send, so the site checks on the server only. none: nothing changed. hidden: the form is not visible in a new render, because it
+ *  shows only after an action or a delay, for example in a popup. error: the engine could not do the submission. */
+export type SubmissionKind = "browser" | "native" | "server" | "none" | "hidden" | "error";
 
 export interface Submission { variant: "empty" | "incorrect"; kind: SubmissionKind; state: string[]; blocked: string[]; rules: string[]; reason?: string }
 
-export interface DryRun { form: FormCandidate; url: string; submissions: Submission[]; renders: number; states: number; tested: boolean; serverOnly: boolean; unchanged: boolean; error?: string }
+export interface DryRun { form: FormCandidate; url: string; submissions: Submission[]; renders: number; states: number; tested: boolean; serverOnly: boolean; unchanged: boolean; hidden: boolean; error?: string }
 
 export interface DryOptions {
   contextOptions?: Record<string, unknown>;
@@ -194,6 +214,9 @@ async function submitOnce(browser: Browser, config: Config, record: PageRecord, 
     guard.values.push(DRY_VALUE);
     const present = await page.evaluate(`!!document.querySelector(${JSON.stringify(form.selector)}) && !!document.querySelector(${JSON.stringify(form.submit)})`) as boolean;
     if (!present) return { variant, kind: "error", state, blocked: [], rules: [], reason: "the form is not on the page in a new render" };
+    // A form that the page record found later, for example in a popup that opens after 10 seconds, is hidden in a new render.
+    const shown = await page.evaluate(`(() => { ${HELPERS} ${UNREACHABLE} const b = document.querySelector(${JSON.stringify(form.submit)}); return !!b && visible(b) && !unreachable(b); })()`) as boolean;
+    if (!shown) return { variant, kind: "hidden", state, blocked: [], rules: [], reason: "the form is not visible in a new render" };
     if (variant === "incorrect") {
       for (const f of await page.evaluate(TEXT_FIELDS(form.selector)) as string[]) await page.locator(f).first().fill(DRY_VALUE, { timeout: 3000 }).catch(() => {});
     }
@@ -240,7 +263,7 @@ async function submitOnce(browser: Browser, config: Config, record: PageRecord, 
 
 /** The dry submit of one form: submission A empty, then submission B with incorrect values when A showed errors on the page. */
 export async function runDrySubmit(browser: Browser, config: Config, record: PageRecord, width: number, form: FormCandidate, options: DryOptions): Promise<DryRun> {
-  const run: DryRun = { form, url: record.url, submissions: [], renders: 0, states: 0, tested: false, serverOnly: false, unchanged: false };
+  const run: DryRun = { form, url: record.url, submissions: [], renders: 0, states: 0, tested: false, serverOnly: false, unchanged: false, hidden: false };
   const a = await submitOnce(browser, config, record, width, form, "empty", options);
   run.submissions.push(a); run.renders++;
   if (a.kind === "browser" && form.textFields > 0) {
@@ -250,7 +273,8 @@ export async function runDrySubmit(browser: Browser, config: Config, record: Pag
   }
   record.renders += run.renders;
   run.states = run.submissions.filter((s) => s.kind === "browser").length;
-  run.tested = a.kind !== "error";
+  run.hidden = a.kind === "hidden";
+  run.tested = a.kind !== "error" && a.kind !== "hidden";
   run.serverOnly = a.kind === "server";
   run.unchanged = a.kind === "none";
   if (a.kind === "error") run.error = a.reason;

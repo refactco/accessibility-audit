@@ -36,7 +36,7 @@ Two other methods are not in this plan:
 
 1. On each page of the sample, at the first width, the engine finds the forms that are visible after the load.
 2. A form is a `form` element with at least one text field and a submit control. The engine skips a search form, a form with only a select or checkboxes, and a form with no submit control.
-3. The engine tests a maximum of three forms on each page. A form that has the same action, the same fields, and the same submit control as a tested form is the same form. The engine tests it one time in each audit, on the first page in a fixed order.
+3. The engine tests a maximum of three forms on each page. A form that has the same action, the same fields, the same hidden field names, and the same submit control as a tested form is the same form. A form that sends to its own page, for example a Gravity Forms form, has the same action on each page. The engine tests it one time in each audit, on the first page in a fixed order.
 4. Each form gets one or two submissions. Each submission is a state of the page, in its own render and in a new browser context.
    - Submission A: the form empty. The engine clicks the submit control.
    - Submission B: each text field filled with `a11y-dry-submit`, which is not a correct email, date, phone, or address. The engine clicks the submit control. Submission B runs only when submission A showed errors on the page.
@@ -75,6 +75,7 @@ The guard records each blocked request. The load of the page before the guard is
 | No change, and the browser marks a field as invalid | The browser shows its own message | No finding. The criteria count as tested |
 | No change, and the guard blocked a request after the click | The site checks the fields on the server only | No finding. The page gets "not tested" for 3.3.1 and 3.3.3. The coverage lists the form: its errors need part 2 |
 | No change, and no blocked request | The form needs more than one action, or does nothing | No finding. The coverage lists the form |
+| The form is not visible in a new render | The form shows only after an action or a delay, for example in a popup | No submission. The coverage lists the form. Its page can still count as tested |
 
 ### 3.4 The settings
 
@@ -91,13 +92,13 @@ The guard records each blocked request. The load of the page before the guard is
 ### 3.6 What the dry submit does not test
 
 - The errors of the server and the success message. Part 2 tests them.
-- A form that shows only after an action, for example in a dialog or a tab.
+- A form that shows only after an action, for example in a dialog, a tab, or a fixed bar that is outside the screen until it opens.
 - A form in a frame from another domain, for example an older HubSpot embed.
 - The steps after the first step of a form with more than one step.
 
 ### 3.7 The proof
 
-1. `tests/dry-submit.mjs` serves a local site whose forms send data in eleven ways. The ways are: a fetch POST, a POST form, a GET form, and a fetch GET. Also a JSONP request to the site and to another host, a beacon, and a WebSocket message. Also a form in a new window, a form in a frame, and a pixel to another host. Each page has a form with no check and a form that checks only that the fields are not empty. The server records each request. The test passes when the server gets no submission and no typed value, and when the coverage lists the forms with no check.
+1. `tests/dry-submit.mjs` serves a local site whose forms send data in eleven ways. The ways are: a fetch POST, a POST form, a GET form, and a fetch GET. Also a JSONP request to the site and to another host, a beacon, and a WebSocket message. Also a form in a new window, a form in a frame, and a pixel to another host. Each page has a form with no check and a form that checks only that the fields are not empty. The server records each request. The test passes when the server gets no submission and no typed value, and when the coverage lists the forms with no check. Since 1.1.1, two more pages have a form that sends to its own page, as Gravity Forms does, and a form in a closed fixed bar. A third form is in a popup that opens 3 seconds after the load. The engine must test the first form one time for the two pages, and skip the form in the bar and the form in the popup.
 2. The same test audits the seeded faults F59 (3.3.1) and F61 (3.3.3) with production settings and no process. The engine must find both. The base site must give no form finding.
 3. `npm test` runs the test. The seeded detection runs again for all faults.
 4. One short audit of the contact page of refact.co, the site of the company, shows the dry submit on a real form.

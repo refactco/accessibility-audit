@@ -108,6 +108,7 @@ npm test              the type check, the formats, and the seeded site: recurren
 npm run detect        the detection of all 74 seeded faults
 npm run cycle-eval    the whole cycle on one seeded site, and the solution success rate
 npm run dry-submit    the dry submit sends nothing, and finds the form errors (also in npm test)
+npm run summary       the engine version and the coverage of the process steps (also in npm test)
 ```
 
 The seeded site is a small correct site with 74 known faults, in `tests/seeded-faults/`. The numbers of the last measurements are in `tests/seeded-faults/*.md`: 74 of 74 faults found, 29 of 29 source files, 42 of 42 solutions that fixed their issue.
