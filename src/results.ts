@@ -40,7 +40,7 @@ export function pageResults(page: PageRecord, widths: number[], decisions: Decis
 
 export interface CriterionSummary {
   result: UnitResult; method: "auto" | "auto+review" | "person";
-  coverage: { tested_units: number; all_units: number; definition: "page" | "template" | "site" | "process" };
+  coverage: { tested_units: number; all_units: number; definition: "page" | "template" | "site" | "process"; process_units?: { tested: number; all: number } };
   issues: number; open_questions: number; ai_only_answers: number;
 }
 
@@ -59,8 +59,17 @@ export function siteSummary(pages: PageRecord[], widths: number[], processes: { 
     else if (definition === "template") { all = sample.length * widths.length + (crawled.length - tested.length) * widths.length; done = sample.reduce((n, p) => n + widths.filter((w) => p.testedCriteria[w]?.has(c.id)).length, 0); }
     else if (definition === "site") { all = 1; done = tested.some((p) => widths.some((w) => p.testedCriteria[w]?.has(c.id))) ? 1 : 0; }
     else { all = processes.all; done = processes.tested; }
-    out[c.id] = { result: done === 0 && definition !== "process" ? rollUp(results.filter((r) => r !== "not tested")) === "not tested" ? "not tested" : rollUp(results) : rollUp(results), method: c.method,
-      coverage: { tested_units: done, all_units: all, definition }, issues: issueCounts.get(c.id) || 0, open_questions: questionCounts.get(c.id) || 0, ai_only_answers: aiOnly.get(c.id) || 0 };
+    // A criterion that the processes also test, for example 3.3.1 on staging: the steps of the processes are units too.
+    // They stay apart from the units of the definition, so that the report names both.
+    let processUnits: { tested: number; all: number } | undefined;
+    if (definition !== "process" && c.test_groups.includes("process")) {
+      processUnits = { tested: 0, all: 0 };
+      for (const p of pages) if (p.process) for (const w of widths) if (p.testedCriteria[w]) { processUnits.all++; if (p.testedCriteria[w].has(c.id)) processUnits.tested++; }
+      if (!processUnits.all) processUnits = undefined;
+    }
+    const anyDone = done + (processUnits?.tested || 0);
+    out[c.id] = { result: anyDone === 0 && definition !== "process" ? rollUp(results.filter((r) => r !== "not tested")) === "not tested" ? "not tested" : rollUp(results) : rollUp(results), method: c.method,
+      coverage: { tested_units: done, all_units: all, definition, ...(processUnits ? { process_units: processUnits } : {}) }, issues: issueCounts.get(c.id) || 0, open_questions: questionCounts.get(c.id) || 0, ai_only_answers: aiOnly.get(c.id) || 0 };
     if (definition === "process" && processes.all === 0) out[c.id].result = rollUp(results);
   }
   return out;

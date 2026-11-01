@@ -77,6 +77,27 @@ ${w.extra || ""}
 </script></main></body></html>`;
 }
 
+/** Forms that send to their own page, as Gravity Forms does. "list-1" is on both pages and must get one dry submit. "list-2" has
+ *  the same visible fields and other hidden fields, so it is another form. "bar" is in a fixed bar below the screen, as a closed
+ *  slide-up bar: the engine must skip it. "popup" opens 3 seconds after the load, as a newsletter popup: the page record finds it,
+ *  but a new render does not show it yet, so the dry submit skips it. */
+function selfPage(name) {
+  const own = `/w/${name}.html`;
+  const form = (id, n, action, field = "input_1", button = "Subscribe") => `<form id="${id}" method="post" novalidate action="${action}">
+  <input type="hidden" name="is_submit_${n}" value="1"><input type="hidden" name="gform_submit" value="${n}">
+  <p><label for="${id}-email">Email</label> <input id="${id}-email" name="${field}" type="email" autocomplete="email"></p>
+  <button type="submit">${button}</button>
+</form>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Dry submit ${name}</title></head><body><main>
+<h1>Newsletter ${name}</h1>
+${form("list-1", 1, name === "self-a" ? own : own + "#gf_1")}
+${name === "self-a" ? form("list-2", 2, own + "#gf_2") : ""}
+<div style="position:fixed;left:0;right:0;top:100%;height:120px;background:#fff">${form("bar", 3, own, "input_3", "Join the list")}</div>
+${name === "self-b" ? `<div id="pop" hidden style="position:fixed;top:20%;left:10%;right:10%;background:#fff;border:1px solid #000">${form("popup", 4, own, "input_4", "Get the guide")}</div>
+<script>setTimeout(function () { document.getElementById("pop").hidden = false; }, 3000);</script>` : ""}
+</main></body></html>`;
+}
+
 /** Two forms that send nothing: "silent" shows its errors with no live region and keeps the focus, "alert" puts them in role=alert. */
 const ANNOUNCE = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Dry submit announce</title></head><body><main>
 <h1>Announce</h1>
@@ -105,6 +126,7 @@ const server = http.createServer((req, res) => {
     const way = url.pathname.match(/^\/w\/(.+)\.html$/)?.[1];
     if (way && WAYS[way]) { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(pageOf(way)); return; }
     if (way === "announce") { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(ANNOUNCE); return; }
+    if (way === "self-a" || way === "self-b") { res.writeHead(200, { "content-type": "text/html; charset=utf-8" }); res.end(selfPage(way)); return; }
     if (url.pathname === "/api/collect") { res.writeHead(200, { "content-type": url.searchParams.has("c") ? "application/javascript" : "text/plain" }); res.end(url.searchParams.has("c") ? "/* ok */" : "ok"); return; }
     res.writeHead(404, { "content-type": "text/plain" }); res.end("not found");
   });
@@ -164,13 +186,20 @@ config.crawl.random_sample_share = 1;
 config.crawl.rate_limit = 10;
 const lines = [];
 fs.rmSync(path.join(out, "leaks"), { recursive: true, force: true });
-const result = await runAudit({ config, outDir: path.join(out, "leaks"), only: [...pages, `${base}/announce.html`], log: (l) => lines.push(l) });
+const result = await runAudit({ config, outDir: path.join(out, "leaks"), only: [...pages, `${base}/announce.html`, `${base}/self-a.html`, `${base}/self-b.html`], log: (l) => lines.push(l) });
 for (const l of lines.filter((l) => l.includes("dry submit"))) console.error("     " + l.trim());
-const sent = record.filter((r) => (r.kind === "http" && r.path === "/api/collect") || r.kind === "ws-message");
+const sent = record.filter((r) => (r.kind === "http" && (r.path === "/api/collect" || r.method === "POST")) || r.kind === "ws-message");
 check(sent.length === 0, `the server got no submission (${sent.length}${sent.length ? ": " + sent.map((r) => `${r.method || r.kind} ${r.url || r.body}`).join("; ") : ""})`);
 check(!record.some((r) => text(r).includes(DRY_VALUE)), "no request carried the typed value");
 check(record.some((r) => r.kind === "ws-open"), "the WebSocket of the page opened before the guard");
-check(result.dryRuns.length === 24, `24 forms got a dry submit (${result.dryRuns.length})`);
+check(result.dryRuns.filter((r) => r.tested).length === 26, `26 forms got a dry submit (${result.dryRuns.filter((r) => r.tested).length})`);
+const popup = result.dryRuns.find((r) => r.form.selector === "#popup");
+check(!!popup && popup.hidden && !popup.tested && popup.submissions[0].kind === "hidden", `the form in a popup that opens later is skipped (${popup ? popup.submissions.map((s) => s.kind).join("/") : "not found by the page record"})`);
+const lists = result.dryRuns.filter((r) => r.form.name === "Subscribe");
+check(lists.filter((r) => r.form.selector === "#list-1").length === 1, `the form that sends to its own page got one dry submit for two pages (${lists.map((r) => r.form.selector + " on " + r.url.split("/").pop()).join(", ")})`);
+check(lists.filter((r) => r.form.selector === "#list-2").length === 1, "a form with the same visible fields and other hidden fields is another form");
+check(!result.dryRuns.some((r) => r.form.selector === "#bar"), "the form in a fixed bar below the screen is skipped");
+check(lists.every((r) => r.serverOnly && r.submissions[0].blocked.length > 0), `the guard blocked the forms that send to their own page (${lists.map((r) => r.submissions.map((s) => s.kind + " " + s.blocked.join(", ")).join("; ")).join(" | ")})`);
 const announce = result.pages.find((p) => p.url.endsWith("/announce.html"))?.outcomes.filter((o) => o.rule === "error-not-announced") || [];
 check(announce.some((o) => o.selector === "#silent"), "4.1.3: the errors of the silent form are not announced");
 check(!announce.some((o) => o.selector === "#alert"), "4.1.3: the errors in role=alert count as announced");
@@ -181,8 +210,10 @@ for (const way of Object.keys(WAYS)) {
   check(!!checked && checked.submissions[0].kind === "browser" && checked.submissions[1]?.kind === "server" && checked.submissions[1].blocked.length > 0, `${way}: errors shown when empty, the guard blocked the send with values (${checked ? checked.submissions.map((s) => s.kind + " " + s.blocked.join(", ")).join("; ") : "not run"})`);
 }
 const summary = JSON.parse(fs.readFileSync(path.join(out, "leaks", "summary.json"), "utf8"));
-check(summary.coverage.forms_tested === 24, `the coverage gives 24 forms (${summary.coverage.forms_tested})`);
-check(summary.coverage.tests_not_run.filter((t) => t.includes("checks its fields on the server only")).length === 11, "the coverage lists the 11 forms that check on the server only");
+check(summary.coverage.forms_tested === 26, `the coverage gives 26 forms (${summary.coverage.forms_tested})`);
+check(summary.coverage.tests_not_run.filter((t) => t.includes("checks its fields on the server only")).length === 13, "the coverage lists the 13 forms that check on the server only");
+check(!summary.coverage.tests_not_run.some((t) => t.includes("was not tested")), `no form is "not tested" (${summary.coverage.tests_not_run.filter((t) => t.includes("was not tested")).join("; ") || "none"})`);
+check(summary.coverage.tests_not_run.some((t) => t.includes("the form 'Get the guide' on /w/self-b.html shows only after an action or a delay")), "the coverage names the popup form that the dry submit skipped");
 await new Promise((r) => server.close(r));
 
 // Part 2: the seeded form faults with production settings and no process.

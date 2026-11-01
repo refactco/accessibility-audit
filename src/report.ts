@@ -40,7 +40,7 @@ export function renderReport(r: ReportInput): string {
   for (const c of CRITERIA) {
     const s = r.criteria[c.id];
     const q = r.questions.filter((x) => x.criterion === c.id && !x.person_answer && !(x.ai_answer && x.ai_answer.value !== "unsure")).length;
-    lines.push(`| ${c.id} ${c.name} | ${c.level} | ${s.result} | ${s.method} | ${s.coverage.tested_units} of ${s.coverage.all_units} ${s.coverage.definition} units | ${s.issues} | ${q} |`);
+    lines.push(`| ${c.id} ${c.name} | ${c.level} | ${s.result} | ${s.method} | ${s.coverage.tested_units} of ${s.coverage.all_units} ${s.coverage.definition} units${s.coverage.process_units ? `, ${s.coverage.process_units.tested} of ${s.coverage.process_units.all} process steps` : ""} | ${s.issues} | ${q} |`);
   }
   lines.push("");
 

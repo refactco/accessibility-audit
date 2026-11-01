@@ -1,11 +1,14 @@
 // Own page tests that read the page at rest: language, media, moving content, bypass blocks, target size,
 // contrast of placeholders and borders, orientation lock, and the content checks that make review questions.
+import { readFileSync } from "node:fs";
 import type { Page } from "playwright";
 import { HELPERS } from "../browser.ts";
 import { deciderOf } from "../criteria.ts";
 import type { Outcome, Severity } from "../types.ts";
 
-export const ENGINE_VERSION = "0.1.0";
+/** The version of the package, from src/ and from dist/ alike. A new version makes the next audit a baseline audit, so that
+ *  an issue that a rule change removes is "resolved, rule changed", not a fix. */
+export const ENGINE_VERSION: string = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).version;
 
 export interface Found {
   criterion: string; rule: string; kind: Outcome["kind"]; selector: string; html?: string; item: string;

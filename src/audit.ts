@@ -379,10 +379,11 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     };
     await Promise.all(Array.from({ length: concurrency }, () => dryWorker()));
     // A sample page counts as tested for the form criteria, unless one of its forms checks on the server only or did not run.
+    // A form that is hidden in a new render shows only after an action or a delay, as a form in a closed dialog: it does not count.
     const formResult = new Map(dryRuns.map((r) => [r.form.signature, r]));
     for (const [p, forms] of formsOf) {
       if (!p.tested) continue;
-      if (forms.some((f) => { const r = formResult.get(f.signature); return !r || !r.tested || r.serverOnly; })) continue;
+      if (forms.some((f) => { const r = formResult.get(f.signature); return !r || (!r.tested && !r.hidden) || r.serverOnly; })) continue;
       for (const c of DRY_SUBMIT_CRITERIA) p.testedCriteria[first]?.add(c);
     }
 
@@ -444,6 +445,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     const where = `the form '${r.form.name}' on ${pathOf(r.url)}`;
     if (r.serverOnly) testsNotRun.push(`dry submit: ${where} checks its fields on the server only. Its errors and its success message need a process on staging`);
     else if (r.unchanged) testsNotRun.push(`dry submit: ${where} did not change after the submission`);
+    else if (r.hidden) testsNotRun.push(`dry submit: ${where} shows only after an action or a delay, for example in a popup. The dry submit skipped it`);
     else if (!r.tested) testsNotRun.push(`dry submit: ${where} was not tested: ${r.error}`);
   }
   if (!config.interaction.processes.length) testsNotRun.push("processes: the settings have none. The success message of a form and the redundant entry test (3.3.7) run in the processes only");

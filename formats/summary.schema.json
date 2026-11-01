@@ -252,6 +252,25 @@
                   "process"
                 ],
                 "description": "What 'all units' means for this criterion."
+              },
+              "process_units": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "tested",
+                  "all"
+                ],
+                "description": "For a criterion that the processes also test: the steps of the processes, apart from the units of the definition.",
+                "properties": {
+                  "tested": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "all": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                }
               }
             }
           },

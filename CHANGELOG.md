@@ -2,6 +2,16 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.1.1, 2026-11-01
+
+Fixes from the first dry submit on a real site, CRE Daily, on 2026-10-28.
+
+- A form that sends to its own page, for example a Gravity Forms form, is the same form on each page. Before, the engine tested the footer form of CRE Daily on 47 pages. The names of the hidden fields now tell two forms with the same visible fields apart.
+- The engine skips a form in a fixed bar or panel that is outside the screen, for example a closed slide-up bar. It also skips a form that a new render does not show yet, for example in a popup that opens 10 seconds after the load. The coverage names that form. Such forms show only after an action or a delay. Before, their buttons did not respond, and the coverage said "not tested" for 11 pages of CRE Daily.
+- The audit records the version of the package as the engine version. Before, it recorded 0.1.0. The first audit after this update is a baseline audit: an issue that disappears in it gets "resolved, rule changed", not "fixed".
+- A criterion that the processes test, for example 3.3.1 on staging, shows the process steps in its coverage (`coverage.process_units`). Before, it showed "no issue found" with 0 tested units.
+- `tests/summary.mjs` tests the engine version and the coverage of the process steps. `npm test` runs it.
+
 ## 1.1.0, 2026-10-26
 
 The dry submit: form errors are tested on production, and no data leaves the browser. See `FORMS.md`.
