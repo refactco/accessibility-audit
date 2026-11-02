@@ -4,7 +4,7 @@
 //        node tests/locate-eval.mjs score                           compares the recorded origin and source with the fault list
 //
 // Each seeded fault that the engine decides gives one issue in the last detection run. The agent that runs the skill finds the origin
-// and the source file of each issue in the source folder of the variant, and records them with `a11y locate`. The fault list holds
+// and the source file of each issue in the source folder of the variant, and records them with `refact-a11y locate`. The fault list holds
 // the truth: the origin of the fault and the files that its edits changed.
 import fs from "node:fs";
 import path from "node:path";

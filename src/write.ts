@@ -44,7 +44,14 @@ export function writeResults(dir: string, out: Output): void {
   }
   for (const i of out.issues) writeFileSync(join(dir, "issues", i.id + ".json"), JSON.stringify(i, null, 1) + "\n");
   for (const q of out.questions) writeFileSync(join(dir, "questions", q.id + ".json"), JSON.stringify(q, null, 1) + "\n");
-  if (out.history) appendFileSync(join(dir, "history.jsonl"), JSON.stringify(out.history) + "\n");
+  if (out.history) {
+    // One line for each run: a resumed run replaces the line that its stop wrote.
+    const path = join(dir, "history.jsonl");
+    const lines = existsSync(path) ? readFileSync(path, "utf8").split("\n").filter(Boolean) : [];
+    const run = (out.history as { run: string }).run;
+    if (lines.some((l) => JSON.parse(l).run === run)) writeFileSync(path, lines.map((l) => (JSON.parse(l).run === run ? JSON.stringify(out.history) : l)).join("\n") + "\n");
+    else appendFileSync(path, JSON.stringify(out.history) + "\n");
+  }
   writeFileSync(join(dir, "report.md"), out.report);
   const runDir = join(dir, "runs", out.run.replace(/[:]/g, "-"));
   mkdirSync(runDir, { recursive: true });

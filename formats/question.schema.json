@@ -60,6 +60,12 @@
       "type": "string",
       "description": "A hash of the item. The answer stays valid while the hash stays the same."
     },
+  "item_hashes": {
+   "type": "array",
+   "items": { "type": "string" },
+   "maxItems": 50,
+   "description": "The first 16 characters of the hashes of the items of the question, at most 50. The answer stays valid while one item of the question has one of these hashes, or the item_hash."
+  },
     "context": {
       "oneOf": [
         {

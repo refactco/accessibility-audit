@@ -38,7 +38,7 @@ Keep the general solution of the engine when you cannot do better. Do not guess 
 
 ## 5. When no change is needed
 
-Sometimes the examples show no real problem: a hidden copy of a control that is not a target, a part of a third-party map, or a finding that a person already accepted on another state. Then the issue needs a decision of a person, not a fix. Start the solution summary with "No change is needed." and say why in one or two sentences. Give the command of the decision as the example, `a11y dismiss` or `a11y accept`, with the reason, so that the report shows the issue as one that waits for a decision and not as a fix.
+Sometimes the examples show no real problem: a hidden copy of a control that is not a target, a part of a third-party map, or a finding that a person already accepted on another state. Then the issue needs a decision of a person, not a fix. Start the solution summary with "No change is needed." and say why in one or two sentences. Give the command of the decision as the example, `refact-a11y dismiss` or `refact-a11y accept`, with the reason, so that the report shows the issue as one that waits for a decision and not as a fix.
 
 ## 6. The source warning
 

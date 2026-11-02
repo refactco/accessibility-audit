@@ -47,6 +47,8 @@ const PLAIN: Record<string, Plain> = {
   "same-title": { title: "Pages with the same title", experience: "In the browser tabs and in the history, several pages have the same name, so a person cannot tell them apart." },
   "page-not-linked": { title: "A page that no link reaches", experience: "A person can only reach the page by its address." },
   "generic-link-text": { title: "A link that says only \"Read more\"", experience: "A screen reader user who jumps from link to link hears the same words and does not know where each goes." },
+  "image-text-contrast": { title: "Text in an image with too little contrast", experience: "The words in the picture are hard to read against what is behind them, for people with low vision and for anyone in bright light." },
+  "same-name-different-target": { title: "Links with the same text that go to different places", experience: "A screen reader user hears two links with the same words and cannot tell which one goes where." },
   "generic-heading": { title: "A heading that says nothing", experience: "A person who scans the headings cannot tell what the section is about." },
   "no-bypass": { title: "No way to skip the repeated top of the page", experience: "A person who uses the keyboard must pass every menu link on every page before the content." },
   "bypass": { title: "No way to skip the repeated top of the page", experience: "A person who uses the keyboard must pass every menu link on every page before the content." },

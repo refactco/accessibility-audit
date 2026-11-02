@@ -97,7 +97,8 @@
       "properties": {
         "pages_found": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "The pages of the site that the crawl found. An address that is not a page of the site is in pages_out_of_scope."
         },
         "pages_tested": {
           "type": "integer",
@@ -110,6 +111,23 @@
         "pages_in_sample": {
           "type": "integer",
           "minimum": 0
+        },
+        "pages_out_of_scope": {
+          "type": "object",
+          "description": "The addresses that the crawl opened once and that are not pages of the site, by reason: broken link, redirects off site, skipped after redirect, not a page, blocked.",
+          "propertyNames": {
+            "enum": [
+              "broken link",
+              "redirects off site",
+              "skipped after redirect",
+              "not a page",
+              "blocked"
+            ]
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
         },
         "states_tested": {
           "type": "integer",
@@ -142,7 +160,8 @@
               "time",
               "states",
               "questions",
-              "issues"
+              "issues",
+              "stopped"
             ]
           }
         }

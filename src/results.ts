@@ -1,8 +1,8 @@
 // The results: the result of each criterion on each unit, the roll-up, and the coverage. See PLAN.md section 7.2.
 import { CRITERIA, CRITERIA_BY_ID, unitDefinition } from "./criteria.ts";
-import { pathOf } from "./crawl.ts";
+import { pageKey } from "./crawl.ts";
 import { decisionFor, type Decision } from "./decide.ts";
-import { RESULT_ORDER, type Outcome, type PageRecord, type UnitResult } from "./types.ts";
+import { RESULT_ORDER, inScope, type Outcome, type PageRecord, type UnitResult } from "./types.ts";
 
 export function rollUp(results: UnitResult[]): UnitResult {
   for (const r of RESULT_ORDER) if (results.includes(r)) return r;
@@ -17,7 +17,7 @@ export function unitResult(page: PageRecord, width: number, criterion: string, d
   const tested = page.tested && page.testedCriteria[width]?.has(criterion);
   const outcomes = page.outcomes.filter((o) => o.criterion === criterion && o.width === width && o.answer !== "no issue" && o.answer !== "not applicable");
   if (outcomes.some((o) => o.kind === "failed" || o.answer === "issue")) return "failed";
-  const decision = decisions.length ? decisionFor(decisions, criterion, pathOf(page.url), page.content_hash) : null;
+  const decision = decisions.length ? decisionFor(decisions, criterion, page.url, page.content_hash) : null;
   if (decision) return decision.result;
   if (outcomes.some((o) => o.kind === "cantTell")) return "needs review";
   // A candidate goes to the AI too, since 2026-10-14. "Needs a person" stays for a question that only a person answers.
@@ -47,12 +47,13 @@ export interface CriterionSummary {
 /** pages: the crawled pages and the process pages together. processes: how many the settings have, and how many the audit tested. */
 export function siteSummary(pages: PageRecord[], widths: number[], processes: { all: number; tested: number }, issueCounts: Map<string, number>, questionCounts: Map<string, number>, aiOnly: Map<string, number> = new Map(), decisions: Decision[] = []): Record<string, CriterionSummary> {
   const out: Record<string, CriterionSummary> = {};
-  const crawled = pages.filter((p) => !p.process);
+  // An address that is not a page of the site, for example a broken link or a redirect to another site, is not a unit.
+  const crawled = pages.filter((p) => !p.process && inScope(p));
   const tested = crawled.filter((p) => p.tested);
   const sample = tested.filter((p) => p.sample);
   for (const c of CRITERIA) {
     const results: UnitResult[] = [];
-    for (const p of pages) for (const w of widths) results.push(unitResult(p, w, c.id, decisions));
+    for (const p of pages) if (inScope(p)) for (const w of widths) results.push(unitResult(p, w, c.id, decisions));
     const definition = unitDefinition(c.id);
     let all = 0, done = 0;
     if (definition === "page") { all = crawled.length * widths.length; done = tested.reduce((n, p) => n + widths.filter((w) => p.testedCriteria[w]?.has(c.id)).length, 0); }
@@ -88,4 +89,33 @@ export function processSummary(records: PageRecord[], widths: number[]): { resul
 
 export function outcomesOf(pages: PageRecord[]): Outcome[] {
   return pages.flatMap((p) => p.outcomes);
+}
+
+/** The page counts of the coverage. pages_found counts the pages of the site only: an address that is not a page of the site,
+ *  for example a broken link, a redirect to another site, a file, or a blocked page, is in pages_out_of_scope with its reason. */
+export function pageCoverage(pages: PageRecord[]): { pages_found: number; pages_tested: number; pages_not_tested: number; pages_in_sample: number; pages_out_of_scope?: Record<string, number> } {
+  const crawled = pages.filter((p) => !p.process);
+  const found = crawled.filter(inScope);
+  const tested = found.filter((p) => p.tested);
+  const out: Record<string, number> = {};
+  for (const p of crawled) if (!inScope(p)) out[p.not_tested_reason!] = (out[p.not_tested_reason!] || 0) + 1;
+  return { pages_found: found.length, pages_tested: tested.length, pages_not_tested: found.length - tested.length, pages_in_sample: tested.filter((p) => p.sample).length, ...(Object.keys(out).length ? { pages_out_of_scope: out } : {}) };
+}
+
+/** One line of pages.jsonl. The issues of a page match by the key of the page, so that the same path on two hosts stays apart. */
+export function pageFileOf(p: PageRecord, run: string, widths: number[], decisions: Decision[], issuesByKey: Map<string, string[]>, siteUrl: string): Record<string, unknown> {
+  return {
+    schema: "page/1", url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states, run, tested: p.tested,
+    ...(p.not_tested_reason ? { not_tested_reason: p.not_tested_reason } : {}), ...(p.http_status ? { http_status: p.http_status } : {}),
+    ...(p.redirects_to ? { redirects_to: p.redirects_to } : {}), ...(p.linked_from?.length ? { linked_from: p.linked_from } : {}),
+    ...(p.content_hash ? { content_hash: p.content_hash } : {}),
+    results: pageResults(p, widths, decisions), issues: issuesByKey.get(pageKey(siteUrl, p.url)) || [],
+  };
+}
+
+/** The IDs of the issues by the key of each page of their examples. */
+export function issuesByPage(issues: { id: string; examples: { url: string }[] }[]): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const i of issues) for (const key of new Set(i.examples.map((e) => e.url))) out.set(key, [...(out.get(key) || []), i.id]);
+  return out;
 }

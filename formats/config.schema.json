@@ -27,7 +27,7 @@
             "required": ["name", "patterns"],
             "properties": {
               "name": { "type": "string" },
-              "patterns": { "type": "array", "items": { "type": "string" }, "description": "Address patterns, as globs." }
+              "patterns": { "type": "array", "items": { "type": "string" }, "description": "Address patterns, as globs. A path pattern, for example /shop/**, matches on the site host only. A pattern that starts with a host, for example blog.example.com/**, matches that host." }
             }
           }
         },
@@ -36,7 +36,10 @@
           "additionalProperties": false,
           "properties": {
             "type": { "enum": ["wordpress", "headless-wordpress", "other", "none"] },
-            "api_url": { "type": "string", "format": "uri", "description": "The address of the CMS REST API, for example the WordPress REST API." },
+            "api_url": {
+              "oneOf": [{ "type": "string", "format": "uri" }, { "type": "array", "items": { "type": "string", "format": "uri" }, "minItems": 1 }],
+              "description": "The address of the CMS REST API, for example the WordPress REST API, or a list of addresses. For a WordPress multisite on one host, the crawl also reads the API of each subsite whose sitemap it finds, for example /news/wp-json/wp/v2."
+            },
             "graphql_url": { "type": "string", "format": "uri", "description": "The address of the CMS GraphQL API, when the site uses one, for example WPGraphQL." },
             "source_path": { "type": "string", "description": "The path of the source repository, relative to the results folder, for the skill." }
           }
@@ -58,7 +61,7 @@
       "properties": {
         "widths": { "type": "array", "items": { "type": "integer", "minimum": 320 }, "default": [390, 768, 1280] },
         "max_pages": { "type": "integer", "minimum": 1 },
-        "skip": { "type": "array", "items": { "type": "string" }, "description": "Address patterns that the crawler does not open." },
+        "skip": { "type": "array", "items": { "type": "string" }, "description": "Address patterns that the crawler does not open, also after a redirect. A path pattern, for example /wp-admin/**, matches on each host. A pattern that starts with a host, for example blog.example.com/**, matches that host only." },
         "address_groups": {
           "type": "array",
           "description": "Address groups with no end, for example a calendar, with a limit of pages.",
@@ -66,7 +69,7 @@
             "type": "object",
             "additionalProperties": false,
             "required": ["pattern", "limit"],
-            "properties": { "pattern": { "type": "string" }, "limit": { "type": "integer", "minimum": 0 } }
+            "properties": { "pattern": { "type": "string", "description": "A path pattern matches on each host. A pattern that starts with a host matches that host only." }, "limit": { "type": "integer", "minimum": 0 } }
           }
         },
         "parameters": {
@@ -76,7 +79,7 @@
           "properties": { "keep": { "type": "array", "items": { "type": "string" } } }
         },
         "rate_limit": { "type": "number", "exclusiveMinimum": 0, "description": "Page loads for each second, over all workers. The assets of a page do not count. The engine records the crawl delay of robots.txt and warns when this value is faster." },
-        "permitted_domains": { "type": "array", "items": { "type": "string" } },
+        "permitted_domains": { "type": "array", "items": { "type": "string" }, "description": "The hosts that the crawl may open, next to the host of site.url, which is always permitted. A name is that host only. *.example.com permits each subdomain of example.com. The www host of the site and the bare host are the same site." },
         "obey_robots": { "type": "boolean", "default": true, "description": "Obey the Disallow rules of robots.txt. The rate limit comes from rate_limit, not from the crawl delay." },
         "cookie_banner": {
           "type": "object",
@@ -95,7 +98,7 @@
             "required": ["name", "example_page"],
             "properties": {
               "name": { "type": "string" },
-              "pattern": { "type": "string" },
+              "pattern": { "type": "string", "description": "A path pattern matches on the site host only. A pattern that starts with a host, for example blog.example.com/**, matches that host." },
               "example_page": { "type": "string", "format": "uri-reference" }
             }
           }

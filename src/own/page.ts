@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import type { Page } from "playwright";
 import { HELPERS } from "../browser.ts";
 import { deciderOf } from "../criteria.ts";
+import { sameNameLinks } from "./link-purpose.ts";
 import type { Outcome, Severity } from "../types.ts";
 
 /** The version of the package, from src/ and from dist/ alike. A new version makes the next audit a baseline audit, so that
@@ -124,21 +125,37 @@ const COLLECT = `(() => {
     if (/^(section|part|chapter|heading|title|untitled|lorem ipsum)\\s*\\d*$/i.test(t) || /^lorem ipsum/i.test(t)) out.headings.push({ selector: sel(h), html: html(h), item: item(h), text: t });
   }
   const interactive = Array.from(document.querySelectorAll('a[href], button, input:not([type=hidden]), select, textarea, [role=button], [role=link], [role=checkbox], [role=radio], [role=switch], [role=tab], [role=menuitem], [tabindex]:not([tabindex="-1"])')).filter(visible);
-  const rects = interactive.map((el) => ({ el, r: el.getBoundingClientRect() }));
-  for (const { el, r } of rects) {
-    if (r.width >= 24 && r.height >= 24) continue;
-    if (window.__a11ySkipTargets && window.__a11ySkipTargets.has(el)) continue;
+  // A control that a clip hides, for example a skip link with clip-path: inset(50%) or a 1 by 1 px box: nobody can click it at rest.
+  // The test measures it with the focus on it, the state in which it shows.
+  const clipped = (el) => {
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    return (r.width <= 1 && r.height <= 1) || /^inset\\((4[0-9]|50|[5-9][0-9]|100)(\\.\\d+)?%/.test(cs.clipPath) || /^circle\\(0/.test(cs.clipPath) || /^rect\\((0|1)px, (0|1)px, (0|1)px, (0|1)px\\)$/.test(cs.clip);
+  };
+  const rects = interactive.filter((el) => !clipped(el)).map((el) => ({ el, r: el.getBoundingClientRect() }));
+  const checkTarget = (el, r, focused) => {
+    if (r.width >= 24 && r.height >= 24) return;
+    if (window.__a11ySkipTargets && window.__a11ySkipTargets.has(el)) return;
     const cs = getComputedStyle(el);
     // The inline exception: a target whose height the line height of text constrains.
     const lineHeight = parseFloat(getComputedStyle(el.parentElement || el).lineHeight) || 0;
     const inline = cs.display === "inline" && (r.height <= lineHeight + 1 || ((el.parentElement.innerText || "").trim().length > nameOf(el).length + 20));
-    if (inline) continue;
+    if (inline) return;
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
     // A target under another element, for example the page under an open menu, is not a target in this state.
-    if (cx >= 0 && cy >= 0 && cx < innerWidth && cy < innerHeight) { const hit = document.elementFromPoint(cx, cy); if (hit && hit !== el && !el.contains(hit) && !hit.contains(el)) continue; }
+    if (cx >= 0 && cy >= 0 && cx < innerWidth && cy < innerHeight) { const hit = document.elementFromPoint(cx, cy); if (hit && hit !== el && !el.contains(hit) && !hit.contains(el)) return; }
     const tooClose = rects.some((o) => o.el !== el && !(o.r.right < cx - 12 || o.r.left > cx + 12 || o.r.bottom < cy - 12 || o.r.top > cy + 12));
-    if (tooClose) out.targets.push({ selector: sel(el), html: html(el), item: item(el), width: Math.round(r.width), height: Math.round(r.height), name: nameOf(el) });
+    if (tooClose) out.targets.push({ selector: sel(el), html: html(el), item: item(el), width: Math.round(r.width), height: Math.round(r.height), name: nameOf(el), focused });
+  };
+  for (const { el, r } of rects) checkTarget(el, r, false);
+  for (const el of interactive.filter(clipped)) {
+    if (typeof el.focus !== "function") continue;
+    const before = document.activeElement;
+    el.focus({ preventScroll: true });
+    if (document.activeElement === el && !clipped(el)) checkTarget(el, el.getBoundingClientRect(), true);
+    el.blur();
+    if (before && before !== document.body && typeof before.focus === "function") before.focus({ preventScroll: true });
   }
+
   function lum(c) { const m = c.match(/[\\d.]+/g); if (!m) return null; const [r, g, b] = m.slice(0, 3).map(Number); const a = m[3] !== undefined ? Number(m[3]) : 1; if (a < 1) return null; const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b); }
   function bg(el) { let n = el; while (n && n !== document.documentElement) { const c = getComputedStyle(n).backgroundColor; const l = lum(c); if (l !== null && !/rgba\\(0, 0, 0, 0\\)/.test(c)) return l; n = n.parentElement; } return 1; }
   function contrast(l1, l2) { const a = Math.max(l1, l2), b = Math.min(l1, l2); return (a + 0.05) / (b + 0.05); }
@@ -289,8 +306,8 @@ export async function runPageTests(page: Page, url: string, width: number, state
   }
   // 2.5.8: small targets with no space.
   for (const t of d.targets) {
-    found.push({ criterion: "2.5.8", rule: "target-too-small", kind: "failed", selector: t.selector, html: t.html, item: t.item, facts: { width: t.width, height: t.height, name: t.name },
-      summary: `A target of ${t.width} by ${t.height} px has another target within 24 px.`, severity: "serious",
+    found.push({ criterion: "2.5.8", rule: "target-too-small", kind: "failed", selector: t.selector, html: t.html, item: t.item, facts: { width: t.width, height: t.height, name: t.name, ...(t.focused ? { measured: "with the focus on it" } : {}) },
+      summary: `A target of ${t.width} by ${t.height} px has another target within 24 px${t.focused ? ", with the focus on it" : ""}.`, severity: "serious",
       solution: { summary: "Make the target at least 24 by 24 px, or give it 24 px of space.", steps: ["Increase the size of the control, or add space between the controls."] } });
   }
   // 1.4.3: placeholder contrast. 1.4.11: border contrast.
@@ -357,6 +374,8 @@ export async function runPageTests(page: Page, url: string, width: number, state
   for (const l of d.links) found.push({ criterion: "2.4.4", rule: "generic-link-text", kind: "cantTell", selector: l.selector, html: l.html, item: "link|generic|" + l.name.toLowerCase().replace(/\s+/g, " ").trim(), facts: { name: l.name, href: l.href, context: l.context }, context: l.containerKind,
     summary: `A link says "${l.name}".`, severity: "serious", question: `Does the link text "${l.name}" with its context tell where the link goes? Context: "${l.context.slice(0, 160)}"`,
     solution: { summary: "Say where the link goes in the link text.", steps: ["Replace the generic text with the topic of the target page."] } });
+  // 2.4.4: links with the same name and different destinations in the same context.
+  found.push(...(await sameNameLinks(page, HELPERS)));
   for (const h of d.headings) found.push({ criterion: "2.4.6", rule: "generic-heading", kind: "cantTell", selector: h.selector, html: h.html, item: h.item, facts: { text: h.text },
     summary: `A heading says "${h.text}".`, severity: "moderate", question: `Does the heading "${h.text}" describe the content under it?`,
     solution: { summary: "Write a heading that describes the content.", steps: ["Replace the heading text with the topic of the section."] } });

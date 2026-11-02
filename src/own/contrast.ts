@@ -74,14 +74,6 @@ const HIDE_TEXT = (selector: string, on: boolean) => `(() => {
 
 export interface Measured { worst: number; best: number; main: number; required: number; passShare: number; covered?: boolean; colors: { color: string; share: number }[] }
 
-/** True when another element covers the center of the element, for example an open menu panel over the page. */
-const COVERED = (selector: string) => `(() => {
-  const el = document.querySelector(${JSON.stringify(selector)});
-  if (!el) return true;
-  const r = el.getBoundingClientRect();
-  const hit = document.elementFromPoint(Math.min(innerWidth - 1, r.left + r.width / 2), Math.min(innerHeight - 1, r.top + r.height / 2));
-  return !!hit && hit !== el && !el.contains(hit) && !hit.contains(el);
-})()`;
 
 /** Measures the contrast of the text of an outcome against the colors around it. Returns null when the measurement is not possible. */
 export async function measureContrast(page: Page, o: Outcome): Promise<Measured | null> {
@@ -99,7 +91,6 @@ async function measureOnce(page: Page, o: Outcome, settle: number): Promise<Meas
     const loc = page.locator(o.selector).first();
     await loc.scrollIntoViewIfNeeded({ timeout: 1500 });
     await page.waitForTimeout(settle);
-    if (await page.evaluate(COVERED(o.selector))) return { worst: 0, best: 0, main: 0, required, passShare: 0, covered: true, colors: [] };
     const style = await page.evaluate(TEXT_COLOR(o.selector)) as { r: number; g: number; b: number; a: number } | null;
     if (!style) return null;
     const box = await loc.boundingBox({ timeout: 1500 });
@@ -108,11 +99,16 @@ async function measureOnce(page: Page, o: Outcome, settle: number): Promise<Meas
     const x = Math.max(0, box.x + 1), y = Math.max(0, box.y + 1);
     const clip = { x, y, width: Math.min(size.width - x, box.width - 2), height: Math.min(size.height - y, box.height - 2) };
     if (clip.width < 2 || clip.height < 2) return null;
-    // The screenshot of the box with the text made transparent gives the background under the text.
+    // Two screenshots of the box: with the text, and with the text made transparent. The second gives the background under the text.
+    // When the two are the same, the text paints no pixel: another element covers it, for example an open menu or an opaque layer.
+    // An element on top that lets the text show, for example the transparent layer of a stretched card link, does not hide it.
+    const shown = await page.screenshot({ clip, timeout: 3000, animations: "disabled" });
     await page.evaluate(HIDE_TEXT(o.selector, true));
-    let png: string;
-    try { png = (await page.screenshot({ clip, timeout: 3000, animations: "disabled" })).toString("base64"); }
+    let hidden: Buffer;
+    try { hidden = await page.screenshot({ clip, timeout: 3000, animations: "disabled" }); }
     finally { await page.evaluate(HIDE_TEXT(o.selector, false)).catch(() => {}); }
+    if (shown.equals(hidden)) return { worst: 0, best: 0, main: 0, required, passShare: 0, covered: true, colors: [] };
+    const png = hidden.toString("base64");
     const r = await page.evaluate(READ_PIXELS(png)) as { background: { color: string; share: number }[] };
     if (!r.background.length) return null;
     const hex = (v: number) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0");
@@ -126,7 +122,8 @@ async function measureOnce(page: Page, o: Outcome, settle: number): Promise<Meas
   }
 }
 
-/** Applies the measurement to the contrast questions of axe-core: a clear pass is dropped, a clear fail becomes an occurrence, the rest keeps the question with the numbers. */
+/** Applies the measurement to the contrast questions of axe-core: a clear pass is dropped, a clear fail becomes an occurrence, the rest
+ *  keeps the question with the numbers. A text that paints no pixel becomes a "passed" outcome with the reason: no question, no issue. */
 export async function decideContrastQuestions(page: Page, outcomes: Outcome[]): Promise<Outcome[]> {
   const out: Outcome[] = [];
   const seen = new Map<string, "pass" | "fail" | "keep">();
@@ -134,8 +131,9 @@ export async function decideContrastQuestions(page: Page, outcomes: Outcome[]): 
     if (o.rule !== "color-contrast" || o.kind !== "cantTell") { out.push(o); continue; }
     const m = await measureContrast(page, o);
     if (!m) { out.push(o); continue; }
-    // A text behind another element, for example under an open menu panel, is not visible in this state.
-    if (m.covered) continue;
+    // A text that paints no pixel, for example under an open menu panel or an opaque layer, is not visible in this state.
+    // The outcome stays in the run as "passed", with the reason, so that a "no issue found" can show why.
+    if (m.covered) { out.push({ ...o, kind: "passed", decider: undefined, question: undefined, facts: { ...(o.facts || {}), hidden: "the text paints no pixel: another element covers it" } }); continue; }
     const facts = { ...(o.facts || {}), measured: { worst: m.worst, main: m.main, best: m.best, required: m.required, passShare: m.passShare, background: m.colors.slice(0, 4) } };
     if (m.worst >= m.required) { seen.set(o.selector, "pass"); continue; }
     // A clear fail: the main background fails, and less than a quarter of the background passes.

@@ -26,6 +26,8 @@ export const FAMILIES: Record<string, string> = {
   "field-no-visible-label": "An issue when a field has no visible text that names it.",
   "message-not-in-live-region": "An issue when a status message, for example Added to the cart, appears and a screen reader does not announce it. Not an issue for content the user opened, like a panel.",
   "generic-link-text": "An issue when the link text, with the sentence or the card around it, does not say where the link goes.",
+  "image-text-contrast": "An issue when an image shows text, other than a logo or a brand name, and the letters have less than 4.5 to 1 contrast with the colors under them, or 3 to 1 for large text. The AI reads the screenshot and the measured numbers.",
+  "same-name-different-target": "An issue when links with the same text go to different pages and nothing around each link, the sentence, the list item, the table cell, or the heading just before it, tells them apart. Not an issue when the links go to the same page, for example through a redirect.",
   "same-title": "An issue when two different pages have the same title. Not an issue when the pages are copies of one another.",
   "page-not-linked": "An issue when no navigation, no list page, and no sitemap page leads to the page. Not an issue when a list page that the crawl skipped links to it.",
   "generic-heading": "An issue when the heading does not describe its section.",

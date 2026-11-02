@@ -3,6 +3,7 @@
 import { createHash } from "node:crypto";
 import { appendFileSync, existsSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pageKey } from "./crawl.ts";
 import { lastRun } from "./issues.ts";
 import { validate } from "./write.ts";
 
@@ -74,7 +75,7 @@ export function exportVerifyTasks(dir: string, file: string, all = false): numbe
   const list: Record<string, any>[] = [];
   for (const q of loadQuestions(dir)) {
     if (q.kind !== "review" || q.person_answer || !q.ai_answer || (q.verification && !all)) continue;
-    const { ai_answer: _a, verification: _v, facts_check: _f, sample: _s, ...rest } = q;
+    const { ai_answer: _a, verification: _v, facts_check: _f, sample: _s, item_hashes: _h, ...rest } = q;
     list.push(rest);
   }
   list.sort((a, b) => b.pages - a.pages);
@@ -103,10 +104,23 @@ export function checkFacts(dir: string, id: string, result: "confirmed" | "wrong
 
 export interface Decision { schema: "decision/1"; result: "passed" | "not applicable"; criterion: string; scope: { templates?: string[]; pages?: Record<string, string> }; by: string; date: string; note?: string }
 
+/** The address of the site in the settings of a results folder, or null. */
+function siteOf(dir: string): string | null {
+  try { return JSON.parse(readFileSync(join(dir, "config.json"), "utf8")).site.url; } catch { return null; }
+}
+
+/** The key of a page, as the results name it: the path on the site host, the whole address on another host. */
+function keyOf(site: string | null, url: string): string {
+  if (site) return pageKey(site, url);
+  const u = new URL(url);
+  return u.pathname + u.search;
+}
+
 function readPages(dir: string): { path: string; template: string | null; hash: string }[] {
   const file = join(dir, "pages.jsonl");
   if (!existsSync(file)) return [];
-  return readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => { const p = JSON.parse(l); const u = new URL(p.url); return { path: u.pathname + u.search, template: p.template, hash: p.content_hash || "" }; });
+  const site = siteOf(dir);
+  return readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => { const p = JSON.parse(l); return { path: keyOf(site, p.url), template: p.template, hash: p.content_hash || "" }; });
 }
 
 /** Records "passed" or "not applicable" for a criterion on a scope of pages or templates, with the content hash of each page. */
@@ -123,18 +137,24 @@ export function recordDecision(dir: string, criterion: string, result: "passed" 
   return d;
 }
 
-export function loadDecisions(dir: string): Decision[] {
+/** The decisions of a results folder. The pages of each scope come back as whole addresses, so that a path of the site host
+ *  never matches the same path on another host. siteUrl: the address of the site, for the paths. */
+export function loadDecisions(dir: string, siteUrl: string): Decision[] {
   const file = join(dir, "decisions.jsonl");
   if (!existsSync(file)) return [];
-  return readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l) as Decision);
+  return readFileSync(file, "utf8").split("\n").filter(Boolean).map((l) => {
+    const d = JSON.parse(l) as Decision;
+    if (d.scope.pages) d.scope.pages = Object.fromEntries(Object.entries(d.scope.pages).map(([k, v]) => { try { return [new URL(k, siteUrl + "/").toString(), v]; } catch { return [k, v]; } }));
+    return d;
+  });
 }
 
 /** The decision that applies to a criterion on a page, or null. A decision is void for a page whose content changed. */
-export function decisionFor(decisions: Decision[], criterion: string, path: string, hash: string | undefined): Decision | null {
+export function decisionFor(decisions: Decision[], criterion: string, url: string, hash: string | undefined): Decision | null {
   for (let i = decisions.length - 1; i >= 0; i--) {
     const d = decisions[i];
-    if (d.criterion !== criterion || !d.scope.pages || !(path in d.scope.pages)) continue;
-    const recorded = d.scope.pages[path];
+    if (d.criterion !== criterion || !d.scope.pages || !(url in d.scope.pages)) continue;
+    const recorded = d.scope.pages[url];
     if (recorded && hash && recorded !== hash) return null;
     return d;
   }
