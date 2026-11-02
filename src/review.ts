@@ -24,6 +24,12 @@ const longDate = (iso: string) => { const d = new Date(iso); return isNaN(d.getT
 const firstSentence = (s: string) => { const m = String(s || "").match(/^.*?[.!?](\s|$)/); return (m ? m[0] : String(s || "")).trim(); };
 
 /** The three groups of the page: the AI answers to confirm (the sample and the unsure ones), the checks for a person, and the open issues. */
+
+/** The address of an example: a path on the site host, or the whole address of a page on another host. */
+function absolute(site: string, url: string): string {
+  try { return new URL(url, site + "/").toString(); } catch { return site + url; }
+}
+
 function groups(outDir: string, all: boolean) {
   const open = [...loadExisting(outDir, "questions").values()].filter((q) => !q.person_answer);
   const byReach = (a: Record<string, any>, b: Record<string, any>) => b.pages - a.pages;
@@ -73,7 +79,7 @@ function questionEntry(q: Record<string, any>, site: string): string {
     <p class="meta">${esc(q.criterion)} ${esc(c?.name || "")} · ${esc(plural(q.pages, "page"))} · <span class="mono">${esc(q.id)}</span></p>
   </div>
   <p class="question">${esc(q.question)}</p>
-  <p class="meta">Page <a href="${esc(site + ex.url)}" target="_blank" rel="noopener">${esc(ex.url)}</a>${state ? ` · State: ${esc(state)}` : ""}${familyOf(ex.rule) ? ` · What counts as an issue: ${esc(familyOf(ex.rule))}` : ""}</p>
+  <p class="meta">Page <a href="${esc(absolute(site, ex.url))}" target="_blank" rel="noopener">${esc(ex.url)}</a>${state ? ` · State: ${esc(state)}` : ""}${familyOf(ex.rule) ? ` · What counts as an issue: ${esc(familyOf(ex.rule))}` : ""}</p>
   <div class="entry-body${ex.image ? "" : " single"}">
     <div class="opinions">
       ${ai ? opinion("First review", ai) : ""}
@@ -117,7 +123,7 @@ function issueEntry(i: Record<string, any>, site: string): string {
   ${isDecision(i) ? `<p class="meta note-review">The review found no change to make here. It asks a reviewer to confirm that, and to dismiss the issue or accept it as a known risk.</p>` : ""}
   <p class="meta">The rule: ${esc(i.summary)}</p>
   <dl class="meta-list">
-    <div><dt>Example</dt><dd><a href="${esc(site + (ex.url || ""))}" target="_blank" rel="noopener">${esc(ex.url || "")}</a>${ex.state && ex.state.length ? ` · state: ${esc(ex.state.join(" › "))}` : ""}${ex.width ? ` · ${esc(ex.width)} px` : ""}</dd></div>
+    <div><dt>Example</dt><dd><a href="${esc(absolute(site, ex.url || ""))}" target="_blank" rel="noopener">${esc(ex.url || "")}</a>${ex.state && ex.state.length ? ` · state: ${esc(ex.state.join(" › "))}` : ""}${ex.width ? ` · ${esc(ex.width)} px` : ""}</dd></div>
     <div><dt>Origin</dt><dd>${esc(i.origin)}</dd></div>
     ${sourceText ? `<div><dt>Source</dt><dd>${sourceText}</dd></div>` : ""}
     ${i.source_warning ? `<div><dt>Note</dt><dd>${esc(i.source_warning)}</dd></div>` : ""}

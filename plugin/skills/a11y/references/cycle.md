@@ -7,19 +7,19 @@ The engine lists the work, and agents do it. You are the main agent: you run the
 ## The steps
 
 ```
-a11y audit <config.json> --out <folder>                                    1. the audit, in the background; or a11y check for the short check
-a11y tasks review --out <folder> --dir <folder>/runs/tasks                 2. the batches of the open questions
+refact-a11y audit <config.json> --out <folder>                                    1. the audit, in the background; or refact-a11y check for the short check
+refact-a11y tasks review --out <folder> --dir <folder>/runs/tasks                 2. the batches of the open questions
    one review agent for each batch, all at once, with the prompt below
-a11y tasks verify --out <folder> --dir <folder>/runs/tasks                 3. the batches of the answers to verify, without the first answers
+refact-a11y tasks verify --out <folder> --dir <folder>/runs/tasks                 3. the batches of the answers to verify, without the first answers
    one verifier agent for each batch, all at once, with the prompt below
-a11y refresh <config.json> --out <folder>                                  4. the results with the verified answers: the agreed issues appear
-a11y tasks locate --out <folder> --dir <folder>/runs/tasks                 5. the batches of the open issues with no origin
+refact-a11y refresh <config.json> --out <folder>                                  4. the results with the verified answers: the agreed issues appear
+refact-a11y tasks locate --out <folder> --dir <folder>/runs/tasks                 5. the batches of the open issues with no origin
    one locate agent for each batch, all at once, with the prompt below
-a11y refresh <config.json> --out <folder>                                  6. the results with the origins and the solutions
-a11y handoff <config.json> --out <folder>                                  7. fixes.json and fixes.md for the fixing agent
+refact-a11y refresh <config.json> --out <folder>                                  6. the results with the origins and the solutions
+refact-a11y handoff <config.json> --out <folder>                                  7. fixes.json and fixes.md for the fixing agent
 ```
 
-Each `tasks` command prints the count and the files. When the count is 0, go to the next step. When the user says that the audit ran today, or asks for the rest of the cycle only, start at step 2.
+Each `tasks` command prints the count, the files, `waiting` (all the items that wait for the step), and `budget`. The budgets of the settings apply: `tasks review` lists at most `budgets.max_questions_per_audit` questions, less the AI answers given since the audit, and `tasks locate` at most `budgets.max_issues_for_skill` issues. The rest waits for the next cycle; tell the user how many wait. `--limit <n>` replaces the budget when the user asks for more. When the count is 0, go to the next step. When the user says that the audit ran today, or asks for the rest of the cycle only, start at step 2.
 
 Run the agents of one step together, in one message, and wait for all of them before the next step: the verifier needs every first answer, and the locate step needs the refresh. Give each agent one batch file. The batch size is 20 by default; `--batch <n>` changes it.
 
@@ -48,7 +48,7 @@ For each question:
 2. When `evidence.image` exists, look at the picture with the Read tool: the path is relative to the results folder. It shows the element with 32 px around it.
 3. Decide with the rules of the question family in review.md: `issue`, `no issue`, or `unsure`, with a confidence (high, medium, low), the facts you relied on, and a reason of one or two sentences that applies the rule to the facts. When the evidence is not enough, open the page read-only in a browser with a short Playwright script (`node -e` with `import("playwright")`), at the width of the example: `evidence.url` is the path on the site of the settings. Look, read properties, take a screenshot. Do not click buttons that submit, do not fill forms, do not log in. On production the audit is read-only: GET only. When in doubt between `no issue` and `unsure`, answer `unsure`.
 4. Record the answer:
-   `a11y answer <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
+   `refact-a11y answer <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
    The value is one of: issue, "no issue", unsure. Give one `--fact` for each fact, in plain words that a person can confirm with no knowledge of the rule: what you saw, not the rule. The command prints a JSON line; when it prints an error, fix the call and run it again.
 
 Rules:
@@ -74,7 +74,7 @@ For each question:
 3. When the evidence is not enough, open the page read-only in a browser with a short Playwright script (`node -e` with `import("playwright")`), at the width of the example. `evidence.url` is the path on the site of the settings. Look, read properties, take a screenshot. Do not click buttons that submit, do not fill forms, do not log in. On production the audit is read-only: GET only.
 4. Decide with the rules of review.md: `issue`, `no issue`, or `unsure`, with a confidence (high, medium, low), the facts you relied on (one `--fact` each, in plain words: what you saw, not the rule), and a reason of one or two sentences. Be the reviewer who looks for the error of a first pass: decide from what the page shows, not from what is common. When in doubt between `no issue` and `unsure`, answer `unsure`.
 5. Record the verification:
-   `a11y verify <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
+   `refact-a11y verify <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
    The value is one of: issue, "no issue", unsure. The command prints a JSON line; when it prints an error, fix the call and run it again.
 
 Rules:
@@ -102,7 +102,7 @@ For each issue:
 3. Give the source files as paths relative to the repository root, each with a line when you know it, a confidence (certain, probable, possible), and the method that found it. For content, give `{ "cms": "<kind>", "item": "<post or page>" }` and an `edit_url` only when you know it.
 4. Write the specific solution for this project's stack: what to change, where, a code example that fits the component, and the expected result in the words of the rule. For a contrast issue, give the color and the ratio it reaches; for moving content, the pause control or the reduced-motion rule; for a silent video, the text alternative and where the component shows it; for a form field, the attribute to add.
 5. Write the JSON to `<results>/runs/tasks/<id>.json` with the fields `origin`, `source`, `solution` (`summary`, `steps`, `example`, `expected_result`), and `source_warning` (null, or a text when the repository and the live site differ), then record it:
-   `a11y locate <id> --file <results>/runs/tasks/<id>.json --out <results>`
+   `refact-a11y locate <id> --file <results>/runs/tasks/<id>.json --out <results>`
    The command validates the fields and prints a JSON line. When it prints an error, fix the JSON and run it again.
 
 Rules:
@@ -113,4 +113,4 @@ Rules:
 When all are done, reply with one line per issue: `<id> <rule> origin=<origin> files=<file,file or none> ok|error`. Nothing else.
 ```
 
-In the repository of the auditor, `a11y` is `node src/cli.ts`, and the skill files are under `plugin/skills/a11y/`. Say so in the prompts when you run the cycle there.
+In the repository of the auditor, `refact-a11y` is `node src/cli.ts`, and the skill files are under `plugin/skills/a11y/`. Say so in the prompts when you run the cycle there.

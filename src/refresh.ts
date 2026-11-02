@@ -4,12 +4,12 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { CRITERIA } from "./criteria.ts";
 import type { Config } from "./config.ts";
-import { pathOf } from "./crawl.ts";
+import { pageKey } from "./crawl.ts";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
 import { applyAnswers, buildIssues, buildQuestions, lastRun, loadExisting, type CompareContext } from "./issues.ts";
 import { buildOverview, historyOverview, readHistory, updateHistoryLine } from "./overview.ts";
 import { renderReport } from "./report.ts";
-import { pageResults, processSummary, siteSummary } from "./results.ts";
+import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import type { Outcome, PageRecord } from "./types.ts";
 
@@ -33,7 +33,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const records: PageRecord[] = pageLines.map((p) => {
     const testedCriteria: Record<number, Set<string>> = {};
     for (const [w, results] of Object.entries(p.results || {})) testedCriteria[Number(w)] = new Set(Object.entries(results as Record<string, string>).filter(([, r]) => r !== "not tested").map(([c]) => c));
-    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, content_hash: p.content_hash, testedCriteria, outcomes: [], links: [], renders: 0, facts: {} };
+    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, redirects_to: p.redirects_to, linked_from: p.linked_from, content_hash: p.content_hash, testedCriteria, outcomes: [], links: [], renders: 0, facts: {} };
   });
   const byUrl = new Map<string, PageRecord>();
   for (const r of records) if (!r.process || !byUrl.has(r.url)) byUrl.set(r.url, r);
@@ -56,9 +56,10 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const existingIssues = loadExisting(outDir, "issues");
   const existingQuestions = loadExisting(outDir, "questions");
   const versions = summary.versions;
+  const key = (u: string) => pageKey(config.site.url, u);
   const context: CompareContext = {
-    testedPaths: new Set(records.filter((p) => p.tested).map((p) => pathOf(p.url))),
-    samplePaths: new Set(records.filter((p) => p.tested && p.sample).map((p) => pathOf(p.url))),
+    testedPaths: new Set(records.filter((p) => p.tested).map((p) => key(p.url))),
+    samplePaths: new Set(records.filter((p) => p.tested && p.sample).map((p) => key(p.url))),
     // A refresh keeps the statuses of the run: no page is gone in a refresh.
     gonePaths: new Set<string>(),
     versions,
@@ -67,7 +68,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   applyAnswers(records, config, questions);
   const issues = buildIssues(records, config, run, date, existingIssues, context);
   for (const i of issues) if (i.question) { const q = questions.find((x) => x.id === i.question); if (q) q.issue = i.id; }
-  const decisions = loadDecisions(outDir);
+  const decisions = loadDecisions(outDir, config.site.url);
   const aiOnly = new Map<string, number>();
   for (const q of questions) if (effectiveAnswer(q).by === "ai") aiOnly.set(q.criterion, (aiOnly.get(q.criterion) || 0) + 1);
   const issueCounts = new Map<string, number>();
@@ -87,11 +88,15 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
     return [name, { tested: true, ...processSummary(recs, [first]) }];
   }));
   const overview = buildOverview(records, widths, criteria, issues, decisions);
-  const newSummary = { ...summary, counts, criteria, processes, overview };
+  // The page counts come from the page records of today: a person can remove the records of addresses that are not pages of the site.
+  const { pages_out_of_scope: _old, ...kept } = summary.coverage || {};
+  const coverage = { ...kept, ...pageCoverage(records) };
+  const newSummary = { ...summary, counts, coverage, criteria, processes, overview };
   updateHistoryLine(outDir, run, { counts, overview: historyOverview(overview) });
-  const pageFiles = records.map((p) => ({ schema: "page/1", url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states, run, tested: p.tested, ...(p.not_tested_reason ? { not_tested_reason: p.not_tested_reason } : {}), ...(p.http_status ? { http_status: p.http_status } : {}), ...(p.content_hash ? { content_hash: p.content_hash } : {}), results: pageResults(p, p.process ? [first] : widths, decisions), issues: issues.filter((i) => i.examples.some((e: { url: string }) => e.url === pathOf(p.url))).map((i) => i.id) }));
+  const byPage = issuesByPage(issues as { id: string; examples: { url: string }[] }[]);
+  const pageFiles = records.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
   const processRuns = processNames.map((name) => ({ name, tested: !!summary.processes[name].tested, reason: summary.processes[name].reason, records: records.filter((r) => r.process === name), steps: 0, renders: 0 }));
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences: [], statesTested: summary.coverage?.states_tested || 0, decisions, skipped: [], durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: summary.coverage?.budget_reached || [], overview, history: readHistory(outDir) });
+  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences: [], statesTested: summary.coverage?.states_tested || 0, decisions, skipped: [], durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
   writeResults(outDir, { config, summary: newSummary, pages: pageFiles, issues, questions, history: null, report, run, outcomes: null });
   log(`refreshed: ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions`);
   return { run, issues: issues.length, questions: questions.length };

@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CRITERIA_BY_ID } from "./criteria.ts";
-import { pathOf, templateOf } from "./crawl.ts";
+import { pageKey, templateOf } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer } from "./decide.ts";
 import type { Outcome, PageRecord, Severity } from "./types.ts";
@@ -49,11 +49,11 @@ export function fingerprintOf(o: Outcome, _config: Config): string {
   return sha(`${o.engine}|${o.rule}|${o.criterion}|${o.item}|${o.state.join(">")}`);
 }
 
-export function questionFingerprintOf(o: Outcome, _config: Config): string {
+export function questionFingerprintOf(o: Outcome, config: Config): string {
   const c = CRITERIA_BY_ID.get(o.criterion);
   const context = c?.context_dependent ? "|" + (o.context || "") : "";
   // A page-level rule gives one question for each page. The same-title and page-not-linked rules group their pages into one question.
-  const place = o.rule.startsWith("page-") && o.rule !== "page-not-linked" ? "|" + pathOf(o.url) : "";
+  const place = o.rule.startsWith("page-") && o.rule !== "page-not-linked" ? "|" + pageKey(config.site.url, o.url) : "";
   const item = STYLE_RULES.has(o.rule) ? kindOf(o) : o.item;
   return sha(`${o.engine}|${o.rule}|${o.criterion}|${item}${context}${place}`);
 }
@@ -74,11 +74,11 @@ export function loadExisting(dir: string, folder: "issues" | "questions"): Map<s
 
 /** What the comparer needs from the run: the pages it tested, the pages that are gone, and the versions of the engines. */
 export interface CompareContext {
-  /** The paths of the pages that the audit tested, with their query. */
+  /** The keys of the pages that the audit tested: the path with the query on the site host, the whole address on another host. */
   testedPaths: Set<string>;
   /** The paths of the pages in the sample: the template tests and the states ran only there. */
   samplePaths?: Set<string>;
-  /** The paths of the pages that gave 404 or 410. */
+  /** The keys of the pages of the last audit that are gone: they give 404 or 410 now, or their address redirects now. */
   gonePaths: Set<string>;
   versions: { engine: string; axe_core: string };
 }
@@ -136,7 +136,7 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     const severity = SEVERITY_ORDER.find((s) => list.some((o) => o.severity === s)) || "moderate";
     const seenExamples = new Set<string>();
     const examples = list.filter((o) => { const k = o.url + "|" + o.width + "|" + o.selector; if (seenExamples.has(k)) return false; seenExamples.add(k); return true; }).slice(0, 5)
-      .map((o) => ({ url: pathOf(o.url), width: o.width, state: o.state, selector: o.selector, html: o.html || "", facts: o.facts || {} }));
+      .map((o) => ({ url: pageKey(config.site.url, o.url), width: o.width, state: o.state, selector: o.selector, html: o.html || "", facts: o.facts || {} }));
     let status = "new";
     // A refresh of the same run keeps the status of the run, except when the run had closed the issue: an answer that came after the
     // audit found the issue again, so it is open, as it was before the run. A new run moves it: new and not checked become open, resolved becomes reopened.
@@ -175,7 +175,8 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     const criterion = CRITERIA_BY_ID.get(old.wcag?.criterion);
     const templateIssue = criterion?.test_groups?.[0] === "template" || (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length);
     const checked = templateIssue && context?.samplePaths ? context.samplePaths : context?.testedPaths;
-    if (context && checked && !paths.every((p) => checked.has(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
+    // A page that is gone cannot have the issue any more: it counts as checked.
+    if (context && checked && !paths.every((p) => checked.has(p) || context.gonePaths.has(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
     const current = old.rule?.engine === "axe-core" ? context?.versions.axe_core : context?.versions.engine;
     const reason = context && current && old.rule?.engine_version !== current ? "rule changed" : "fixed";
     const resolved = { ...old, status: "resolved", status_by: { ...by, reason } };
@@ -201,29 +202,40 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     groups.set(fp, [...(groups.get(fp) || []), o]);
   }
   const questions: QuestionFile[] = [];
-  for (const [fp, list] of groups) {
-    const first = list[0];
-    const c = CRITERIA_BY_ID.get(first.criterion)!;
-    const id = "Q-" + fp.slice(0, 8);
-    // The item hash tells when the item changed, so that an answer stays valid until then. The screenshot path changes with each run,
-    // and the measurements vary with the animation, the timing, and the fonts of a run: they are not part of it.
-    const { screenshot: _shot, ...factsOfRun } = (first.facts || {}) as Record<string, unknown>;
+  // The item hash tells when the item changed, so that an answer stays valid until then. The screenshot path changes with each run,
+  // and the measurements vary with the animation, the timing, and the fonts of a run: they are not part of it.
+  const hashes = (o: Outcome) => {
+    const { screenshot: _shot, ...factsOfRun } = (o.facts || {}) as Record<string, unknown>;
     const { measured: _m, changes: _c, texts: _t, seconds: _s, hiddenWidth: _w, hiddenHeight: _h, ...stableFacts } = factsOfRun;
-    const itemHash = sha((first.html || "") + JSON.stringify(stableFacts));
     // The files before 2026-10-15 hashed the measurements too. Their answers stay when the facts of this run give that hash.
-    const legacyHash = sha((first.html || "") + JSON.stringify(factsOfRun));
+    return { item: sha((o.html || "") + JSON.stringify(stableFacts)), legacy: sha((o.html || "") + JSON.stringify(factsOfRun)) };
+  };
+  for (const [fp, list] of groups) {
+    const id = "Q-" + fp.slice(0, 8);
     const old = existing.get(id);
-    const keep = old && (old.item_hash === itemHash || old.item_hash === legacyHash);
+    // The answer stays while one item of the group has a hash that the answer saw: the hash of its example, or one of the hashes
+    // of its group. So a page that goes, for example after a person removes a page record, does not take the answer with it.
+    const short = (h: string) => h.slice(0, 16);
+    const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || [])]);
+    const all = list.map((o) => ({ o, h: hashes(o) }));
+    const match = old ? all.find((x) => known.has(short(x.h.item)) || known.has(short(x.h.legacy))) : undefined;
+    // The example of the question: the item that the answer saw, when it is still there.
+    const first = match ? match.o : list[0];
+    const c = CRITERIA_BY_ID.get(first.criterion)!;
+    const itemHash = hashes(first).item;
+    // The short hashes of the items of the group, at most 50: enough to find one item again, and small in the question file.
+    const itemHashes = [...new Set(all.map((x) => short(x.h.item)))].sort().slice(0, 50);
+    const kept: QuestionFile | null = match && old ? old : null;
     const kind = first.decider === "ai" ? "review" : "person";
     questions.push({
-      schema: "question/2", id, kind, issue: keep ? old.issue : null, criterion: c.id, fingerprint: fp, item_hash: itemHash,
+      schema: "question/2", id, kind, issue: kept ? kept.issue : null, criterion: c.id, fingerprint: fp, item_hash: itemHash, item_hashes: itemHashes,
       context: first.context || null,
       question: first.question || first.summary,
-      evidence: { url: pathOf(first.url), selector: first.selector, html: first.html || "", facts: first.facts || {}, rule: first.rule, summary: first.summary, occurrences: list.length, pages: [...new Set(list.map((o) => pathOf(o.url)))].slice(0, 50), ...(list.find((o) => o.facts?.screenshot) ? { image: list.find((o) => o.facts?.screenshot)!.facts!.screenshot } : {}) },
-      ai_answer: keep ? old.ai_answer : null, sample: keep ? old.sample : false, person_answer: keep ? old.person_answer : null,
+      evidence: { url: pageKey(config.site.url, first.url), selector: first.selector, html: first.html || "", facts: first.facts || {}, rule: first.rule, summary: first.summary, occurrences: list.length, pages: [...new Set(list.map((o) => pageKey(config.site.url, o.url)))].slice(0, 50), ...(list.find((o) => o.facts?.screenshot) ? { image: list.find((o) => o.facts?.screenshot)!.facts!.screenshot } : {}) },
+      ai_answer: kept ? kept.ai_answer : null, sample: kept ? kept.sample : false, person_answer: kept ? kept.person_answer : null,
       // The verification and the facts check belong to the answer: they stay while the item is the same, and go with it when the item changes.
-      ...(keep && old.verification ? { verification: old.verification } : {}),
-      ...(keep && old.facts_check ? { facts_check: old.facts_check } : {}),
+      ...(kept && kept.verification ? { verification: kept.verification } : {}),
+      ...(kept && kept.facts_check ? { facts_check: kept.facts_check } : {}),
       pages: new Set(list.map((o) => o.url)).size,
       ...(kind === "person" ? { steps: first.steps || (c.person_task ? [c.person_task] : [c.review_or_person_check || "Check the item."]) } : {}),
     });

@@ -1,12 +1,12 @@
 // The report for people, in Markdown.
 import { CRITERIA } from "./criteria.ts";
-import { pathOf } from "./crawl.ts";
+import { pageKey } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer, type Decision } from "./decide.ts";
 import type { IssueFile, QuestionFile } from "./issues.ts";
 import type { ProcessRun } from "./process.ts";
 import type { CriterionSummary } from "./results.ts";
-import type { PageRecord } from "./types.ts";
+import { inScope, type PageRecord } from "./types.ts";
 import { renderOverviewMarkdown, type HistoryPoint, type Overview } from "./overview.ts";
 
 export interface TemplateDifference { template: string; example: string; page: string; onlyInPage: string[]; onlyInExample: string[] }
@@ -19,9 +19,24 @@ export interface ReportInput {
   overview?: Overview; history?: HistoryPoint[];
 }
 
+/** A guess at the cause of a broken link from its address: an email address or a web address with no scheme, or a mailto with a typo. */
+export function brokenLinkHint(url: string): string | null {
+  let path: string;
+  try { path = decodeURIComponent(new URL(url).pathname); } catch { return null; }
+  const last = path.replace(/\/+$/, "").split("/").pop() || "";
+  if (/mail\s*to:/i.test(path)) return "a mailto: link with a typo";
+  if (/^[^@\s/]+@[^@\s/]+\.[a-z]{2,}$/i.test(last)) return "an email address with no mailto:";
+  if (/^(www\.)?[a-z0-9-]+(\.[a-z0-9-]+)*\.(com|org|net|edu|gov|io|co|us|uk|ca|de|fr|ru|info|biz|me)$/i.test(last)) return "a web address with no https://";
+  return null;
+}
+
 export function renderReport(r: ReportInput): string {
   const lines: string[] = [];
-  const tested = r.pages.filter((p) => p.tested);
+  const site = r.config.site.url;
+  const key = (u: string) => pageKey(site, u);
+  const crawled = r.pages.filter(inScope);
+  const outside = r.pages.filter((p) => !inScope(p));
+  const tested = crawled.filter((p) => p.tested);
   const counts = (status: string) => r.issues.filter((i) => i.status === status).length;
   lines.push(`# Accessibility audit of ${r.config.site.url}\n`);
   lines.push(`Run ${r.run}, ${r.config.site.environment}, WCAG 2.2 AA. Engine ${r.versions.engine}, axe-core ${r.versions.axe_core}, ${r.versions.browser}. ${Math.round(r.durationSeconds)} seconds, ${r.renders} renders.\n`);
@@ -29,7 +44,7 @@ export function renderReport(r: ReportInput): string {
   const results = Object.values(r.criteria).map((c) => c.result);
   const count = (x: string) => results.filter((v) => v === x).length;
   lines.push(`| Pages found | Pages tested | In the sample | States | Processes | Issues new | Issues open | Resolved | Questions for the AI | Questions for a person |\n|---|---|---|---|---|---|---|---|---|---|`);
-  lines.push(`| ${r.pages.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${counts("resolved")} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
+  lines.push(`| ${crawled.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${counts("resolved")} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
   lines.push(`Criteria: ${count("failed")} failed, ${count("needs review")} need a review, ${count("needs a person")} need a person, ${count("no issue found")} with no issue found, ${count("no content found")} with no content found, ${count("not tested")} not tested, ${count("passed")} passed, ${count("not applicable")} not applicable.\n`);
   if (r.budgetReached.length) lines.push(`The audit reached a budget: ${r.budgetReached.join(", ")}. The pages that it did not test are in the page list.\n`);
   lines.push(`A result "no issue found" means that the tests ran and found nothing. It is not a pass. Only a person gives "passed". A result "no content found" means that the engine found no content of that type, and the engine can miss content.\n`);
@@ -108,11 +123,36 @@ export function renderReport(r: ReportInput): string {
     lines.push("");
   }
 
-  lines.push(`## Pages (${r.pages.length})\n`);
+  // The broken links: the error pages that pages of the site link to, with the linking pages. The error template that the audit tested is one of them.
+  const broken = r.pages.filter((p) => p.not_tested_reason === "broken link" || (p.tested && (p.http_status || 0) >= 400 && p.linked_from?.length)).sort((a, b) => a.url.localeCompare(b.url));
+  if (broken.length) {
+    lines.push(`## Broken links (${broken.length})\n`);
+    lines.push(`Each address answers with an error. The audit tests the error page once, as a template, and lists the other addresses here, with the pages that link to them.\n`);
+    for (const p of broken) {
+      const hint = brokenLinkHint(p.url);
+      lines.push(`- ${key(p.url)}${p.redirects_to ? " (redirects to " + key(p.redirects_to) + ")" : ""}: status ${p.http_status || "unknown"}${p.tested ? ", tested as the error page" : ""}.${p.linked_from?.length ? " Linked from " + p.linked_from.join(", ") + "." : ""}${hint ? " It looks like " + hint + "." : ""}`);
+    }
+    lines.push("");
+  }
+  const others = outside.filter((p) => p.not_tested_reason !== "broken link");
+  if (others.length) {
+    lines.push(`## Addresses that are not pages of the site (${others.length})\n`);
+    lines.push(`The audit opened each address once and did not test it. They do not count in the pages found or in the coverage.\n`);
+    for (const reason of ["redirects off site", "skipped after redirect", "not a page", "blocked"]) {
+      const list = others.filter((p) => p.not_tested_reason === reason).sort((a, b) => a.url.localeCompare(b.url));
+      if (!list.length) continue;
+      const what: Record<string, string> = { "redirects off site": "Redirects to another site", "skipped after redirect": "Redirects to an address that the settings or robots.txt skip", "not a page": "A file, not a page", blocked: "Blocked by a bot challenge or a rate limit" };
+      lines.push(`${what[reason]} (${list.length}):\n`);
+      for (const p of list) lines.push(`- ${key(p.url)}${p.redirects_to ? " redirects to " + p.redirects_to : ""}${p.http_status ? ", status " + p.http_status : ""}`);
+      lines.push("");
+    }
+  }
+
+  lines.push(`## Pages (${crawled.length})\n`);
   lines.push(`| Page | Template | Tested | Sample | States | Failed criteria | Title |\n|---|---|---|---|---|---|---|`);
-  for (const p of r.pages) {
+  for (const p of crawled) {
     const failed = new Set(p.outcomes.filter((o) => o.kind === "failed").map((o) => o.criterion));
-    lines.push(`| ${pathOf(p.url)} | ${p.template || "-"} | ${p.tested ? "yes" : "no: " + (p.not_tested_reason || "")} | ${p.sample ? p.sampleReason || "yes" : "-"} | ${p.states.length || "-"} | ${[...failed].sort().join(", ") || "-"} | ${(p.title || "").replace(/\|/g, "/").slice(0, 60)} |`);
+    lines.push(`| ${key(p.url)} | ${p.template || "-"} | ${p.tested ? "yes" : "no: " + (p.not_tested_reason || "")} | ${p.sample ? p.sampleReason || "yes" : "-"} | ${p.states.length || "-"} | ${[...failed].sort().join(", ") || "-"} | ${(p.title || "").replace(/\|/g, "/").slice(0, 60)} |`);
   }
   if (r.skipped.length) {
     lines.push(`\n${r.skipped.length} addresses were not crawled: ${[...new Set(r.skipped.map((s) => s.reason))].map((reason) => reason + " (" + r.skipped.filter((s) => s.reason === reason).length + ")").join(", ")}.`);

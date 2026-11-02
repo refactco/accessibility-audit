@@ -1,10 +1,11 @@
 {
   "name": "@refact/a11y",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "description": "Accessibility Audit: finds what blocks people with disabilities on a website, where each problem comes from, and how to fix it. It does not fix.",
   "type": "module",
   "bin": {
+    "refact-a11y": "./dist/cli.js",
     "a11y": "./dist/cli.js"
   },
   "engines": {
@@ -14,7 +15,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "npm run typecheck && npm run validate-formats && npm run seed-build && node tests/recurrence.mjs --serve && node tests/review.mjs --serve && node tests/seeded-faults/detect.mjs --serve --only F01,F05,F18,F74 && node tests/dry-submit.mjs --serve && node tests/summary.mjs",
+    "test": "npm run typecheck && npm run validate-formats && npm run seed-build && node tests/recurrence.mjs --serve && node tests/review.mjs --serve && node tests/seeded-faults/detect.mjs --serve --only F01,F05,F18,F74 && node tests/dry-submit.mjs --serve && node tests/summary.mjs && node tests/discovery.mjs && node tests/docs.mjs && node tests/scope.mjs && node tests/refresh.mjs && node tests/rules.mjs && node tests/stop.mjs",
     "audit": "node src/cli.ts audit",
     "build-criteria": "python3 -I criteria/build.py criteria/criteria.base.json criteria/sources/axe/rule-descriptions.md criteria/sources/act/testcases.json criteria/criteria.json",
     "validate-formats": "node formats/validate.mjs",
@@ -28,7 +29,13 @@
     "review": "node tests/review.mjs",
     "cycle-eval": "node tests/cycle-eval.mjs",
     "dry-submit": "node tests/dry-submit.mjs",
-    "summary": "node tests/summary.mjs"
+    "summary": "node tests/summary.mjs",
+    "scope": "node tests/scope.mjs",
+    "discovery": "node tests/discovery.mjs",
+    "stop": "node tests/stop.mjs",
+    "refresh": "node tests/refresh.mjs",
+    "rules": "node tests/rules.mjs",
+    "docs": "node tests/docs.mjs"
   },
   "dependencies": {
     "ajv": "^8.20.0",

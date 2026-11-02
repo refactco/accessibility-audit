@@ -24,7 +24,7 @@ export function writeHandoff(config: Config, outDir: string, file: string, optio
     examples: (i.examples || []).slice(0, 3).map((e: Record<string, unknown>) => ({ url: e.url, width: e.width, state: e.state, selector: e.selector, html: e.html })),
     verify: { rule: i.rule.id, engine: i.rule.engine, expected: `The rule ${i.rule.id} gives no occurrence on the pages of the issue, and the next check marks ${i.id} resolved.` },
   }));
-  const handoff = { schema: "handoff/1", site: config.site.url, run: summary.run, date: new Date().toISOString().slice(0, 10), source_path: String(config.site.cms?.source_path || "."), check_command: `a11y check ${join(outDir, "config.json")} --out ${outDir}`, unresolved_questions: unresolved, tasks };
+  const handoff = { schema: "handoff/1", site: config.site.url, run: summary.run, date: new Date().toISOString().slice(0, 10), source_path: String(config.site.cms?.source_path || "."), check_command: `refact-a11y check ${join(outDir, "config.json")} --out ${outDir}`, unresolved_questions: unresolved, tasks };
   validate("handoff/1", handoff);
   writeFileSync(file, JSON.stringify(handoff, null, 1) + "\n");
   if (options.markdown) writeFileSync(options.markdown, renderBrief(handoff));

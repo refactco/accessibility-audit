@@ -2,6 +2,52 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.2.0, not released yet
+
+Fixes from a full audit of a large WordPress multisite with many subsites, on 2026-11-01. A third of the time of that audit went to addresses that are not pages of the site. A person had to remove 1,327 page records by hand.
+
+The scope of the crawl:
+
+- `crawl.permitted_domains` names exact hosts. Before, a name also permitted each subdomain, and the audit tested 1,135 pages of other sites on subdomains. `*.example.com` permits the subdomains on request. The `www` host of the site and the bare host are the same site, with the scheme of `site.url`.
+- A pattern in `skip`, `templates`, `sets`, or `address_groups` can start with a host, for example `blog.example.com/**`. A path pattern for the templates and the sets matches on the site host only.
+- The results name a page of another host by its whole address, so that the same path on two hosts never merges. The pages of the site host keep their paths.
+- After each first load, the engine reads the final address. A page that redirects to another site, to a skipped path, or to a file is not tested. Its record gives the reason, and the target in `redirects_to`. A redirect to a page that the audit tests already does not give a second record.
+- An error page is tested once, as a template: the error page of the settings, or else the first broken link. The other 4xx addresses are broken links, with the pages that link to them (`linked_from`). The report lists them, with a hint when the address looks like an email address or a web address with no scheme.
+- A bot challenge (for example `cf-mitigated: challenge`) or a rate limit gives "blocked", not a tested page.
+- These addresses do not count in the pages found or in the coverage. The summary counts them in `coverage.pages_out_of_scope`, and the report lists them.
+
+The discovery of the pages:
+
+- The sitemaps are read to four levels, for example the index of a multisite, then the index of a subsite, then its post sitemap. Before, one level.
+- For a WordPress multisite on one host, the crawl also reads the WordPress API of each subsite whose sitemap it finds. `site.cms.api_url` can be a list.
+- robots.txt follows RFC 9309. `*` matches across slashes, and a final `$` ends the address. The longest rule decides, and `Allow` wins a tie. A group that names the crawler replaces the group of `*`. robots.txt of another permitted host is read on the first visit to it.
+- The frontier gives the pages of the settings first, then the sitemap and API pages, then the links. The sitemap and the link addresses come in turn by section, so a budget that ends early tests some pages of each section.
+
+A stop and a resume:
+
+- Ctrl+C or SIGTERM stops an audit: the open pages finish, then the engine writes the results from the pages tested so far. The addresses that it did not open get the reason "stopped". A second Ctrl+C quits at once.
+- Each finished page goes to `runs/<run>/pages.partial.jsonl`. `a11y audit --resume` continues the last run that a stop or a crash ended, with the same run ID, and does not open the finished pages again.
+
+The results pipeline:
+
+- `a11y refresh` counts the pages again. Before, it kept the counts of the audit after a person removed page records.
+- A refresh keeps an answer while one item of its question is the same. The question file keeps the short hashes of its items in `item_hashes`. Before, an answer went when the page of the example of its question went.
+- `a11y tasks review` keeps to `budgets.max_questions_per_audit`, less the AI answers since the audit, and `a11y tasks locate` to `budgets.max_issues_for_skill`. `--limit <n>` replaces the budget. The output gives `waiting` and `budget`.
+
+The detection:
+
+- A new review question for 2.4.4, `same-name-different-target`: links with the same name and different destinations in the same paragraph, list item, table cell, or with no such context (ACT rule fd3a94). The AI decides, because the heading before a link can name its destination.
+- The contrast measure of a text that axe-core could not decide compares two screenshots, with and without the text. A text that paints no pixel is hidden and gives no question. The run keeps it as "passed", with the reason. Before, any element on top of the text hid it, also the transparent layer of a stretched card link. So a light text on such a card gave no outcome.
+- A new review question for 1.4.3, `image-text-contrast`: the contrast of the letters in a transparent image of text, for example a title in a PNG over a photo. The engine takes a screenshot with the image and one without it. The pixels that change are the letters, and the second screenshot gives the color under each letter. The measure uses the inside of the strokes, so the smooth edges do not count, and it measures each text color of the image. A slideshow can change the ground between the screenshots, so the measure runs only when the screenshots with the image before and after are the same. The AI decides, because a logo needs no contrast. An opaque image is not measured: its letters cannot be told from its ground.
+- The target size test measures a control that a clip hides, for example a skip link with `clip-path: inset(50%)`, only with the focus on it. Before, the hidden skip link of that site failed on 981 pages.
+- The listener test ignores the listeners of analytics scripts and the containers of known libraries (Swiper, Google Programmable Search, jQuery UI). A `keydown` listener alone does not make a pointer control. These gave 22 of the 108 issues of that site, and none needed a change.
+
+The install:
+
+- The command is `refact-a11y`. The old name `a11y` still works in a project that has the package. Never run `npx a11y`: an unrelated package on the npm registry has that name, and npx can run it from its cache even with `--no`. The README and the skill use `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`.
+- The README gives the steps for npm 12, which installs no git dependency by default: `allow-git=root` in `.npmrc`, and the approval of the build script for the git source.
+- New tests: `tests/scope.mjs`, `tests/discovery.mjs`, `tests/stop.mjs`, `tests/refresh.mjs`, `tests/rules.mjs`, and `tests/docs.mjs`. `npm test` runs them.
+
 ## 1.1.1, 2026-11-01
 
 Fixes from the first dry submit on a real site, a large WordPress news site, on 2026-10-28.

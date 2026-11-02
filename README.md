@@ -4,7 +4,7 @@ Accessibility Audit finds what blocks people with disabilities on a website, whe
 
 The product has two parts, and no person is needed between them:
 
-- **The engine**, the command `a11y`. It crawls the site, tests each page at three widths with axe-core and its own tests for the criteria that axe-core does not cover, groups the findings into issues, compares them with the last audit, and writes a results folder.
+- **The engine**, the command `refact-a11y`. It crawls the site, tests each page at three widths with axe-core and its own tests for the criteria that axe-core does not cover, groups the findings into issues, compares them with the last audit, and writes a results folder.
 - **The skill**, a plugin for Claude Code. It answers the questions that a rule cannot decide, verifies each answer with a second independent agent, finds the origin and the source of each issue, writes the solution, and hands the fixes over.
 
 The plan is in `PLAN.md`, the boards `STAGE-*.md` record what is built and measured, and `CHANGELOG.md` lists the versions.
@@ -17,15 +17,34 @@ The plan is in `PLAN.md`, the boards `STAGE-*.md` record what is built and measu
 
 ## Install in the repository of a site
 
-```
-npm install -D github:refactco/accessibility-audit          # or: pnpm add -Dw github:refactco/accessibility-audit
-npx a11y --help
+With pnpm:
 
+```
+pnpm add -Dw github:refactco/accessibility-audit
+pnpm exec refact-a11y --help
+```
+
+With npm 12 or later, which installs no git dependency by default, allow the git dependencies of the project first, once in the repository of the site:
+
+```
+echo "allow-git=root" >> .npmrc
+npm install -D github:refactco/accessibility-audit
+npm install-scripts approve @refact/a11y --no-allow-scripts-pin
+./node_modules/.bin/refact-a11y --help
+```
+
+npm builds `dist/` when it packs the git source. The approval writes `"github:refactco/accessibility-audit": true` into `allowScripts` in `package.json`: it stops the warning about the blocked build script, and it holds for later versions. An entry with the package name alone does not cover a git source.
+
+Then the plugin, for both:
+
+```
 claude plugin marketplace add refactco/accessibility-audit    # once on the machine
 claude plugin install accessibility-audit@accessibility-audit --scope project
 ```
 
 The package builds itself at install. The plugin loads from the project settings; teammates accept the trust dialog once.
+
+Run the command as `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`. The old name `a11y` still works in a project that has the package, but never run `npx a11y`: `a11y` is also an unrelated package on the npm registry. When the local package is missing, `npx a11y` downloads and runs that package, and after one such run `npx` keeps a copy in its cache, so even `npx --no a11y` can run it. For the same reason, do not use `npx` with the new name either: the forms above run only the copy in the project.
 
 To update: `npm update @refact/a11y` for the package, and `claude plugin marketplace update accessibility-audit` then `claude plugin update accessibility-audit@accessibility-audit` for the plugin. A session loads the copy of the plugin in its cache, and a new copy comes only when the version changes.
 
@@ -43,7 +62,7 @@ To update: `npm update @refact/a11y` for the package, and `claude plugin marketp
 4. Read the result. The session ends with the counts. The folder `accessibility-audit/` holds the report, the issues, and the work order. The page for people opens with:
 
    ```
-   npx a11y review
+   pnpm exec refact-a11y review          # or: ./node_modules/.bin/refact-a11y review
    ```
 
 The same message runs the next cycle. The audit then compares the site with the last run, and the report shows the new, open, and resolved issues.
@@ -59,12 +78,13 @@ The same message runs the next cycle. The audit then compares the site with the 
 The commands that the skill runs, which you can run yourself:
 
 ```
-a11y audit <config.json> --out accessibility-audit         the full audit
-a11y check <config.json> --out accessibility-audit         the short check of the pages with open issues
-a11y tasks review|verify|locate                            the batch files of one step, for the agents
-a11y refresh                                               the results with the answers of today, no crawl
-a11y handoff                                               fixes.json and fixes.md for the fixing agent
-a11y review                                                the report page, on your machine
+refact-a11y audit <config.json> --out accessibility-audit         the full audit; Ctrl+C stops it with the results so far
+refact-a11y audit <config.json> --out accessibility-audit --resume   continues the last run that a stop or a crash ended
+refact-a11y check <config.json> --out accessibility-audit         the short check of the pages with open issues
+refact-a11y tasks review|verify|locate                            the batch files of one step, for the agents
+refact-a11y refresh                                               the results with the answers of today, no crawl
+refact-a11y handoff                                               fixes.json and fixes.md for the fixing agent
+refact-a11y review                                                the report page, on your machine
 ```
 
 The commands find `accessibility-audit/config.json` by themselves in the repository of the site.

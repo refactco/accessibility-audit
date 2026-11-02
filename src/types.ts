@@ -61,6 +61,18 @@ export interface Outcome {
   questionId?: string;
 }
 
+export type NotTestedReason =
+  | "did not load" | "page limit" | "time budget" | "removed" | "skipped" | "permission" | "stopped"
+  | "redirects off site" | "skipped after redirect" | "not a page" | "broken link" | "blocked";
+
+/** The reasons of an address that is not a page of the site: it does not count in the pages found or in the coverage. */
+export const OUT_OF_SCOPE = new Set<NotTestedReason>(["redirects off site", "skipped after redirect", "not a page", "broken link", "blocked"]);
+
+/** True for a page record that is a page of the site: tested, or not tested for a reason of the audit, such as the time budget. */
+export function inScope(p: { not_tested_reason?: NotTestedReason }): boolean {
+  return !p.not_tested_reason || !OUT_OF_SCOPE.has(p.not_tested_reason);
+}
+
 export interface PageRecord {
   url: string;
   template: string | null;
@@ -73,8 +85,12 @@ export interface PageRecord {
   /** The states that the engine tested on this page, with their actions from the first load. */
   states: { id: string; actions: string[] }[];
   tested: boolean;
-  not_tested_reason?: "did not load" | "page limit" | "time budget" | "removed" | "skipped" | "permission";
+  not_tested_reason?: NotTestedReason;
   http_status?: number;
+  /** The address after the redirects, when the page was not tested there: another host, a skipped path, an error, or a file. */
+  redirects_to?: string;
+  /** The pages that link to a broken link, up to 5. */
+  linked_from?: string[];
   content_hash?: string;
   title?: string;
   lang?: string | null;

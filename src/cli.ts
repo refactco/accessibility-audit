@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// The a11y command. Usage: a11y audit <url or config.json> [--out <folder>] [--only <url,url>] [--max-pages <n>] [--widths <w,w,w>]
+// The refact-a11y command (also installed as a11y, its old name). Usage: refact-a11y audit <url or config.json> [--out <folder>] [--only <url,url>] [--max-pages <n>] [--widths <w,w,w>]
 import { join, resolve } from "node:path";
 import { runAudit } from "./audit.ts";
 import { loadConfig } from "./config.ts";
@@ -13,25 +13,27 @@ import { serveReview } from "./review.ts";
 
 function usage(): never {
   console.error(`Usage:
-  a11y audit <url or config.json> [--out <folder>] [--only <url,url>] [--max-pages <n>] [--widths <w,w,w>] [--sample-limit <n>] [--concurrency <n>] [--time-budget <minutes>] [--started-by person|schedule|skill] [--quiet]
-  a11y check <url or config.json> [--out <folder>] [--concurrency <n>] [--started-by person|schedule|skill] [--quiet]
-  a11y answer <Q-id> <issue | no issue | unsure | not applicable> --by <name or ai> [--reason <text>] [--fact <text>]... [--note <text>] [--confidence low|medium|high] [--model <name>] [--prompt-version <v>] [--out <folder>]
-  a11y facts <Q-id> <confirmed | wrong> --by <name> [--note <text>] [--out <folder>]     a person confirms the facts of the AI answer, or marks one as wrong
-  a11y verify-tasks --file <tasks.json> [--all] [--out <folder>]     writes the questions that wait for a verification, without the first answer
-  a11y tasks <review | verify | locate> [--out <folder>] [--dir <tasks folder>] [--batch <n>]     writes the batch files of one step of the cycle for the agents of the skill
-  a11y verify <Q-id> <issue | no issue | unsure> --by ai --model <name> [--reason <text>] [--fact <text>]... [--confidence low|medium|high] [--out <folder>]     the second, independent AI answer
-  a11y pass <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
-  a11y not-applicable <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
-  a11y accept <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
-  a11y dismiss <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
-  a11y locate <ISS-id> --file <found.json> [--out <folder>]      the skill writes the origin, the source, and the specific solution
-  a11y refresh <url or config.json> [--out <folder>]              rebuilds the summary, the page results, and the report from the last run, with the answers and the decisions of today
-  a11y review [config.json] [--out <folder>] [--port <n>] [--all] [--no-open]   opens the review page for a person in the browser; without the settings file, it uses <folder>/config.json
-  a11y handoff <url or config.json> [--out <folder>] [--file <fixes.json>] [--brief <fixes.md>]   writes the tasks for the fixing agent from the open issues
+  refact-a11y audit <url or config.json> [--out <folder>] [--only <url,url>] [--max-pages <n>] [--widths <w,w,w>] [--sample-limit <n>] [--concurrency <n>] [--time-budget <minutes>] [--started-by person|schedule|skill] [--resume] [--quiet]
+  refact-a11y check <url or config.json> [--out <folder>] [--concurrency <n>] [--started-by person|schedule|skill] [--quiet]
+  refact-a11y answer <Q-id> <issue | no issue | unsure | not applicable> --by <name or ai> [--reason <text>] [--fact <text>]... [--note <text>] [--confidence low|medium|high] [--model <name>] [--prompt-version <v>] [--out <folder>]
+  refact-a11y facts <Q-id> <confirmed | wrong> --by <name> [--note <text>] [--out <folder>]     a person confirms the facts of the AI answer, or marks one as wrong
+  refact-a11y verify-tasks --file <tasks.json> [--all] [--out <folder>]     writes the questions that wait for a verification, without the first answer
+  refact-a11y tasks <review | verify | locate> [--out <folder>] [--dir <tasks folder>] [--batch <n>] [--limit <n>]     writes the batch files of one step of the cycle for the agents of the skill, within the budgets of the settings (--limit replaces the budget)
+  refact-a11y verify <Q-id> <issue | no issue | unsure> --by ai --model <name> [--reason <text>] [--fact <text>]... [--confidence low|medium|high] [--out <folder>]     the second, independent AI answer
+  refact-a11y pass <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
+  refact-a11y not-applicable <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
+  refact-a11y accept <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
+  refact-a11y dismiss <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
+  refact-a11y locate <ISS-id> --file <found.json> [--out <folder>]      the skill writes the origin, the source, and the specific solution
+  refact-a11y refresh <url or config.json> [--out <folder>]              rebuilds the summary, the page results, and the report from the last run, with the answers and the decisions of today
+  refact-a11y review [config.json] [--out <folder>] [--port <n>] [--all] [--no-open]   opens the review page for a person in the browser; without the settings file, it uses <folder>/config.json
+  refact-a11y handoff <url or config.json> [--out <folder>] [--file <fixes.json>] [--brief <fixes.md>]   writes the tasks for the fixing agent from the open issues
 
 The results go into <folder>, by default ./accessibility-audit next to the settings file or in the current folder.
 The check is the short check: it tests only the pages with open issues in <folder>, and it resolves an issue only when it tested all its pages.
 --sample-limit caps the random part and the technology part of the sample (default 60). --concurrency and --time-budget override the budgets of the settings.
+Ctrl+C stops an audit: the open pages finish, then the results come from the pages tested so far. A second Ctrl+C quits at once.
+--resume continues the last run in <folder> that a stop or a crash ended: it keeps the pages that the run tested and tests the rest.
 An answer or a decision changes the question or issue file at once. Run refresh to put it into the summary, the page results, and the report.`);
   process.exit(2);
 }
@@ -40,7 +42,7 @@ const args = process.argv.slice(2);
 const command = args.shift();
 const COMMANDS = ["audit", "check", "answer", "facts", "verify", "verify-tasks", "tasks", "pass", "not-applicable", "accept", "dismiss", "locate", "refresh", "review", "handoff"];
 if (!command || !COMMANDS.includes(command) || (!args.length && !["verify-tasks", "review", "refresh", "handoff", "check", "audit"].includes(command))) usage();
-// The commands that take the settings file find it in the results folder when the call gives none: `a11y review` works in the repository of a site.
+// The commands that take the settings file find it in the results folder when the call gives none: `refact-a11y review` works in the repository of a site.
 const NEEDS_SETTINGS = ["audit", "check", "refresh", "review", "handoff"];
 const outFlag = (() => { const i = args.indexOf("--out"); return i >= 0 ? args[i + 1] : undefined; })();
 const defaultSettings = join(resolve(outFlag || "accessibility-audit"), "config.json");
@@ -57,7 +59,7 @@ for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) usage();
   const key = a.slice(2);
-  if (key === "quiet" || key === "all" || key === "no-open") flags[key] = true;
+  if (key === "quiet" || key === "all" || key === "no-open" || key === "resume") flags[key] = true;
   else if (key === "fact") facts.push(args[++i]);
   else flags[key] = args[++i];
 }
@@ -84,7 +86,7 @@ if (command === "tasks") {
   const outDir = resolve(str("out") || "accessibility-audit");
   if (!["review", "verify", "locate"].includes(target)) { console.error("The step is review, verify, or locate."); process.exit(2); }
   try {
-    const r = writeTasks(loadConfig(join(outDir, "config.json")), outDir, target as Step, resolve(str("dir") || join(outDir, "runs", "tasks")), flags["batch"] ? Number(flags["batch"]) : 20);
+    const r = writeTasks(loadConfig(join(outDir, "config.json")), outDir, target as Step, resolve(str("dir") || join(outDir, "runs", "tasks")), flags["batch"] ? Number(flags["batch"]) : 20, flags["limit"] ? Number(flags["limit"]) : undefined);
     console.log(JSON.stringify(r));
   } catch (e) { console.error((e as Error).message); process.exit(1); }
   process.exit(0);
@@ -173,5 +175,18 @@ if (command === "check") {
 const t0 = Date.now();
 const stamp = () => String(Math.round((Date.now() - t0) / 1000)).padStart(5) + "s ";
 const startedBy = (["person", "schedule", "skill"].includes(str("started-by") || "") ? str("started-by") : "person") as "person" | "schedule" | "skill";
-const result = await runAudit({ config, outDir, only, kind: command === "check" ? "short check" : "full", startedBy, sampleLimit: flags["sample-limit"] ? Number(flags["sample-limit"]) : undefined, concurrency: flags["concurrency"] ? Number(flags["concurrency"]) : undefined, log: flags["quiet"] ? undefined : (line) => console.error(stamp() + line) });
+// The first Ctrl+C or SIGTERM stops the audit with its results. The second quits at once: the pages so far stay in runs/<run>/.
+const controller = new AbortController();
+const stop = () => {
+  if (controller.signal.aborted) { console.error("Quit. The pages tested so far are in the runs folder: run the same command with --resume to continue."); process.exit(130); }
+  console.error("Stopping: the open pages finish, then the audit writes the results. Press Ctrl+C again to quit at once.");
+  controller.abort();
+};
+process.on("SIGINT", stop);
+process.on("SIGTERM", stop);
+if (flags["resume"] && command !== "audit") { console.error("--resume is for refact-a11y audit."); process.exit(2); }
+let result;
+try {
+  result = await runAudit({ config, outDir, only, kind: command === "check" ? "short check" : "full", startedBy, sampleLimit: flags["sample-limit"] ? Number(flags["sample-limit"]) : undefined, concurrency: flags["concurrency"] ? Number(flags["concurrency"]) : undefined, signal: controller.signal, resume: !!flags["resume"], log: flags["quiet"] ? undefined : (line) => console.error(stamp() + line) });
+} catch (e) { console.error((e as Error).message); process.exit(1); }
 console.log(JSON.stringify({ run: result.run, pages: result.pages.length, states: result.statesTested, processes: result.processes.filter((p) => p.tested).length, issues: result.issues, questions: result.questions, seconds: result.durationSeconds, out: outDir }));

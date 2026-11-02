@@ -66,12 +66,22 @@ function tabbable() {
 }
 `;
 
+/** The browser leaves Ctrl+C and SIGTERM to the command, so that a stop lets the open pages finish. Playwright still closes
+ *  the browser when the process exits. */
 export async function launch(): Promise<Browser> {
-  return chromium.launch();
+  return chromium.launch({ handleSIGINT: false, handleSIGTERM: false });
 }
 
-/** blocked: the navigations of the main frame that scripts started after the load. blockedRequests: the non-GET requests on production. */
-export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[] }
+/** blocked: the navigations of the main frame that scripts started after the load. blockedRequests: the non-GET requests on production.
+ *  finalUrl: the address after the redirects. contentType: of the main document. challenge: a bot challenge answered instead of the page. */
+export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[]; finalUrl: string; contentType: string | null; challenge: boolean }
+
+/** A bot challenge, for example of Cloudflare, instead of the page: the header cf-mitigated, or the markup of a challenge on an error status. */
+async function isChallenge(page: Page, status: number | undefined, headers: Record<string, string>): Promise<boolean> {
+  if ((headers["cf-mitigated"] || "").toLowerCase() === "challenge") return true;
+  if (!status || ![403, 429, 503].includes(status)) return false;
+  return await page.evaluate(`!!document.querySelector('script[src*="/cdn-cgi/challenge-platform/"], #challenge-form, #challenge-running, #cf-challenge-running, #challenge-stage') || /^(just a moment|attention required)/i.test(document.title)`).catch(() => false) as boolean;
+}
 
 /** Opens a page at the width of the context. Blocks navigations that scripts start after the load, and records them. */
 export async function openPage(context: BrowserContext, url: string, config: Config, options: { blockNavigation?: boolean; closeBanner?: boolean } = {}): Promise<Opened> {
@@ -96,9 +106,14 @@ export async function openPage(context: BrowserContext, url: string, config: Con
   let status: number | undefined;
   let ok = true;
   let error: string | undefined;
+  let contentType: string | null = null;
+  let challenge = false;
   try {
     const response = await page.goto(url, { waitUntil: "load", timeout: 45000 });
     status = response?.status();
+    const headers = response ? await response.allHeaders().catch(() => response.headers()) : {};
+    contentType = headers["content-type"] || null;
+    challenge = await isChallenge(page, status, headers);
     // The fonts change the layout, so the tests wait for them.
     await page.evaluate("document.fonts ? document.fonts.ready.then(() => true) : true").catch(() => {});
     await page.waitForTimeout(400);
@@ -107,8 +122,8 @@ export async function openPage(context: BrowserContext, url: string, config: Con
     error = (e as Error).message.split("\n")[0];
   }
   loaded = true;
-  if (ok && options.closeBanner !== false) await closeBanner(page, config);
-  return { page, status, ok, error, blocked, blockedRequests };
+  if (ok && !challenge && options.closeBanner !== false) await closeBanner(page, config);
+  return { page, status, ok, error, blocked, blockedRequests, finalUrl: page.url(), contentType, challenge };
 }
 
 /** The contexts whose first page waited for the banner. A banner or a popup can open some seconds after the load. */

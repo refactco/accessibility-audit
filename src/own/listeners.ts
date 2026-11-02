@@ -9,6 +9,18 @@ export const LISTENER_TEST_CRITERIA = ["2.1.4", "2.5.1", "2.5.2", "2.5.4", "2.5.
 
 const INTERACTIVE = "a[href], button, input, select, textarea, [role=button], [role=link], [role=checkbox], [role=radio], [role=switch], [role=tab], [role=menuitem], [tabindex], summary";
 
+/** Scripts of analytics and tracking tools. Their listeners record clicks, they do not make a control. */
+export const ANALYTICS_SCRIPT = /siteanalyze|siteimprove|google-analytics\.com|googletagmanager\.com|\/gtag\/js|\/analytics\.js|\/ga\.js|hotjar|clarity\.ms|connect\.facebook\.net|fbevents|snap\.licdn\.com|ads-twitter\.com|\/matomo|\/piwik|cdn\.segment\.com|heapanalytics|mouseflow|fullstory|crazyegg|luckyorange|nr-data\.net|js-agent\.newrelic|quantserve|chartbeat|parsely|assets\.adobedtm\.com|doubleclick\.net|plausible\.io|cloudflareinsights/i;
+
+/** Scripts of libraries whose containers hold a delegated listener: the controls are the elements inside the container. */
+export const LIBRARY_SCRIPT = /swiper|google\.com\/cse|cse\.google\.com|\/cse\/static\/element\/|jquery-ui|jquery\.ui|\/jquery\/ui\//i;
+
+/** The containers of those libraries by their classes: the Swiper slider, the results of Google Programmable Search, and the jQuery UI widgets. */
+const LIBRARY_CONTAINER = /(^|\s)(swiper|swiper-container|swiper-wrapper|swiper-initialized|gsc-[\w-]+|gs-[\w-]+|ui-accordion(-[\w-]+)?|ui-tabs(-[\w-]+)?|ui-widget(-content)?|ui-menu)(\s|$)/;
+
+/** The events of a pointer. A keydown listener alone on an element that cannot take the focus gets the keys of its children only. */
+const POINTER = new Set(["click", "pointerdown", "mousedown", "touchstart", "pointerup", "mouseup"]);
+
 /** Presses each character key with the focus on the body and records a change of focus, of the address, or of the page. */
 async function pressCharacterKeys(page: Page): Promise<{ key: string; effect: string }[]> {
   const effects: { key: string; effect: string }[] = [];
@@ -38,12 +50,20 @@ async function pressCharacterKeys(page: Page): Promise<{ key: string; effect: st
 export async function runListenerTest(page: Page, url: string, width: number, state: string[]): Promise<Outcome[]> {
   const client = await page.context().newCDPSession(page);
   const found: Found[] = [];
-  const listenersOf = async (expression: string): Promise<string[]> => {
+  // The address of each script, so that a listener names the script that added it.
+  const scripts = new Map<string, string>();
+  client.on("Debugger.scriptParsed", (e: { scriptId: string; url: string }) => { scripts.set(e.scriptId, e.url || ""); });
+  await client.send("Debugger.enable").catch(() => {});
+  // A debugger statement in a script of the site must not pause the page.
+  await client.send("Debugger.setSkipAllPauses", { skip: true }).catch(() => {});
+  const detailsOf = async (expression: string): Promise<{ type: string; script: string }[]> => {
     const { result } = await client.send("Runtime.evaluate", { expression, objectGroup: "a11y" });
     if (!result.objectId) return [];
     const { listeners } = await client.send("DOMDebugger.getEventListeners", { objectId: result.objectId, depth: 0 });
-    return listeners.map((l: { type: string }) => l.type);
+    return listeners.map((l: { type: string; scriptId: string }) => ({ type: l.type, script: scripts.get(l.scriptId) || "" }));
   };
+  // The listeners of analytics and tracking tools do not count.
+  const listenersOf = async (expression: string): Promise<string[]> => (await detailsOf(expression)).filter((l) => !ANALYTICS_SCRIPT.test(l.script)).map((l) => l.type);
   try {
     const global = [...(await listenersOf("window")), ...(await listenersOf("document")), ...(await listenersOf("document.body"))];
     if (global.some((t) => t === "devicemotion" || t === "deviceorientation")) {
@@ -61,13 +81,18 @@ export async function runListenerTest(page: Page, url: string, width: number, st
         solution: { summary: "Require a modifier key, or let the user switch the shortcut off or change it.", steps: ["Use a modifier key with the shortcut."] } });
     }
     // Element listeners, on the interactive elements and on elements with handlers but no interactive role.
-    const nodes = await page.evaluate(`(() => { ${HELPERS} const out = []; let i = 0; for (const el of document.querySelectorAll("body *")) { if (!visible(el) || i > 600) continue; const interactive = el.matches(${JSON.stringify(INTERACTIVE)}); const role = el.getAttribute("role"); out.push({ i: i++, selector: sel(el), item: item(el), parentItem: item(el.parentElement || el), html: html(el), tag: el.localName, interactive, role, tabindex: el.getAttribute("tabindex"), draggable: el.getAttribute("draggable") === "true", touchAction: getComputedStyle(el).touchAction, name: nameOf(el).slice(0, 60), buttonsNearby: el.parentElement ? Array.from(el.parentElement.querySelectorAll("button, [role=button], a[href]")).filter(visible).map((b) => nameOf(b).slice(0, 40)).slice(0, 8) : [] }); el.setAttribute("data-a11y-i", String(i - 1)); } return out; })()`) as Record<string, any>[];
+    const nodes = await page.evaluate(`(() => { ${HELPERS} const out = []; let i = 0; for (const el of document.querySelectorAll("body *")) { if (!visible(el) || i > 600) continue; const interactive = el.matches(${JSON.stringify(INTERACTIVE)}); const role = el.getAttribute("role"); out.push({ i: i++, selector: sel(el), item: item(el), parentItem: item(el.parentElement || el), html: html(el), tag: el.localName, className: typeof el.className === "string" ? el.className : "", interactive, role, tabindex: el.getAttribute("tabindex"), draggable: el.getAttribute("draggable") === "true", touchAction: getComputedStyle(el).touchAction, name: nameOf(el).slice(0, 60), buttonsNearby: el.parentElement ? Array.from(el.parentElement.querySelectorAll("button, [role=button], a[href]")).filter(visible).map((b) => nameOf(b).slice(0, 40)).slice(0, 8) : [] }); el.setAttribute("data-a11y-i", String(i - 1)); } return out; })()`) as Record<string, any>[];
     const dragSeen = new Set<string>();
     for (const n of nodes) {
-      const types = await listenersOf(`document.querySelector('[data-a11y-i="${n.i}"]')`);
+      const details = (await detailsOf(`document.querySelector('[data-a11y-i="${n.i}"]')`)).filter((l) => !ANALYTICS_SCRIPT.test(l.script));
+      const types = details.map((l) => l.type);
       if (!types.length && !n.draggable) continue;
       const set = new Set(types);
-      const acts = set.has("click") || set.has("pointerdown") || set.has("mousedown") || set.has("touchstart") || set.has("pointerup") || set.has("mouseup") || set.has("keydown");
+      // A pointer listener makes a control. The container of a known library, or a pointer listener that only such a library added,
+      // is a delegated listener for the controls inside it, for example the drag of a slider.
+      const pointer = details.filter((l) => POINTER.has(l.type));
+      const library = LIBRARY_CONTAINER.test(n.className || "") || (pointer.length > 0 && pointer.every((l) => LIBRARY_SCRIPT.test(l.script)));
+      const acts = pointer.length > 0 && !library;
       if (acts && !n.interactive && !["html", "body", "main", "form", "nav", "header", "footer", "section", "article", "ul", "ol", "table", "tbody"].includes(n.tag) && !["dialog", "region", "group", "list", "tablist", "presentation", "none"].includes(n.role || "")) {
         found.push({ criterion: "2.1.1", rule: "control-not-focusable", kind: "failed", selector: n.selector, html: n.html, item: n.item, facts: { listeners: types, tag: n.tag, role: n.role },
           summary: `A ${n.tag} element acts on a pointer event, but the keyboard cannot reach it.`, severity: "critical",
@@ -100,6 +125,7 @@ export async function runListenerTest(page: Page, url: string, width: number, st
     }
     await page.evaluate("document.querySelectorAll('[data-a11y-i]').forEach((el) => el.removeAttribute('data-a11y-i'))");
   } finally {
+    await client.send("Debugger.disable").catch(() => {});
     await client.send("Runtime.releaseObjectGroup", { objectGroup: "a11y" }).catch(() => {});
     await client.detach().catch(() => {});
   }

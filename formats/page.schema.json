@@ -27,8 +27,13 @@
     },
     "run": { "type": "string", "description": "The run that gave these results." },
     "tested": { "type": "boolean" },
-    "not_tested_reason": { "enum": ["did not load", "page limit", "time budget", "removed", "skipped", "permission"] },
+    "not_tested_reason": {
+      "enum": ["did not load", "page limit", "time budget", "removed", "skipped", "permission", "stopped", "redirects off site", "skipped after redirect", "not a page", "broken link", "blocked"],
+      "description": "Why the page was not tested. The last five name an address that is not a page of the site: it does not count in the pages found or in the coverage. stopped: the audit was stopped before this page."
+    },
     "http_status": { "type": "integer" },
+    "redirects_to": { "type": "string", "description": "The address after the redirects, for an address that was not tested there: another site, a skipped path, an error page, or a file." },
+    "linked_from": { "type": "array", "items": { "type": "string" }, "maxItems": 5, "description": "For a broken link: the pages that link to it, up to 5." },
     "content_hash": { "type": "string" },
     "results": {
       "type": "object",

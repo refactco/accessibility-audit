@@ -7,7 +7,7 @@ Each review question gets two AI answers, from two separate passes. The second p
 1. Export the questions that wait for a verification. The command writes them without the first answer:
 
 ```
-a11y verify-tasks --file /tmp/verify-tasks.json --out accessibility-audit
+refact-a11y verify-tasks --file /tmp/verify-tasks.json --out accessibility-audit
 ```
 
 2. Read only that file and the screenshots it names. Do not open the question files in `questions/`, and do not read the report: both hold the first answer.
@@ -15,7 +15,7 @@ a11y verify-tasks --file /tmp/verify-tasks.json --out accessibility-audit
 4. Record the verification:
 
 ```
-a11y verify Q-19c2e4d0 issue --by ai --model <your model name> --confidence high --fact "The alt text is a file name." --reason "A file name does not describe the image." --out accessibility-audit
+refact-a11y verify Q-19c2e4d0 issue --by ai --model <your model name> --confidence high --fact "The alt text is a file name." --reason "A file name does not describe the image." --out accessibility-audit
 ```
 
 The command compares the two answers and records `agrees`.
