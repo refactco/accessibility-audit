@@ -104,14 +104,17 @@ function imageContrastQuestion(c: { selector: string; html: string; src: string;
   };
 }
 
-/** The images with alpha that can show letters over the page: visible, with a text alternative, not a logo or an icon, at most 8. */
-const FIND_TEXT_IMAGES = `(() => {
+/** The images with alpha that can show letters over the page: visible, with a text alternative, not a logo or an icon, at most 8.
+ *  The images of the skip list were measured before on this page. */
+const FIND_TEXT_IMAGES = (skip: string[]) => `(() => {
   ${HELPERS}
+  const skip = new Set(${JSON.stringify(skip)});
   const out = [];
   for (const img of document.querySelectorAll("img")) {
     if (out.length >= 8) break;
     if (!visible(img) || !img.complete || !img.naturalWidth || img.closest("[aria-hidden=true]")) continue;
     const src = img.currentSrc || img.src || "";
+    if (skip.has(src)) continue;
     if (!/\\.(png|gif|webp|svg)(\\?|#|$)|^data:image\\/(png|gif|webp|svg)/i.test(src)) continue;
     const alt = (img.getAttribute("alt") || "").trim();
     if (!alt || /\\b(logo|icon)\\b/i.test(alt) || /logo|icon/i.test(src.slice(0, 300))) continue;
@@ -180,10 +183,13 @@ const LETTERS = (shown: string, hidden: string) => `(async () => {
 
 const HIDE_IMAGE = (selector: string, on: boolean) => `(() => { const el = document.querySelector(${JSON.stringify(selector)}); if (!el) return false; if (${on}) el.style.setProperty("opacity", "0", "important"); else el.style.removeProperty("opacity"); return true; })()`;
 
-/** A review question for each transparent image whose letters fail 4.5 to 1 against the page under them. */
-export async function runImageTextContrastTest(page: Page, url: string, width: number, state: string[]): Promise<Outcome[]> {
+/** A review question for each transparent image whose letters fail 4.5 to 1 against the page under them. The audit runs it right
+ *  after the load, and again after the other tests: a slideshow shows other images later. `measured` holds the images that a run
+ *  measured on the page, so the second run measures only the new ones. */
+export async function runImageTextContrastTest(page: Page, url: string, width: number, state: string[], measured: Set<string> = new Set()): Promise<Outcome[]> {
   let candidates: { selector: string; html: string; src: string; alt: string; width: number; height: number }[] = [];
-  try { candidates = await page.evaluate(FIND_TEXT_IMAGES) as typeof candidates; } catch { return []; }
+  try { candidates = await page.evaluate(FIND_TEXT_IMAGES([...measured])) as typeof candidates; } catch { return []; }
+  for (const c of candidates) measured.add(c.src);
   const found: Found[] = [];
   for (const c of candidates) {
     let m = null as (TextContrast & { skip?: boolean; share: number }) | null;

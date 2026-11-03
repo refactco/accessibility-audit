@@ -46,7 +46,23 @@ The package builds itself at install. The plugin loads from the project settings
 
 Run the command as `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`. The old name `a11y` still works in a project that has the package, but never run `npx a11y`: `a11y` is also an unrelated package on the npm registry. When the local package is missing, `npx a11y` downloads and runs that package, and after one such run `npx` keeps a copy in its cache, so even `npx --no a11y` can run it. For the same reason, do not use `npx` with the new name either: the forms above run only the copy in the project.
 
-To update: `npm update @refact/a11y` for the package, and `claude plugin marketplace update accessibility-audit` then `claude plugin update accessibility-audit@accessibility-audit` for the plugin. A session loads the copy of the plugin in its cache, and a new copy comes only when the version changes.
+To update the package to a release tag, for example `v1.3.0`:
+
+```
+pnpm add -Dw github:refactco/accessibility-audit#v1.3.0
+```
+
+With npm 12 and `allow-git=root`, an install of a new tag over an old one stops with `EALLOWGIT` ("Fetching non-root packages of type "git" have been disabled"): `package-lock.json` still names the old tag, so npm does not count the package as a dependency of the project. Remove the package first, then install the new tag:
+
+```
+npm uninstall @refact/a11y
+npm install -D github:refactco/accessibility-audit#v1.3.0
+npm install-scripts approve @refact/a11y --no-allow-scripts-pin
+```
+
+Then look at `allowScripts` in `package.json`: keep `"github:refactco/accessibility-audit": true`, and remove an older entry that ends in `#` and a commit, which an approval with the pin wrote.
+
+For the plugin: `claude plugin marketplace update accessibility-audit`, then `claude plugin update accessibility-audit@accessibility-audit`. A session loads the copy of the plugin in its cache, and a new copy comes only when the version changes.
 
 ## The first audit, step by step
 
@@ -118,6 +134,7 @@ Every file has a schema in `formats/`, and the engine validates each file before
 - One criterion, live media (1.2.4), has no test.
 - The dry submit sees only the errors that a page shows before it sends. The errors of the server and the success message need a process on staging. A form that checks on the server only is listed in the coverage.
 - The engine does not operate the content of a frame, for example an embedded form, and it logs in only with a saved browser state.
+- The engine measures the contrast of the letters of a transparent image of text against the page under it. It does not measure the letters of an opaque image, where the text and its background are one picture: that image gets the question for an image of text (1.4.5).
 - The two AI answers come from one model, and they can be wrong in the same way. On the seeded test site both are right on every question. On real sites they agree on about 95 percent of the questions, and the rest stay unresolved.
 - Measured so far on two headless WordPress sites and one large WordPress site.
 

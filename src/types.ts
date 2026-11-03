@@ -73,6 +73,15 @@ export function inScope(p: { not_tested_reason?: NotTestedReason }): boolean {
   return !p.not_tested_reason || !OUT_OF_SCOPE.has(p.not_tested_reason);
 }
 
+/** The reasons of an address that the audit did not open: a budget or a stop came first. */
+export const NOT_OPENED = new Set<NotTestedReason>(["time budget", "page limit", "stopped"]);
+
+/** True for an address that the audit did not open and did not check with a quick request: nothing is known about it, so it does
+ *  not count in the pages found. An address that the quick request found to be a page has its status, and counts. */
+export function notOpened(p: { not_tested_reason?: NotTestedReason; http_status?: number }): boolean {
+  return !!p.not_tested_reason && NOT_OPENED.has(p.not_tested_reason) && !p.http_status;
+}
+
 export interface PageRecord {
   url: string;
   template: string | null;
@@ -91,6 +100,10 @@ export interface PageRecord {
   redirects_to?: string;
   /** The pages that link to a broken link, up to 5. */
   linked_from?: string[];
+  /** The sitemap file or the CMS API that gave the address, for an address that is not a page of the site. */
+  found_in?: string;
+  /** The widths at which a tested page did not load: it is tested at the other widths. */
+  widths_not_loaded?: number[];
   content_hash?: string;
   title?: string;
   lang?: string | null;

@@ -3,6 +3,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Config } from "./config.ts";
+import { unrandom } from "./stable.ts";
 
 /** The storage state file of a login role. The secret names an environment variable that holds the path. The value is never printed. */
 export function storageStateFor(secretName?: string): { path?: string; warning?: string } {
@@ -13,17 +14,20 @@ export function storageStateFor(secretName?: string): { path?: string; warning?:
   return { path: value };
 }
 
-/** In-page helper functions, as source text. Each in-page script starts with them. */
+/** In-page helper functions, as source text. Each in-page script starts with them. An id with a random part, which the site
+ *  makes new on each render, is not used in a selector, and the identity of an element leaves the random part out. */
 export const HELPERS = `
+${unrandom.toString()}
+function stableId(el) { return !!el.id && unrandom(el.id) === el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1; }
 function sel(el) {
   if (!el || el.nodeType !== 1) return "";
-  if (el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1) return "#" + CSS.escape(el.id);
+  if (stableId(el)) return "#" + CSS.escape(el.id);
   const parts = [];
   let node = el;
   while (node && node.nodeType === 1 && node !== document.documentElement) {
     let s = node.localName;
     const p = node.parentElement;
-    if (node.id && document.querySelectorAll("#" + CSS.escape(node.id)).length === 1) { parts.unshift("#" + CSS.escape(node.id)); break; }
+    if (stableId(node)) { parts.unshift("#" + CSS.escape(node.id)); break; }
     if (p) {
       const same = Array.from(p.children).filter((c) => c.localName === node.localName);
       if (same.length > 1) s += ":nth-child(" + (Array.from(p.children).indexOf(node) + 1) + ")";
@@ -36,9 +40,9 @@ function sel(el) {
 function item(el) {
   if (!el || el.nodeType !== 1) return "";
   const cls = Array.from(el.classList).slice(0, 3).join(".");
-  const key = el.getAttribute("src") || el.getAttribute("href") || el.getAttribute("name") || el.getAttribute("aria-label") || "";
+  const key = el.getAttribute("src") || el.getAttribute("href") || (el.getAttribute("name") ? unrandom(el.getAttribute("name")) : "") || el.getAttribute("aria-label") || "";
   const text = (el.innerText || el.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40);
-  return el.localName + (el.id ? "#" + el.id : "") + (cls ? "." + cls : "") + "|" + (key ? key.split("/").pop() : "") + "|" + text;
+  return el.localName + (el.id ? "#" + unrandom(el.id) : "") + (cls ? "." + cls : "") + "|" + (key ? key.split("/").pop() : "") + "|" + text;
 }
 function visible(el) {
   if (!el || el.nodeType !== 1) return false;
@@ -73,8 +77,28 @@ export async function launch(): Promise<Browser> {
 }
 
 /** blocked: the navigations of the main frame that scripts started after the load. blockedRequests: the non-GET requests on production.
- *  finalUrl: the address after the redirects. contentType: of the main document. challenge: a bot challenge answered instead of the page. */
-export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[]; finalUrl: string; contentType: string | null; challenge: boolean }
+ *  finalUrl: the address after the redirects. contentType: of the main document. challenge: a bot challenge answered instead of the page.
+ *  loadIncomplete: the load event did not come in the load wait, for example because of a slow image, and the page is tested as it was. */
+export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[]; finalUrl: string; contentType: string | null; challenge: boolean; loadIncomplete: boolean }
+
+/** The seconds that a page has for its document, and the default seconds that it has after that for its load event. */
+const DOCUMENT_TIMEOUT = 45;
+export const LOAD_WAIT_SECONDS = 20;
+
+/** Goes to an address: the document first, then the load event for at most load_wait_seconds. A slow image or script must not stop
+ *  the test of the page. loadIncomplete: the load event did not come in that time. */
+export async function gotoPage(page: Page, url: string, config: Config): Promise<{ response: Awaited<ReturnType<Page["goto"]>>; loadIncomplete: boolean }> {
+  const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: DOCUMENT_TIMEOUT * 1000 });
+  const wait = (config.crawl.load_wait_seconds ?? LOAD_WAIT_SECONDS) * 1000;
+  let loadIncomplete = false;
+  await page.waitForLoadState("load", { timeout: Math.max(1, wait) }).catch(() => { loadIncomplete = true; });
+  return { response, loadIncomplete };
+}
+
+/** Waits for the fonts, which change the layout, for at most 5 seconds. */
+export async function waitForFonts(page: Page): Promise<void> {
+  await page.evaluate("document.fonts ? Promise.race([document.fonts.ready.then(() => true), new Promise((r) => setTimeout(() => r(false), 5000))]) : true").catch(() => {});
+}
 
 /** A bot challenge, for example of Cloudflare, instead of the page: the header cf-mitigated, or the markup of a challenge on an error status. */
 async function isChallenge(page: Page, status: number | undefined, headers: Record<string, string>): Promise<boolean> {
@@ -108,14 +132,16 @@ export async function openPage(context: BrowserContext, url: string, config: Con
   let error: string | undefined;
   let contentType: string | null = null;
   let challenge = false;
+  let loadIncomplete = false;
   try {
-    const response = await page.goto(url, { waitUntil: "load", timeout: 45000 });
+    const went = await gotoPage(page, url, config);
+    const response = went.response;
+    loadIncomplete = went.loadIncomplete;
     status = response?.status();
     const headers = response ? await response.allHeaders().catch(() => response.headers()) : {};
     contentType = headers["content-type"] || null;
     challenge = await isChallenge(page, status, headers);
-    // The fonts change the layout, so the tests wait for them.
-    await page.evaluate("document.fonts ? document.fonts.ready.then(() => true) : true").catch(() => {});
+    await waitForFonts(page);
     await page.waitForTimeout(400);
   } catch (e) {
     ok = false;
@@ -123,7 +149,7 @@ export async function openPage(context: BrowserContext, url: string, config: Con
   }
   loaded = true;
   if (ok && !challenge && options.closeBanner !== false) await closeBanner(page, config);
-  return { page, status, ok, error, blocked, blockedRequests, finalUrl: page.url(), contentType, challenge };
+  return { page, status, ok, error, blocked, blockedRequests, finalUrl: page.url(), contentType, challenge, loadIncomplete };
 }
 
 /** The contexts whose first page waited for the banner. A banner or a popup can open some seconds after the load. */

@@ -2,6 +2,44 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.0, 2026-11-03
+
+Fixes from the second full audit of the large WordPress multisite, with 1.2.0, on 2026-11-02. The sitemaps filled the time budget, so the audit opened no address that only links give. Of the 198 planned states, 161 did not count, and the log gave no reason.
+
+The crawl order and the budgets:
+
+- After the settings pages, one address of each four comes from the links, while the sitemaps and the API have addresses. Before, the links came only after all the addresses of the sitemaps and the API, and a large sitemap kept them out of the audit.
+- When the page time ends, a quick check with no browser sends one request to each address that is left. It stops at 90% of the time budget. It records the redirects off the site, the redirects to skipped addresses, the broken links, and the files, with their reasons. The pages stay "not tested", with their status.
+- An address that the audit did not open, and that the quick check did not check, counts in the new `coverage.pages_not_opened`, not in `pages_found`. The report gives the count by source: the settings, the sitemaps and the API, and the links.
+- `max_pages` counts the opened pages only. Before, the addresses that the time budget left counted too, and an audit that the time budget stopped also reported the page limit.
+- An address that the audit did not open, and that differs from an opened page only by the trailing slash, has no record.
+- An address group chooses its addresses from all the sitemaps and the API before the crawl, by its new `order`. `sample`, the default, takes the same addresses in each audit, spread over the whole list. `newest` takes the addresses with the last date of change. `first` takes them in the order of the sources, as before. Before, a group kept the first addresses of the sitemap, and a sitemap of Yoast lists the oldest posts first. The report names the choice. On a site that has an address group, the new default chooses other pages one time.
+
+The results and the IDs:
+
+- The identity of an element leaves out the random parts of an id or a name, for example `slider-4823019576` or `heading-1-1-qtw3vXnaPK`. The site makes these parts new on each render. Now the issue ID stays, the answer of a question stays, and a state finds its control again in a new render. An issue of an older version whose ID changes for this reason moves to its new ID with its status, origin, source, solution, and decision. The old ID is resolved with the reason "rule changed", not "fixed".
+- A page that loaded at the first width and not at a later width stays tested, with the new `widths_not_loaded`. Before, it was tested and "did not load" at the same time.
+- An address from a sitemap or an API that is not a page of the site names its source in the new `found_in`. The list of broken links shows it.
+- `page-not-linked` gives one question for each section of the site, for example `/news/`. The question names what the crawl did not open in the section and why, with the rule of robots.txt.
+
+The loading and the detection:
+
+- A page has 45 seconds for its document, then `crawl.load_wait_seconds` (20 by default) for its load event. When the load event does not come, for example because of slow images, the engine tests the page as it is. The report names the page. Before, the page did not load after two waits of 45 seconds. The dry submit and the processes load pages in the same way.
+- The contrast check of the letters of a transparent image of text runs right after the load, before the other tests. Before, it ran some seconds later, and a slideshow had hidden or moved the image by then. The check runs again after the other tests, for the images that a later slide shows. It does not measure an image two times.
+- The engine finds the controls of the states before the focus pass and the operate tests change the page. In the new render of a state, it finds the control by its identity, then by its tag and its name.
+- A dialog that is open before the click of a state, for example a search box with `role="dialog"`, is not the dialog of that state. Before, each click counted as a state that opened that dialog, and the focus test asked if the focus leaves it.
+
+The log:
+
+- The state phase logs each state that does not count, with the reason: the page did not open, the control is not found, the click failed, no change, an error, the time budget, or a stop. `summary.json` gives `states_planned` and `states_not_applied`, and the report gives the counts.
+- After the seed, the log gives the count from each source: the settings, the sitemaps, each WordPress API, the choice of each address group, and what the rules left.
+
+The install:
+
+- The README gives the upgrade steps for npm 12. Under `allow-git=root`, an install of a new tag over an old one stops with `EALLOWGIT`. Remove the package first, then install the new tag.
+
+The tests: two new test files, `budget` and `identity`, in `npm test`. Each check of an item fails on 1.2.0.
+
 ## 1.2.0, 2026-11-02
 
 Fixes from a full audit of a large WordPress multisite with many subsites, on 2026-11-01. A third of the time of that audit went to addresses that are not pages of the site. A person had to remove 1,327 page records by hand.

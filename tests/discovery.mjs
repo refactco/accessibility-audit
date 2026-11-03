@@ -81,7 +81,8 @@ try {
   const tie = parseRobots("User-agent: *\nDisallow: /a/\nAllow: /a/\nDisallow: /news/*%e2%97%86\n");
   check(!robotsDisallows(tie, "/a/b") && robotsDisallows(tie, "/news/x%E2%97%86"), "item 12: Allow wins a tie, and percent-encodings compare in any letter case");
 
-  // Item 14: the order of the visits. The settings first, then the sitemap and API pages in turn by section, then the links.
+  // Item 14: the order of the visits. The settings first, then the sitemap and API pages in turn by section. Since 1.3.0 the links
+  // get 1 of each 4 places after the settings (item 1 of the list of problems of 1.2.0), so a large sitemap does not keep them out.
   {
     const config = configForUrl(SITE, "production");
     const f = newFrontier();
@@ -93,7 +94,7 @@ try {
     for (let u = nextAddress(f); u; u = nextAddress(f)) order.push(u.replace(SITE, ""));
     check(order[0] === "/sample/", `item 14: the pages of the settings come first (${order[0]})`);
     check(new Set(order.slice(1, 4).map((p) => p.split("/")[1])).size === 3, `item 14: the sitemap pages come in turn by section, so a budget that ends early has each section (${order.slice(1, 5).join(", ")})`);
-    check(order[order.length - 1] === "/linked/page/", `item 14: the links come after the sitemap and API pages, also a sitemap page that came later (${order.slice(-2).join(", ")})`);
+    check(order[4] === "/linked/page/" && order.includes("/news/7/"), `item 14 and item 1 of 1.2.0: a link comes after three sitemap and API pages, not after all of them (${order.slice(1, 6).join(", ")})`);
   }
 } finally {
   await new Promise((r) => server.close(r));

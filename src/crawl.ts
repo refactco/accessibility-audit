@@ -1,5 +1,6 @@
 // The crawler: finds the pages of a site from the sitemaps, the CMS API, the links, and the settings.
 // It obeys the rate limit, the permitted hosts, the skip patterns, the address groups, and robots.txt.
+import { createHash } from "node:crypto";
 import type { Config } from "./config.ts";
 
 export class RateLimiter {
@@ -122,7 +123,7 @@ export function isSkipped(config: Config, url: string): boolean {
 /** The product token of the crawler in robots.txt. */
 export const ROBOTS_AGENT = "accessibility-audit";
 
-export interface RobotsRule { allow: boolean; length: number; re: RegExp }
+export interface RobotsRule { allow: boolean; length: number; re: RegExp; value: string }
 export interface Robots { rules: RobotsRule[]; sitemaps: string[]; crawlDelay: number | null }
 
 /** Percent-encodings in upper case, so that a pattern and a path compare the same octets. */
@@ -157,7 +158,7 @@ export function parseRobots(text: string, agent: string = ROBOTS_AGENT): Robots 
     afterAgent = false;
     if (key === "sitemap") { sitemaps.push(value); continue; }
     if (!current) continue;
-    if ((key === "allow" || key === "disallow") && value) current.rules.push({ allow: key === "allow", length: upperEscapes(value).length, re: robotsPattern(value) });
+    if ((key === "allow" || key === "disallow") && value) current.rules.push({ allow: key === "allow", length: upperEscapes(value).length, re: robotsPattern(value), value });
     else if (key === "crawl-delay") current.crawlDelay = Number(value) || null;
   }
   const me = agent.toLowerCase();
@@ -166,56 +167,108 @@ export function parseRobots(text: string, agent: string = ROBOTS_AGENT): Robots 
   return { rules: chosen.flatMap((g) => g.rules), sitemaps, crawlDelay: chosen.find((g) => g.crawlDelay !== null)?.crawlDelay ?? null };
 }
 
-/** True when robots.txt disallows the path with its query: the longest matching rule decides, and Allow wins a tie. */
-export function robotsDisallows(robots: Robots | null, pathAndQuery: string): boolean {
-  if (!robots || pathAndQuery === "/robots.txt") return false;
+/** The rule of robots.txt that decides for the path with its query: the longest matching rule, and Allow wins a tie. */
+export function robotsRule(robots: Robots | null, pathAndQuery: string): RobotsRule | null {
+  if (!robots || pathAndQuery === "/robots.txt") return null;
   const path = upperEscapes(pathAndQuery);
   let best: RobotsRule | null = null;
   for (const r of robots.rules) {
     if (!r.re.test(path)) continue;
     if (!best || r.length > best.length || (r.length === best.length && r.allow)) best = r;
   }
+  return best;
+}
+
+/** True when robots.txt disallows the path with its query: the longest matching rule decides, and Allow wins a tie. */
+export function robotsDisallows(robots: Robots | null, pathAndQuery: string): boolean {
+  const best = robotsRule(robots, pathAndQuery);
   return !!best && !best.allow;
 }
+
+/** The user agent of the requests with no browser: the sitemaps, robots.txt, the CMS API, and the quick check. */
+const USER_AGENT = "accessibility-audit/0.1 (+a11y)";
 
 export async function fetchText(url: string, limiter: RateLimiter): Promise<{ status: number; text: string } | null> {
   await limiter.wait();
   try {
-    const r = await fetch(url, { headers: { "user-agent": "accessibility-audit/0.1 (+a11y)" }, redirect: "follow", signal: AbortSignal.timeout(20000) });
+    const r = await fetch(url, { headers: { "user-agent": USER_AGENT }, redirect: "follow", signal: AbortSignal.timeout(20000) });
     return { status: r.status, text: await r.text() };
   } catch {
     return null;
   }
 }
 
+/** The answer of a quick check. finalUrl: the last address of the redirects that the check followed, or the first that it did not
+ *  follow. challenge: a bot challenge answered, so the status says nothing about the page. */
+export interface QuickAnswer { status: number; finalUrl: string; contentType: string | null; challenge: boolean }
+
+/** One request with no browser, for an address that the audit did not open: it follows the redirects while follow() permits the
+ *  next address, at most 5, and gives the status, the last address, and the content type. null: no answer, or too many redirects. */
+export async function quickCheck(url: string, limiter: RateLimiter, follow: (next: string) => boolean): Promise<QuickAnswer | null> {
+  let current = url;
+  for (let hop = 0; hop <= 5; hop++) {
+    await limiter.wait();
+    let r: Response;
+    try { r = await fetch(current, { headers: { "user-agent": USER_AGENT }, redirect: "manual", signal: AbortSignal.timeout(20000) }); } catch { return null; }
+    const location = r.headers.get("location");
+    if (r.status >= 300 && r.status < 400 && location) {
+      await r.body?.cancel().catch(() => {});
+      let next: string;
+      try { next = new URL(location, current).toString(); } catch { return null; }
+      if (!follow(next)) return { status: r.status, finalUrl: next, contentType: null, challenge: false };
+      current = next;
+      continue;
+    }
+    const contentType = r.headers.get("content-type");
+    let challenge = (r.headers.get("cf-mitigated") || "").toLowerCase() === "challenge";
+    if (!challenge && [403, 429, 503].includes(r.status)) {
+      const text = await r.text().catch(() => "");
+      challenge = /\/cdn-cgi\/challenge-platform\/|id="challenge-form"|id="cf-challenge-running"|<title>\s*(just a moment|attention required)/i.test(text);
+    } else await r.body?.cancel().catch(() => {});
+    return { status: r.status, finalUrl: current, contentType, challenge };
+  }
+  return null;
+}
+
 const decodeXml = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'");
 
-export interface SitemapResult { pages: string[]; files: string[] }
+/** One address of a sitemap or of a CMS API: the file or the API that gave it, and the date of its last change when the source says. */
+export interface SourceEntry { url: string; source: string; lastmod?: string }
+
+export interface SitemapResult { pages: string[]; files: string[]; entries: SourceEntry[] }
+
+const LOC = /<loc>\s*(?:<!\[CDATA\[\s*)?([^<\s\]]+)\s*(?:\]\]>\s*)?<\/loc>/;
+const LASTMOD = /<lastmod>\s*([^<\s]+)\s*<\/lastmod>/;
 
 /** Reads the sitemaps and the sitemap indexes to a depth of 4, for example a multisite index, then the index of a subsite, then
- *  its post sitemap. Each file is read once, the files must be on a permitted host, and the counts have caps. */
+ *  its post sitemap. Each file is read once, the files must be on a permitted host, and the counts have caps. Each address keeps
+ *  its file and its lastmod. */
 export async function readSitemaps(urls: string[], limiter: RateLimiter, options: { permitted?: (url: string) => boolean; maxDepth?: number; maxFiles?: number; maxPages?: number } = {}): Promise<SitemapResult> {
   const maxDepth = options.maxDepth ?? 4, maxFiles = options.maxFiles ?? 2000, maxPages = options.maxPages ?? 100000;
-  const pages: string[] = [];
+  const entries: SourceEntry[] = [];
   const files: string[] = [];
   const read = new Set<string>();
   let level = urls.map((u) => ({ url: u, depth: 0 }));
   while (level.length) {
     const next: { url: string; depth: number }[] = [];
     for (const { url, depth } of level) {
-      if (read.has(url) || files.length >= maxFiles || pages.length >= maxPages) continue;
+      if (read.has(url) || files.length >= maxFiles || entries.length >= maxPages) continue;
       read.add(url);
       if (options.permitted && !options.permitted(url)) continue;
       const r = await fetchText(url, limiter);
       if (!r || r.status !== 200) continue;
       files.push(url);
-      const locs = [...r.text.matchAll(/<loc>\s*(?:<!\[CDATA\[\s*)?([^<\s\]]+)\s*(?:\]\]>\s*)?<\/loc>/g)].map((m) => decodeXml(m[1]));
-      if (/<sitemapindex/i.test(r.text)) { if (depth < maxDepth) for (const l of locs) next.push({ url: l, depth: depth + 1 }); }
-      else for (const l of locs) if (pages.length < maxPages) pages.push(l);
+      // The <url> or <sitemap> blocks, each with its <loc> and its <lastmod>. A file with no blocks gives its <loc> lines.
+      const blocks = [...r.text.matchAll(/<(url|sitemap)\b[^>]*>([\s\S]*?)<\/\1>/gi)].map((m) => m[2]);
+      const items = (blocks.length ? blocks : [...r.text.matchAll(new RegExp(LOC.source, "g"))].map((m) => m[0]))
+        .map((b) => ({ loc: (b.match(LOC) || [])[1] as string | undefined, lastmod: (b.match(LASTMOD) || [])[1] as string | undefined })).filter((x): x is { loc: string; lastmod: string | undefined } => !!x.loc)
+        .map((x) => ({ loc: decodeXml(x.loc), lastmod: x.lastmod }));
+      if (/<sitemapindex/i.test(r.text)) { if (depth < maxDepth) for (const l of items) next.push({ url: l.loc, depth: depth + 1 }); }
+      else for (const l of items) if (entries.length < maxPages) entries.push({ url: l.loc, source: url, ...(l.lastmod ? { lastmod: l.lastmod } : {}) });
     }
     level = next;
   }
-  return { pages, files };
+  return { pages: entries.map((e) => e.url), files, entries };
 }
 
 /** A queue that gives its addresses in turn by section: the host and the first part of the path. So a budget that ends early
@@ -246,11 +299,23 @@ export class SectionQueue {
 
 export interface Frontier {
   /** The addresses to open, by priority: 0 the settings, in their order; 1 the sitemaps and the CMS API; 2 the links. Tiers 1
-   *  and 2 give their addresses in turn by section. */
+   *  and 2 give their addresses in turn by section, and the links get 1 of each LINK_SHARE addresses after the settings. */
   queues: [string[], SectionQueue, SectionQueue];
+  /** The count of the addresses that tiers 1 and 2 gave, for the share of the links. */
+  turn: number;
+  /** The tier of each queued address, for the count of the addresses that the audit did not open. */
+  tierOf: Map<string, number>;
   seen: Set<string>;
   skipped: { url: string; reason: string }[];
   groupCounts: Map<string, number>;
+  /** The addresses of the sitemaps and the API that the choice of each address group took or left, as "pattern NUL address".
+   *  See chooseGroupAddresses. */
+  groupChosen: Set<string>;
+  groupLeft: Set<string>;
+  /** How each address group with a limit chose its addresses, for the log and the report. */
+  groupChoices: { pattern: string; order: string; chosen: number; found: number }[];
+  /** The sitemap file or the API that gave each address of tier 1. */
+  foundIn: Map<string, string>;
   /** robots.txt of the site host. */
   robots: Robots | null;
   /** robots.txt of each origin, read on the first visit to that origin. */
@@ -262,13 +327,22 @@ export interface Frontier {
 }
 
 export function newFrontier(): Frontier {
-  return { queues: [[], new SectionQueue(), new SectionQueue()], seen: new Set(), skipped: [], groupCounts: new Map(), robots: null, robotsByOrigin: new Map(), sitemapUrls: [], sitemapFiles: [], linkedFrom: new Map() };
+  return { queues: [[], new SectionQueue(), new SectionQueue()], turn: 0, tierOf: new Map(), seen: new Set(), skipped: [], groupCounts: new Map(), groupChosen: new Set(), groupLeft: new Set(), groupChoices: [], foundIn: new Map(), robots: null, robotsByOrigin: new Map(), sitemapUrls: [], sitemapFiles: [], linkedFrom: new Map() };
 }
 
-/** The next address to open: the settings first, then the sitemaps and the API, then the links. */
+/** The links get 1 of each 4 addresses after the settings, while the sitemaps and the API have addresses too. So a large sitemap
+ *  that fills the time budget does not keep the addresses that only links give, for example broken links and static pages. */
+export const LINK_SHARE = 4;
+
+/** The next address to open: the settings first, then the sitemaps and the API with a share for the links. */
 export function nextAddress(f: Frontier): string | undefined {
-  for (const q of f.queues) if (q.length) return q.shift();
-  return undefined;
+  const [settings, sources, links] = f.queues;
+  if (settings.length) return settings.shift();
+  if (sources.length && links.length) {
+    f.turn = (f.turn + 1) % LINK_SHARE;
+    return f.turn === 0 ? links.shift() : sources.shift();
+  }
+  return sources.length ? sources.shift() : links.shift();
 }
 
 export function queuedCount(f: Frontier): number {
@@ -291,36 +365,75 @@ export function robotsFor(f: Frontier, url: string, limiter: RateLimiter): Promi
   return known;
 }
 
+/** The reason that the rules give before the address groups: not permitted or a file (null, with no record), skipped, or robots. */
+function ruleReason(config: Config, f: Frontier, url: string): "out" | "skipped" | "robots" | null {
+  if (!isPermitted(config, url) || FILE_ADDRESS.test(pathOf(url))) return "out";
+  if (isSkipped(config, url)) return "skipped";
+  // robots.txt of the site host is known before the crawl. The robots.txt of another host is read on the first visit to it.
+  if (config.crawl.obey_robots && new URL(url).origin === new URL(config.site.url).origin && robotsDisallows(f.robots, pathOf(url))) return "robots";
+  return null;
+}
+
 /** Adds an address to the frontier when the rules permit it. Returns the reason when it does not.
- *  tier: 0 the settings, 1 the sitemaps and the API, 2 the links. from: the page that links to the address. */
-export function offer(config: Config, f: Frontier, raw: string, base: string, options: { tier?: number; from?: string } = {}): string | null {
+ *  tier: 0 the settings, 1 the sitemaps and the API, 2 the links. from: the page that links to the address. source: the sitemap
+ *  file or the API that gave an address of tier 1. */
+export function offer(config: Config, f: Frontier, raw: string, base: string, options: { tier?: number; from?: string; source?: string } = {}): string | null {
   const url = normalizeUrl(config, raw, base);
   if (!url) return "not an address";
   if (options.from) {
     const list = f.linkedFrom.get(url) || [];
     if (list.length < 5 && !list.includes(options.from)) { list.push(options.from); f.linkedFrom.set(url, list); }
   }
+  if (options.source && !f.foundIn.has(url)) f.foundIn.set(url, options.source);
   if (f.seen.has(url)) return null;
-  if (!isPermitted(config, url)) { f.seen.add(url); return null; }
-  if (FILE_ADDRESS.test(pathOf(url))) { f.seen.add(url); return null; }
-  let reason: string | null = null;
-  // robots.txt of the site host is known before the crawl. The robots.txt of another host is read on the first visit to it.
-  const siteOrigin = new URL(config.site.url).origin;
-  if (isSkipped(config, url)) reason = "skipped";
-  else if (config.crawl.obey_robots && new URL(url).origin === siteOrigin && robotsDisallows(f.robots, pathOf(url))) reason = "robots";
-  else {
+  const rule = ruleReason(config, f, url);
+  if (rule === "out") { f.seen.add(url); return null; }
+  let reason: string | null = rule;
+  if (!reason) {
     for (const g of config.crawl.address_groups) {
-      if (matchesPattern(config, g.pattern, url, "all")) {
-        const n = f.groupCounts.get(g.pattern) || 0;
-        if (n >= g.limit) { reason = "address group limit"; break; }
-        f.groupCounts.set(g.pattern, n + 1);
-      }
+      if (!matchesPattern(config, g.pattern, url, "all")) continue;
+      // The choice of the group counted the addresses that it took, and left the others.
+      if (f.groupChosen.has(g.pattern + "\u0000" + url)) continue;
+      if (f.groupLeft.has(g.pattern + "\u0000" + url)) { reason = "address group limit"; break; }
+      const n = f.groupCounts.get(g.pattern) || 0;
+      if (n >= g.limit) { reason = "address group limit"; break; }
+      f.groupCounts.set(g.pattern, n + 1);
     }
   }
   f.seen.add(url);
   if (reason) { f.skipped.push({ url, reason }); return reason; }
-  f.queues[Math.min(Math.max(options.tier ?? 2, 0), 2)].push(url);
+  const tier = Math.min(Math.max(options.tier ?? 2, 0), 2);
+  f.queues[tier].push(url);
+  f.tierOf.set(url, tier);
   return null;
+}
+
+/** A number from the address that stays the same in each audit, for the "sample" order of an address group. */
+const stableRank = (url: string) => createHash("sha1").update(url).digest("hex");
+
+/** Chooses the addresses of each address group from the sitemaps and the API before the crawl, so that the order of the sitemap does
+ *  not decide. "sample" (the default): the same addresses in each audit, spread over the whole list, chosen by a hash of each address.
+ *  "newest": by the lastmod of the sitemap or the API. "first": in the order of the sources. The settings pages counted before. */
+export function chooseGroupAddresses(config: Config, f: Frontier, entries: SourceEntry[], base: string): void {
+  for (const g of config.crawl.address_groups) {
+    const order = g.order || "sample";
+    const seen = new Set<string>();
+    const members: { url: string; lastmod: string; index: number }[] = [];
+    for (const e of entries) {
+      const url = normalizeUrl(config, e.url, base);
+      if (!url || seen.has(url) || f.seen.has(url) || ruleReason(config, f, url) || !matchesPattern(config, g.pattern, url, "all")) continue;
+      seen.add(url);
+      members.push({ url, lastmod: e.lastmod || "", index: members.length });
+    }
+    const room = Math.max(0, g.limit - (f.groupCounts.get(g.pattern) || 0));
+    if (!members.length) continue;
+    const sorted = order === "first" ? members : order === "newest" ? [...members].sort((a, b) => b.lastmod.localeCompare(a.lastmod) || a.index - b.index) : [...members].sort((a, b) => stableRank(a.url).localeCompare(stableRank(b.url)));
+    const chosen = sorted.slice(0, room);
+    for (const m of chosen) f.groupChosen.add(g.pattern + "\u0000" + m.url);
+    for (const m of sorted.slice(room)) f.groupLeft.add(g.pattern + "\u0000" + m.url);
+    f.groupCounts.set(g.pattern, (f.groupCounts.get(g.pattern) || 0) + chosen.length);
+    f.groupChoices.push({ pattern: g.pattern, order, chosen: chosen.length, found: members.length });
+  }
 }
 
 /** The common pages of WCAG-EM and of the EU decision 2018/1524, by the last part of the path. */
@@ -334,17 +447,19 @@ export function isCommonPage(url: string): boolean {
   return COMMON.test(last);
 }
 
-/** Reads the pages and the posts of a WordPress REST API, as a source of addresses. At most 50 requests of 100 items for each kind. */
-export async function readWordPressApi(apiUrl: string, limiter: RateLimiter): Promise<string[]> {
-  const out: string[] = [];
+/** Reads the pages and the posts of a WordPress REST API, as a source of addresses, with the date of the last change of each. At most
+ *  50 requests of 100 items for each kind. */
+export async function readWordPressApi(apiUrl: string, limiter: RateLimiter): Promise<SourceEntry[]> {
+  const out: SourceEntry[] = [];
+  const api = apiUrl.replace(/\/$/, "");
   for (const kind of ["pages", "posts"]) {
     for (let page = 1; page <= 50; page++) {
-      const r = await fetchText(`${apiUrl.replace(/\/$/, "")}/${kind}?per_page=100&page=${page}&_fields=link`, limiter);
+      const r = await fetchText(`${api}/${kind}?per_page=100&page=${page}&_fields=link,modified_gmt`, limiter);
       if (!r || r.status !== 200) break;
-      let items: { link?: string }[];
+      let items: { link?: string; modified_gmt?: string }[];
       try { items = JSON.parse(r.text); } catch { break; }
       if (!Array.isArray(items) || !items.length) break;
-      for (const i of items) if (i.link) out.push(i.link);
+      for (const i of items) if (i.link) out.push({ url: i.link, source: api, ...(i.modified_gmt ? { lastmod: i.modified_gmt } : {}) });
       if (items.length < 100) break;
     }
   }
@@ -372,28 +487,56 @@ export function wordPressApis(config: Config, sitemapFiles: string[]): string[] 
   return [...apis];
 }
 
+/** The count of the addresses from each source of the seed, and what the rules left. */
+export interface SeedStats {
+  settings: number; sitemapFiles: number; sitemapAddresses: number; apis: { url: string; addresses: number }[];
+  /** The addresses in the frontier after the seed, by tier: the settings, the sitemaps and the API. */
+  queued: { settings: number; sources: number };
+  /** The addresses that the rules left, by reason: skipped, robots, address group limit. */
+  skipped: Record<string, number>;
+  /** The addresses that were in the frontier already, or that are not permitted, not addresses, or files. */
+  repeated: number;
+}
+
 /** Seeds the frontier: the start address, the settings, robots.txt, the sitemaps, and the CMS API. */
-export async function seed(config: Config, f: Frontier, limiter: RateLimiter, only?: string[]): Promise<void> {
+export async function seed(config: Config, f: Frontier, limiter: RateLimiter, only?: string[]): Promise<SeedStats> {
   const base = config.site.url + "/";
+  const stats: SeedStats = { settings: 0, sitemapFiles: 0, sitemapAddresses: 0, apis: [], queued: { settings: 0, sources: 0 }, skipped: {}, repeated: 0 };
+  let offered = 0;
+  const give = (u: string, options: { tier: number; source?: string }) => { offered++; offer(config, f, u, base, options); };
+  const finish = () => {
+    stats.queued = { settings: f.queues[0].length, sources: f.queues[1].length };
+    for (const s of f.skipped) stats.skipped[s.reason] = (stats.skipped[s.reason] || 0) + 1;
+    stats.repeated = offered - stats.queued.settings - stats.queued.sources - f.skipped.length;
+    return stats;
+  };
   if (only && only.length) {
-    for (const u of only) offer(config, f, u, base, { tier: 0 });
-    return;
+    for (const u of only) give(u, { tier: 0 });
+    stats.settings = only.length;
+    return finish();
   }
   const robots = await fetchText(new URL("/robots.txt", base).toString(), limiter);
   if (robots && robots.status === 200) f.robots = parseRobots(robots.text);
   f.robotsByOrigin.set(new URL(base).origin, Promise.resolve(f.robots));
-  offer(config, f, base, base, { tier: 0 });
-  for (const p of config.crawl.sample_pages) offer(config, f, p, base, { tier: 0 });
-  for (const t of config.crawl.templates) if (t.example_page) offer(config, f, t.example_page, base, { tier: 0 });
-  for (const p of config.interaction.processes) for (const s of p.steps) offer(config, f, s.page, base, { tier: 0 });
+  const settings = [base, ...config.crawl.sample_pages, ...config.crawl.templates.flatMap((t) => (t.example_page ? [t.example_page] : [])), ...config.interaction.processes.flatMap((p) => p.steps.map((s) => s.page))];
+  for (const u of settings) give(u, { tier: 0 });
+  stats.settings = settings.length;
   const sitemaps = f.robots?.sitemaps.length ? [...f.robots.sitemaps] : [new URL("/sitemap.xml", base).toString()];
   // A site under a path, for example a test site, can have its own sitemap under that path.
   if (new URL(base).pathname !== "/") sitemaps.push(new URL("sitemap.xml", base).toString());
   const read = await readSitemaps([...new Set(sitemaps)], limiter, { permitted: (u) => { try { return isPermitted(config, normalizeUrl(config, u, base) || u); } catch { return false; } } });
   f.sitemapUrls = read.pages;
   f.sitemapFiles = read.files;
-  for (const u of f.sitemapUrls) offer(config, f, u, base, { tier: 1 });
+  stats.sitemapFiles = read.files.length;
+  stats.sitemapAddresses = read.entries.length;
+  // All the sources first, so that an address group chooses from the whole list. Then the sitemaps, then the API, in their order.
+  const entries = [...read.entries];
   for (const api of wordPressApis(config, f.sitemapFiles)) {
-    for (const u of await readWordPressApi(api, limiter)) offer(config, f, u, base, { tier: 1 });
+    const list = await readWordPressApi(api, limiter);
+    stats.apis.push({ url: api, addresses: list.length });
+    entries.push(...list);
   }
+  chooseGroupAddresses(config, f, entries, base);
+  for (const e of entries) give(e.url, { tier: 1, source: e.source });
+  return finish();
 }

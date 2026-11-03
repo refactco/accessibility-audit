@@ -98,7 +98,7 @@
         "pages_found": {
           "type": "integer",
           "minimum": 0,
-          "description": "The pages of the site that the crawl found. An address that is not a page of the site is in pages_out_of_scope."
+          "description": "The pages of the site that the audit opened, or that a quick check found to be pages. An address that is not a page of the site is in pages_out_of_scope, and an address that the audit did not open is in pages_not_opened."
         },
         "pages_tested": {
           "type": "integer",
@@ -111,6 +111,11 @@
         "pages_in_sample": {
           "type": "integer",
           "minimum": 0
+        },
+        "pages_not_opened": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The addresses that a budget or a stop left with no request: nothing is known about them, so they do not count in pages_found. After the pages, a quick check with no browser finds the redirects, the broken links, and the files among the addresses that a budget left, until 90% of the time budget."
         },
         "pages_out_of_scope": {
           "type": "object",
@@ -132,6 +137,17 @@
         "states_tested": {
           "type": "integer",
           "minimum": 0
+        },
+        "states_planned": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The states that the state phase planned. Each one is tested, or is in states_not_applied."
+        },
+        "states_not_applied": {
+          "type": "object",
+          "description": "The states of the state phase that did not count, by reason.",
+          "propertyNames": { "enum": ["page did not open", "control not found", "click failed", "no change", "error", "time budget", "stopped"] },
+          "additionalProperties": { "type": "integer", "minimum": 0 }
         },
         "forms_tested": {
           "type": "integer",

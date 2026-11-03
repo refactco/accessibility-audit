@@ -33,7 +33,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const records: PageRecord[] = pageLines.map((p) => {
     const testedCriteria: Record<number, Set<string>> = {};
     for (const [w, results] of Object.entries(p.results || {})) testedCriteria[Number(w)] = new Set(Object.entries(results as Record<string, string>).filter(([, r]) => r !== "not tested").map(([c]) => c));
-    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, redirects_to: p.redirects_to, linked_from: p.linked_from, content_hash: p.content_hash, testedCriteria, outcomes: [], links: [], renders: 0, facts: {} };
+    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, redirects_to: p.redirects_to, linked_from: p.linked_from, found_in: p.found_in, widths_not_loaded: p.widths_not_loaded, content_hash: p.content_hash, testedCriteria, outcomes: [], links: [], renders: 0, facts: {} };
   });
   const byUrl = new Map<string, PageRecord>();
   for (const r of records) if (!r.process || !byUrl.has(r.url)) byUrl.set(r.url, r);
@@ -89,14 +89,14 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   }));
   const overview = buildOverview(records, widths, criteria, issues, decisions);
   // The page counts come from the page records of today: a person can remove the records of addresses that are not pages of the site.
-  const { pages_out_of_scope: _old, ...kept } = summary.coverage || {};
+  const { pages_out_of_scope: _old, pages_not_opened: _unknown, ...kept } = summary.coverage || {};
   const coverage = { ...kept, ...pageCoverage(records) };
   const newSummary = { ...summary, counts, coverage, criteria, processes, overview };
   updateHistoryLine(outDir, run, { counts, overview: historyOverview(overview) });
   const byPage = issuesByPage(issues as { id: string; examples: { url: string }[] }[]);
   const pageFiles = records.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
   const processRuns = processNames.map((name) => ({ name, tested: !!summary.processes[name].tested, reason: summary.processes[name].reason, records: records.filter((r) => r.process === name), steps: 0, renders: 0 }));
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences: [], statesTested: summary.coverage?.states_tested || 0, decisions, skipped: [], durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
+  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences: [], statesTested: summary.coverage?.states_tested || 0, coverage, decisions, skipped: [], durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
   writeResults(outDir, { config, summary: newSummary, pages: pageFiles, issues, questions, history: null, report, run, outcomes: null });
   log(`refreshed: ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions`);
   return { run, issues: issues.length, questions: questions.length };
