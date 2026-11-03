@@ -64,12 +64,16 @@
         "skip": { "type": "array", "items": { "type": "string" }, "description": "Address patterns that the crawler does not open, also after a redirect. A path pattern, for example /wp-admin/**, matches on each host. A pattern that starts with a host, for example blog.example.com/**, matches that host only." },
         "address_groups": {
           "type": "array",
-          "description": "Address groups with no end, for example a calendar, with a limit of pages.",
+          "description": "Address groups with no end, for example a calendar or the posts of a blog, with a limit of pages. The addresses from the sitemaps and the CMS API are chosen before the crawl, by the order of the group.",
           "items": {
             "type": "object",
             "additionalProperties": false,
             "required": ["pattern", "limit"],
-            "properties": { "pattern": { "type": "string", "description": "A path pattern matches on each host. A pattern that starts with a host matches that host only." }, "limit": { "type": "integer", "minimum": 0 } }
+            "properties": {
+              "pattern": { "type": "string", "description": "A path pattern matches on each host. A pattern that starts with a host matches that host only." },
+              "limit": { "type": "integer", "minimum": 0 },
+              "order": { "enum": ["sample", "newest", "first"], "default": "sample", "description": "How the group chooses its addresses from the sitemaps and the CMS API. sample: the same addresses in each audit, spread over the whole list, chosen by a hash of each address. newest: by the date of the last change that the sitemap or the API gives. first: in the order of the sources, as before 1.3.0. Addresses that only links give fill the places that are left." }
+            }
           }
         },
         "parameters": {
@@ -81,6 +85,7 @@
         "rate_limit": { "type": "number", "exclusiveMinimum": 0, "description": "Page loads for each second, over all workers. The assets of a page do not count. The engine records the crawl delay of robots.txt and warns when this value is faster." },
         "permitted_domains": { "type": "array", "items": { "type": "string" }, "description": "The hosts that the crawl may open, next to the host of site.url, which is always permitted. A name is that host only. *.example.com permits each subdomain of example.com. The www host of the site and the bare host are the same site." },
         "obey_robots": { "type": "boolean", "default": true, "description": "Obey the Disallow rules of robots.txt. The rate limit comes from rate_limit, not from the crawl delay." },
+        "load_wait_seconds": { "type": "number", "minimum": 1, "default": 20, "description": "The seconds that a page has for its load event after its document. When the load event does not come, for example because of a slow image, the page is tested as it is, and the report names it." },
         "cookie_banner": {
           "type": "object",
           "additionalProperties": false,

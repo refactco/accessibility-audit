@@ -2,8 +2,9 @@
 // consistent help (3.2.6), and pages that no link points to (2.4.5).
 import type { Page } from "playwright";
 import { HELPERS } from "../browser.ts";
+import { robotsRule, type Robots } from "../crawl.ts";
 import { toOutcome, type Found } from "./page.ts";
-import type { Outcome, PageRecord } from "../types.ts";
+import { notOpened, type Outcome, type PageRecord } from "../types.ts";
 
 export const SITE_TEST_CRITERIA = ["2.4.2", "3.2.3", "3.2.4", "3.2.6", "2.4.5"];
 
@@ -28,7 +29,18 @@ function lcs(a: string[], b: string[]): number {
   return dp[a.length][b.length];
 }
 
-export function runSiteTests(pages: PageRecord[], facts: Map<string, SiteFacts>, sitemapUrls: string[], width: number): Outcome[] {
+/** What the crawl did not open, for the page-not-linked questions: the addresses that the rules left, and robots.txt of the site. */
+export interface CrawlNotes { siteUrl: string; skipped: { url: string; reason: string }[]; robots: Robots | null }
+
+/** The section of an address: the first part of the path, when the path has more parts, for example /news/ for /news/a-post/.
+ *  A page at the top of the site is in the section /. A page of another host has its host in front. */
+export function sectionOf(url: string, siteUrl: string): string {
+  const u = new URL(url);
+  const parts = u.pathname.split("/").filter(Boolean);
+  return (u.host === new URL(siteUrl).host ? "" : u.host) + (parts.length > 1 ? "/" + parts[0] + "/" : "/");
+}
+
+export function runSiteTests(pages: PageRecord[], facts: Map<string, SiteFacts>, sitemapUrls: string[], width: number, notes?: CrawlNotes): Outcome[] {
   const found: { f: Found; url: string }[] = [];
   const tested = pages.filter((p) => p.tested && facts.has(p.url));
   // 2.4.2: pages with the same title.
@@ -94,14 +106,46 @@ export function runSiteTests(pages: PageRecord[], facts: Map<string, SiteFacts>,
     if (target !== p.url) linked.add(target);
   }
   const anyNavOrSearch = tested.some((p) => facts.get(p.url)!.hasNav) && tested.some((p) => facts.get(p.url)!.hasSearch);
-  for (const u of sitemapUrls) {
-    const norm = u.replace(/#.*$/, "").replace(/\/index\.html$/, "/");
-    const page = pages.find((p) => p.url === norm);
-    if (!page || !page.tested || linked.has(norm) || norm === pages[0]?.url) continue;
-    found.push({ url: norm, f: { criterion: "2.4.5", rule: "page-not-linked", kind: "cantTell", selector: "html", item: "page|not-linked", facts: { url: norm, inSitemap: true, siteHasNavAndSearch: anyNavOrSearch },
-      summary: "No link on the crawled pages points to this page. It is in the XML sitemap only.", severity: "moderate",
-      question: "Do these pages have a second way to reach them, for example a list page that the crawl did not open, a sitemap page, or a search? The crawl skips list pages beyond the address group limit.",
-      solution: { summary: "Link to each page from a list page, the navigation, or the sitemap page.", steps: ["Add a link to the page where it belongs."] } } });
+  // One question for each section, so that an answer covers one section. The question names what the crawl did not open in the
+  // section and why: a list page that links to the pages can be one of them.
+  const siteUrl = notes?.siteUrl || pages[0]?.url || "http://localhost";
+  const byUrl = new Map(pages.map((p) => [p.url, p]));
+  const notLinked = new Map<string, string[]>();
+  for (const u of new Set(sitemapUrls.map((x) => x.replace(/#.*$/, "").replace(/\/index\.html$/, "/")))) {
+    const page = byUrl.get(u);
+    if (!page || !page.tested || linked.has(u) || u === pages[0]?.url) continue;
+    const section = sectionOf(u, siteUrl);
+    notLinked.set(section, [...(notLinked.get(section) || []), u]);
+  }
+  // What the crawl left, by section and by reason, and the addresses that a budget left, by section.
+  const safeSection = (u: string) => { try { return sectionOf(u, siteUrl); } catch { return ""; } };
+  const leftBySection = new Map<string, Map<string, string[]>>();
+  if (notLinked.size) for (const x of notes?.skipped || []) {
+    if (!["robots", "address group limit", "skipped"].includes(x.reason)) continue;
+    const s = safeSection(x.url);
+    if (!notLinked.has(s)) continue;
+    const m = leftBySection.get(s) || new Map<string, string[]>();
+    m.set(x.reason, [...(m.get(x.reason) || []), x.url]);
+    leftBySection.set(s, m);
+  }
+  const unopenedBySection = new Map<string, number>();
+  if (notLinked.size) for (const p of pages) if (notOpened(p)) { const s = safeSection(p.url); unopenedBySection.set(s, (unopenedBySection.get(s) || 0) + 1); }
+  for (const [section, urls] of notLinked) {
+    const left = leftBySection.get(section) || new Map<string, string[]>();
+    const unopened = unopenedBySection.get(section) || 0;
+    const rules = [...new Set((left.get("robots") || []).map((u) => { const r = robotsRule(notes?.robots || null, new URL(u).pathname + new URL(u).search); return r ? `Disallow: ${r.value}` : null; }).filter(Boolean))].slice(0, 3);
+    const parts: string[] = [];
+    if (left.get("robots")) parts.push(`${left.get("robots")!.length} addresses that robots.txt disallows${rules.length ? " (" + rules.join(", ") + ")" : ""}, for example ${left.get("robots")!.slice(0, 2).map((u) => new URL(u).pathname).join(", ")}`);
+    if (left.get("address group limit")) parts.push(`${left.get("address group limit")!.length} addresses beyond the limit of an address group`);
+    if (left.get("skipped")) parts.push(`${left.get("skipped")!.length} addresses that the skip patterns of the settings leave out`);
+    if (unopened) parts.push(`${unopened} addresses that a budget left unopened`);
+    const why = parts.length ? `In ${section}, the crawl did not open ${parts.join("; ")}. A list page that links to these pages can be one of them.` : `The crawl opened each address of ${section} that it found.`;
+    for (const u of urls) {
+      found.push({ url: u, f: { criterion: "2.4.5", rule: "page-not-linked", kind: "cantTell", selector: "html", item: "page|not-linked|" + section, context: section, facts: { url: u, section, inSitemap: true, siteHasNavAndSearch: anyNavOrSearch },
+        summary: `No tested page links to ${urls.length} pages of ${section}. The XML sitemaps list them.`, severity: "moderate",
+        question: `Can a person reach the ${urls.length} pages of ${section} that no tested page links to in a second way, for example from a list page that the crawl did not open, a sitemap page, or a search? ${why}`,
+        solution: { summary: "Link to each page from a list page, the navigation, or the sitemap page.", steps: ["Add a link to the page where it belongs."] } } });
+    }
   }
   return found.map(({ f, url }) => toOutcome(f, url, width, []));
 }

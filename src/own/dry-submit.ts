@@ -3,7 +3,7 @@
 // leaves the browser, also on production. See FORMS.md section 3.
 import type { Browser, BrowserContext, Page, Request } from "playwright";
 import { runAxe } from "../axe.ts";
-import { HELPERS, closeBanner } from "../browser.ts";
+import { HELPERS, closeBanner, gotoPage, waitForFonts } from "../browser.ts";
 import type { Config } from "../config.ts";
 import { isPermitted } from "../crawl.ts";
 import { FORM_STATE, formErrors, type FormState } from "../process.ts";
@@ -151,8 +151,8 @@ export async function guardedContext(browser: Browser, config: Config, width: nu
   const closeWindows = async () => { for (const w of windows.splice(0)) await w.close().catch(() => {}); };
   const open = async (url: string) => {
     main = await context.newPage();
-    await main.goto(url, { waitUntil: "load", timeout: 45000 });
-    await main.evaluate("document.fonts ? document.fonts.ready.then(() => true) : true").catch(() => {});
+    await gotoPage(main, url, config);
+    await waitForFonts(main);
     await main.waitForTimeout(400);
     loaded = true;
     await closeBanner(main, config);

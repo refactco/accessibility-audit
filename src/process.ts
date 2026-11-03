@@ -3,7 +3,7 @@
 import type { Browser, Page } from "playwright";
 import { AXE_TESTED_CRITERIA } from "./criteria.ts";
 import { runAxe } from "./axe.ts";
-import { HELPERS, closeBanner, storageStateFor } from "./browser.ts";
+import { HELPERS, closeBanner, gotoPage, storageStateFor } from "./browser.ts";
 import type { Config } from "./config.ts";
 import { normalizeUrl } from "./crawl.ts";
 import { PAGE_TEST_CRITERIA, dropTargetQuestions, runPageTests, toOutcome, type Found } from "./own/page.ts";
@@ -243,7 +243,7 @@ export async function runProcess(browser: Browser, config: Config, width: number
       const current = normalizeUrl(config, page.url(), base) || "";
       if (!same(current, target)) {
         await limiter.wait();
-        const response = await page.goto(target, { waitUntil: "load", timeout: 45000 }).catch(() => null);
+        const response = await gotoPage(page, target, config).then((r) => r.response).catch(() => null);
         renders++;
         if (!response || response.status() >= 400) { tested = false; reason = `Step ${i + 1}: the page ${step.page} did not load${response ? " (" + response.status() + ")" : ""}.`; break; }
         await page.waitForTimeout(400);

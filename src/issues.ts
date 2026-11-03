@@ -2,10 +2,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { itemFromHtml } from "./axe.ts";
 import { CRITERIA_BY_ID } from "./criteria.ts";
 import { pageKey, templateOf } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer } from "./decide.ts";
+import { stableHtml } from "./stable.ts";
 import type { Outcome, PageRecord, Severity } from "./types.ts";
 
 const SEVERITY_ORDER: Severity[] = ["critical", "serious", "moderate", "minor"];
@@ -159,6 +161,14 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       untrusted_fields: ["examples[].html", "examples[].facts"],
     });
   }
+  // The ID that an older axe-core issue has with the identity of this version: before 1.3.0 the identity kept the random parts of
+  // ids and names. When that ID is an issue of this run, the issue is the same, under a new ID.
+  const sameUnderNewId = (old: IssueFile): IssueFile | undefined => {
+    const e = old.examples?.[0];
+    if (old.rule?.engine !== "axe-core" || STYLE_RULES.has(old.rule?.id) || !e?.html) return undefined;
+    const id = "ISS-" + sha(`axe-core|${old.rule.id}|${old.wcag?.criterion}|${itemFromHtml(e.html, e.selector || "")}|${(e.state || []).join(">")}`).slice(0, 8);
+    return id === old.id ? undefined : issues.find((i) => i.id === id);
+  };
   // Stored issues that the audit did not find again: resolved when all their pages were tested, not checked when not,
   // page removed when all their pages are gone, and resolved with the reason "rule changed" when the engine version changed.
   const resolvedNow: IssueFile[] = [];
@@ -167,9 +177,21 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // A new issue of this same run that the refresh does not find again came from an answer that changed since, for example
     // a first AI answer that the verifier did not confirm. It never existed in a finished run, so it goes, with no resolution.
     if (old.status === "new" && old.status_by?.run === run) continue;
+    const by = { who: "engine", mode: "automatic", date, run };
+    // The same issue under a new ID takes the status, the origin, the source, the specific solution, and the decision of the old
+    // one. The old one is resolved with the reason "rule changed": it is not a fix.
+    const same = old.status_by?.run !== run ? sameUnderNewId(old) : undefined;
+    if (same && same.status === "new") {
+      Object.assign(same, {
+        status: old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
+        replaces: old.id, first_seen: old.first_seen || same.first_seen, origin: old.origin || same.origin, source: old.source || same.source, source_warning: old.source_warning ?? same.source_warning,
+        solution: old.solution?.type === "specific" ? old.solution : same.solution, decision: old.decision || same.decision,
+      });
+      issues.push(["resolved", "page removed", "dismissed"].includes(old.status) ? old : { ...old, status: "resolved", status_by: { ...by, reason: "rule changed" } });
+      continue;
+    }
     if (old.status === "resolved" || old.status === "page removed" || old.status === "dismissed") { issues.push(old); continue; }
     const paths: string[] = (old.examples || []).map((e: { url: string }) => e.url);
-    const by = { who: "engine", mode: "automatic", date, run };
     if (context && paths.length && paths.every((p) => context.gonePaths.has(p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "page removed" } }); continue; }
     // An issue from a template test or a state needs its pages in the sample of this run, because those tests run only there.
     const criterion = CRITERIA_BY_ID.get(old.wcag?.criterion);
@@ -203,12 +225,14 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
   }
   const questions: QuestionFile[] = [];
   // The item hash tells when the item changed, so that an answer stays valid until then. The screenshot path changes with each run,
-  // and the measurements vary with the animation, the timing, and the fonts of a run: they are not part of it.
+  // and the measurements vary with the animation, the timing, and the fonts of a run: they are not part of it. The random parts
+  // of the ids and the names in the HTML are not part of it either: the site makes them new on each render.
   const hashes = (o: Outcome) => {
     const { screenshot: _shot, ...factsOfRun } = (o.facts || {}) as Record<string, unknown>;
     const { measured: _m, changes: _c, texts: _t, seconds: _s, hiddenWidth: _w, hiddenHeight: _h, ...stableFacts } = factsOfRun;
-    // The files before 2026-10-15 hashed the measurements too. Their answers stay when the facts of this run give that hash.
-    return { item: sha((o.html || "") + JSON.stringify(stableFacts)), legacy: sha((o.html || "") + JSON.stringify(factsOfRun)) };
+    // The files before 2026-10-15 hashed the measurements too, and the files before 1.3.0 hashed the HTML as it was. Their answers
+    // stay when the item of this run gives one of those hashes.
+    return { item: sha(stableHtml(o.html || "") + JSON.stringify(stableFacts)), legacy: [sha((o.html || "") + JSON.stringify(stableFacts)), sha((o.html || "") + JSON.stringify(factsOfRun))] };
   };
   for (const [fp, list] of groups) {
     const id = "Q-" + fp.slice(0, 8);
@@ -218,7 +242,7 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     const short = (h: string) => h.slice(0, 16);
     const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || [])]);
     const all = list.map((o) => ({ o, h: hashes(o) }));
-    const match = old ? all.find((x) => known.has(short(x.h.item)) || known.has(short(x.h.legacy))) : undefined;
+    const match = old ? all.find((x) => known.has(short(x.h.item)) || x.h.legacy.some((h) => known.has(short(h)))) : undefined;
     // The example of the question: the item that the answer saw, when it is still there.
     const first = match ? match.o : list[0];
     const c = CRITERIA_BY_ID.get(first.criterion)!;

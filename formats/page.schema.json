@@ -34,6 +34,8 @@
     "http_status": { "type": "integer" },
     "redirects_to": { "type": "string", "description": "The address after the redirects, for an address that was not tested there: another site, a skipped path, an error page, or a file." },
     "linked_from": { "type": "array", "items": { "type": "string" }, "maxItems": 5, "description": "For a broken link: the pages that link to it, up to 5." },
+    "found_in": { "type": "string", "description": "For an address that is not a page of the site: the sitemap file or the CMS API that gave it, as a key of the results." },
+    "widths_not_loaded": { "type": "array", "items": { "type": "integer" }, "description": "The widths at which a tested page did not load. The page is tested at the other widths." },
     "content_hash": { "type": "string" },
     "results": {
       "type": "object",

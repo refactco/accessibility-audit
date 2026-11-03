@@ -43,29 +43,62 @@ export async function findStates(page: Page, config: Config, max: number): Promi
     .map((s) => ({ ...s, label: `click ${s.name || s.selector}`.replace(/\s+/g, " ").slice(0, 80) }));
 }
 
-export interface Applied { ok: boolean; dialog: string | null; focusInside: boolean }
+/** Why a state did not count. */
+export type NotApplied = "page did not open" | "control not found" | "click failed" | "no change" | "error" | "time budget" | "stopped";
 
-const SNAPSHOT = `(() => {
+export interface Applied { ok: boolean; dialog: string | null; focusInside: boolean; reason?: NotApplied }
+
+/** before: marks the dialogs that are open before the click. after: the first open dialog with no mark is the dialog that the
+ *  click opened, and the marks go. A dialog that is always open, for example a search box with role=dialog, is not one. */
+const SNAPSHOT = (phase: "before" | "after") => `(() => {
   ${HELPERS}
   const count = Array.from(document.querySelectorAll("body *")).filter(visible).length;
   const text = (document.body.innerText || "").length;
-  const dlg = Array.from(document.querySelectorAll("[role=dialog], [role=alertdialog], [aria-modal=true], dialog[open]")).find(visible);
+  const dialogs = Array.from(document.querySelectorAll("[role=dialog], [role=alertdialog], [aria-modal=true], dialog[open]")).filter(visible);
+  if (${JSON.stringify(phase)} === "before") { for (const d of dialogs) d.setAttribute("data-a11y-open-before", ""); return { count, text, dialog: null, focusInside: false }; }
+  const dlg = dialogs.find((d) => !d.hasAttribute("data-a11y-open-before"));
+  for (const d of document.querySelectorAll("[data-a11y-open-before]")) d.removeAttribute("data-a11y-open-before");
   return { count, text, dialog: dlg ? sel(dlg) : null, focusInside: !!(dlg && document.activeElement && dlg.contains(document.activeElement)) };
+})()`;
+
+/** Finds the control of a state in a new render and marks it. First the element of the selector with the same identity, then
+ *  any visible control with the same identity: the site can make its ids new on each render. Then the same tag and the same name,
+ *  then the element of the selector with the same tag and classes: a script of the site can change the name of a control. */
+const LOCATE = (action: StateAction) => `(() => {
+  ${HELPERS}
+  const want = ${JSON.stringify({ selector: action.selector, item: action.item, name: action.name, tag: (action.html.match(/^<([a-z0-9-]+)/i) || [])[1]?.toLowerCase() || "" })};
+  let atSelector = null;
+  try { atSelector = document.querySelector(want.selector); } catch { atSelector = null; }
+  if (atSelector && !visible(atSelector)) atSelector = null;
+  const controls = Array.from(document.querySelectorAll(FOCUSABLE + ", [role=button], [role=tab], [aria-expanded], [aria-haspopup]")).filter(visible);
+  const sameItem = (el) => item(el) === want.item;
+  const sameName = (el) => !!want.name && el.localName === want.tag && nameOf(el) === want.name;
+  const sameKind = (el) => item(el).split("|")[0] === want.item.split("|")[0];
+  const el = (atSelector && sameItem(atSelector) ? atSelector : null) || controls.find(sameItem) || (atSelector && sameName(atSelector) ? atSelector : null) || controls.find(sameName) || (atSelector && sameKind(atSelector) ? atSelector : null);
+  if (!el) return false;
+  el.setAttribute("data-a11y-state", "");
+  return true;
 })()`;
 
 /** Performs the action of a state. The state counts when the visible content changed, or when a dialog opened. */
 export async function applyState(page: Page, action: StateAction): Promise<Applied> {
-  const before = await page.evaluate(SNAPSHOT) as { count: number; text: number };
+  const none = (reason: NotApplied): Applied => ({ ok: false, dialog: null, focusInside: false, reason });
+  if (!(await page.evaluate(LOCATE(action)).catch(() => false))) return none("control not found");
+  const before = await page.evaluate(SNAPSHOT("before")) as { count: number; text: number };
   try {
-    const loc = page.locator(action.selector).first();
+    const loc = page.locator("[data-a11y-state]").first();
     await loc.scrollIntoViewIfNeeded({ timeout: 1500 }).catch(() => {});
     await loc.click({ timeout: 2000 });
   } catch {
-    return { ok: false, dialog: null, focusInside: false };
+    return none("click failed");
+  } finally {
+    // The mark goes before the tests, so that the HTML of the control is the HTML of the site.
+    await page.evaluate(`for (const el of document.querySelectorAll("[data-a11y-state]")) el.removeAttribute("data-a11y-state")`).catch(() => {});
   }
   await page.waitForTimeout(500);
-  const after = await page.evaluate(SNAPSHOT) as { count: number; text: number; dialog: string | null; focusInside: boolean };
-  return { ok: after.count !== before.count || after.text !== before.text || !!after.dialog, dialog: after.dialog, focusInside: after.focusInside };
+  const after = await page.evaluate(SNAPSHOT("after")) as { count: number; text: number; dialog: string | null; focusInside: boolean };
+  const ok = after.count !== before.count || after.text !== before.text || !!after.dialog;
+  return { ok, dialog: after.dialog, focusInside: after.focusInside, ...(ok ? {} : { reason: "no change" as const }) };
 }
 
 /** True when the cookie banner of the settings is on the page and visible. */

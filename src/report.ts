@@ -6,7 +6,7 @@ import { effectiveAnswer, type Decision } from "./decide.ts";
 import type { IssueFile, QuestionFile } from "./issues.ts";
 import type { ProcessRun } from "./process.ts";
 import type { CriterionSummary } from "./results.ts";
-import { inScope, type PageRecord } from "./types.ts";
+import { inScope, notOpened, type PageRecord } from "./types.ts";
 import { renderOverviewMarkdown, type HistoryPoint, type Overview } from "./overview.ts";
 
 export interface TemplateDifference { template: string; example: string; page: string; onlyInPage: string[]; onlyInExample: string[] }
@@ -17,6 +17,12 @@ export interface ReportInput {
   processes: ProcessRun[]; differences: TemplateDifference[]; statesTested: number; decisions: Decision[];
   skipped: { url: string; reason: string }[]; durationSeconds: number; renders: number; budgetReached: string[];
   overview?: Overview; history?: HistoryPoint[];
+  /** The coverage of the summary: the state phase. */
+  coverage?: Record<string, any>;
+  /** The addresses that the audit did not open, by the source that gave them. */
+  notOpenedBySource?: { settings: number; sources: number; links: number };
+  /** How each address group with a limit chose its addresses. */
+  groupChoices?: { pattern: string; order: string; chosen: number; found: number }[];
 }
 
 /** A guess at the cause of a broken link from its address: an email address or a web address with no scheme, or a mailto with a typo. */
@@ -35,6 +41,8 @@ export function renderReport(r: ReportInput): string {
   const site = r.config.site.url;
   const key = (u: string) => pageKey(site, u);
   const crawled = r.pages.filter(inScope);
+  const found = crawled.filter((p) => !notOpened(p));
+  const unopened = crawled.filter(notOpened);
   const outside = r.pages.filter((p) => !inScope(p));
   const tested = crawled.filter((p) => p.tested);
   const counts = (status: string) => r.issues.filter((i) => i.status === status).length;
@@ -44,9 +52,26 @@ export function renderReport(r: ReportInput): string {
   const results = Object.values(r.criteria).map((c) => c.result);
   const count = (x: string) => results.filter((v) => v === x).length;
   lines.push(`| Pages found | Pages tested | In the sample | States | Processes | Issues new | Issues open | Resolved | Questions for the AI | Questions for a person |\n|---|---|---|---|---|---|---|---|---|---|`);
-  lines.push(`| ${crawled.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${counts("resolved")} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
+  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${counts("resolved")} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
   lines.push(`Criteria: ${count("failed")} failed, ${count("needs review")} need a review, ${count("needs a person")} need a person, ${count("no issue found")} with no issue found, ${count("no content found")} with no content found, ${count("not tested")} not tested, ${count("passed")} passed, ${count("not applicable")} not applicable.\n`);
   if (r.budgetReached.length) lines.push(`The audit reached a budget: ${r.budgetReached.join(", ")}. The pages that it did not test are in the page list.\n`);
+  if (unopened.length) {
+    const by = (reason: string) => unopened.filter((p) => p.not_tested_reason === reason).length;
+    const reasons = ["time budget", "page limit", "stopped"].filter((x) => by(x)).map((x) => `${x} ${by(x)}`).join(", ");
+    const s = r.notOpenedBySource;
+    lines.push(`${unopened.length} addresses were not opened, because a budget or a stop came first (${reasons}). They do not count in the pages found, because nothing is known about them.${s ? ` From the settings: ${s.settings}, from the sitemaps and the API: ${s.sources}, from the links: ${s.links}.` : ""}\n`);
+  }
+  const c = r.coverage;
+  if (c?.states_planned) {
+    const notApplied = Object.entries((c.states_not_applied || {}) as Record<string, number>);
+    const failed = notApplied.reduce((n, [, v]) => n + v, 0);
+    lines.push(`State phase: ${c.states_planned} states planned, ${c.states_planned - failed} tested, ${failed} not applied${notApplied.length ? ": " + notApplied.map(([k, v]) => `${k} ${v}`).join(", ") : ""}. The log names each state that was not applied.\n`);
+  }
+  if (r.groupChoices?.length) lines.push(`Address groups: ${r.groupChoices.map((g) => `${g.pattern} took ${g.chosen} of ${g.found} addresses from the sitemaps and the API, order "${g.order}"`).join("; ")}.\n`);
+  const partial = tested.filter((p) => p.widths_not_loaded?.length);
+  if (partial.length) lines.push(`${partial.length} pages did not load at some widths and are tested at the others: ${partial.slice(0, 20).map((p) => `${key(p.url)} (not at ${p.widths_not_loaded!.join(", ")})`).join(", ")}${partial.length > 20 ? ", and more" : ""}.\n`);
+  const early = tested.filter((p) => Array.isArray(p.facts?.loadIncomplete) && (p.facts.loadIncomplete as number[]).length);
+  if (early.length) lines.push(`${early.length} pages were tested before their load event, which did not come in ${r.config.crawl.load_wait_seconds ?? 20} seconds: ${early.slice(0, 20).map((p) => key(p.url)).join(", ")}${early.length > 20 ? ", and more" : ""}. A slow image or script can be the cause.\n`);
   lines.push(`A result "no issue found" means that the tests ran and found nothing. It is not a pass. Only a person gives "passed". A result "no content found" means that the engine found no content of that type, and the engine can miss content.\n`);
   if (r.overview) lines.push(...renderOverviewMarkdown(r.overview, r.history || []));
 
@@ -127,10 +152,10 @@ export function renderReport(r: ReportInput): string {
   const broken = r.pages.filter((p) => p.not_tested_reason === "broken link" || (p.tested && (p.http_status || 0) >= 400 && p.linked_from?.length)).sort((a, b) => a.url.localeCompare(b.url));
   if (broken.length) {
     lines.push(`## Broken links (${broken.length})\n`);
-    lines.push(`Each address answers with an error. The audit tests the error page once, as a template, and lists the other addresses here, with the pages that link to them.\n`);
+    lines.push(`Each address answers with an error. The audit tests the error page once, as a template, and lists the other addresses here, with the pages that link to them, or the sitemap file or the API that gave them.\n`);
     for (const p of broken) {
       const hint = brokenLinkHint(p.url);
-      lines.push(`- ${key(p.url)}${p.redirects_to ? " (redirects to " + key(p.redirects_to) + ")" : ""}: status ${p.http_status || "unknown"}${p.tested ? ", tested as the error page" : ""}.${p.linked_from?.length ? " Linked from " + p.linked_from.join(", ") + "." : ""}${hint ? " It looks like " + hint + "." : ""}`);
+      lines.push(`- ${key(p.url)}${p.redirects_to ? " (redirects to " + key(p.redirects_to) + ")" : ""}: status ${p.http_status || "unknown"}${p.tested ? ", tested as the error page" : ""}.${p.linked_from?.length ? " Linked from " + p.linked_from.join(", ") + "." : ""}${p.found_in ? " Found in " + p.found_in + "." : ""}${hint ? " It looks like " + hint + "." : ""}`);
     }
     lines.push("");
   }
@@ -143,7 +168,7 @@ export function renderReport(r: ReportInput): string {
       if (!list.length) continue;
       const what: Record<string, string> = { "redirects off site": "Redirects to another site", "skipped after redirect": "Redirects to an address that the settings or robots.txt skip", "not a page": "A file, not a page", blocked: "Blocked by a bot challenge or a rate limit" };
       lines.push(`${what[reason]} (${list.length}):\n`);
-      for (const p of list) lines.push(`- ${key(p.url)}${p.redirects_to ? " redirects to " + p.redirects_to : ""}${p.http_status ? ", status " + p.http_status : ""}`);
+      for (const p of list) lines.push(`- ${key(p.url)}${p.redirects_to ? " redirects to " + p.redirects_to : ""}${p.http_status ? ", status " + p.http_status : ""}${p.found_in ? ", found in " + p.found_in : ""}`);
       lines.push("");
     }
   }

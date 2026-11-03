@@ -13,8 +13,8 @@ export interface Config {
   schema: "config/1";
   site: { url: string; environment: "production" | "staging" | "local"; standard: "WCAG 2.2"; level: "AA"; languages?: string[]; sets?: { name: string; patterns: string[] }[]; cms?: Record<string, unknown> };
   crawl: {
-    widths: number[]; max_pages: number; skip: string[]; address_groups: { pattern: string; limit: number }[];
-    parameters: { keep: string[] }; rate_limit: number; permitted_domains: string[]; obey_robots: boolean;
+    widths: number[]; max_pages: number; skip: string[]; address_groups: { pattern: string; limit: number; order?: "sample" | "newest" | "first" }[];
+    parameters: { keep: string[] }; rate_limit: number; permitted_domains: string[]; obey_robots: boolean; load_wait_seconds?: number;
     cookie_banner?: { selector?: string; dismiss_selector?: string };
     templates: { name: string; pattern: string; example_page?: string }[]; sample_pages: string[]; random_sample_share: number;
   };

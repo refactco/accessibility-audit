@@ -2,7 +2,7 @@
 import { CRITERIA, CRITERIA_BY_ID, unitDefinition } from "./criteria.ts";
 import { pageKey } from "./crawl.ts";
 import { decisionFor, type Decision } from "./decide.ts";
-import { RESULT_ORDER, inScope, type Outcome, type PageRecord, type UnitResult } from "./types.ts";
+import { RESULT_ORDER, inScope, notOpened, type Outcome, type PageRecord, type UnitResult } from "./types.ts";
 
 export function rollUp(results: UnitResult[]): UnitResult {
   for (const r of RESULT_ORDER) if (results.includes(r)) return r;
@@ -93,13 +93,17 @@ export function outcomesOf(pages: PageRecord[]): Outcome[] {
 
 /** The page counts of the coverage. pages_found counts the pages of the site only: an address that is not a page of the site,
  *  for example a broken link, a redirect to another site, a file, or a blocked page, is in pages_out_of_scope with its reason. */
-export function pageCoverage(pages: PageRecord[]): { pages_found: number; pages_tested: number; pages_not_tested: number; pages_in_sample: number; pages_out_of_scope?: Record<string, number> } {
+/** The page counts. pages_found: the pages of the site that the audit opened, or that a quick request found. pages_not_opened: the
+ *  addresses that a budget or a stop left with no request, so nothing is known about them. pages_out_of_scope: the addresses that are
+ *  not pages of the site. */
+export function pageCoverage(pages: PageRecord[]): { pages_found: number; pages_tested: number; pages_not_tested: number; pages_in_sample: number; pages_not_opened?: number; pages_out_of_scope?: Record<string, number> } {
   const crawled = pages.filter((p) => !p.process);
-  const found = crawled.filter(inScope);
+  const found = crawled.filter((p) => inScope(p) && !notOpened(p));
   const tested = found.filter((p) => p.tested);
+  const unknown = crawled.filter(notOpened).length;
   const out: Record<string, number> = {};
   for (const p of crawled) if (!inScope(p)) out[p.not_tested_reason!] = (out[p.not_tested_reason!] || 0) + 1;
-  return { pages_found: found.length, pages_tested: tested.length, pages_not_tested: found.length - tested.length, pages_in_sample: tested.filter((p) => p.sample).length, ...(Object.keys(out).length ? { pages_out_of_scope: out } : {}) };
+  return { pages_found: found.length, pages_tested: tested.length, pages_not_tested: found.length - tested.length, pages_in_sample: tested.filter((p) => p.sample).length, ...(unknown ? { pages_not_opened: unknown } : {}), ...(Object.keys(out).length ? { pages_out_of_scope: out } : {}) };
 }
 
 /** One line of pages.jsonl. The issues of a page match by the key of the page, so that the same path on two hosts stays apart. */
@@ -108,6 +112,7 @@ export function pageFileOf(p: PageRecord, run: string, widths: number[], decisio
     schema: "page/1", url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states, run, tested: p.tested,
     ...(p.not_tested_reason ? { not_tested_reason: p.not_tested_reason } : {}), ...(p.http_status ? { http_status: p.http_status } : {}),
     ...(p.redirects_to ? { redirects_to: p.redirects_to } : {}), ...(p.linked_from?.length ? { linked_from: p.linked_from } : {}),
+    ...(p.found_in ? { found_in: p.found_in } : {}), ...(p.widths_not_loaded?.length ? { widths_not_loaded: p.widths_not_loaded } : {}),
     ...(p.content_hash ? { content_hash: p.content_hash } : {}),
     results: pageResults(p, widths, decisions), issues: issuesByKey.get(pageKey(siteUrl, p.url)) || [],
   };

@@ -2,9 +2,9 @@
 // Several workers audit pages at the same time. The rate limit is shared, so the load on the site stays the same.
 import { AXE_TESTED_CRITERIA } from "./criteria.ts";
 import { AXE_VERSION, runAxe } from "./axe.ts";
-import { launch, openPage, pageFacts, storageStateFor, type Opened } from "./browser.ts";
+import { LOAD_WAIT_SECONDS, launch, openPage, pageFacts, storageStateFor, type Opened } from "./browser.ts";
 import type { Config } from "./config.ts";
-import { FILE_ADDRESS, RateLimiter, isCommonPage, isPermitted, isSkipped, newFrontier, nextAddress, normalizeUrl, offer, pageKey, pathOf, queuedCount, robotsDisallows, robotsFor, seed, setOf, templateOf } from "./crawl.ts";
+import { FILE_ADDRESS, RateLimiter, isCommonPage, isPermitted, isSkipped, newFrontier, nextAddress, normalizeUrl, offer, pageKey, pathOf, queuedCount, quickCheck, robotsDisallows, robotsFor, seed, setOf, templateOf } from "./crawl.ts";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
@@ -16,7 +16,7 @@ import { FOCUS_TEST_CRITERIA, runFocusTests } from "./own/focus.ts";
 import { LISTENER_TEST_CRITERIA, runListenerTest } from "./own/listeners.ts";
 import { OPERATE_TEST_CRITERIA, runOperateTests } from "./own/operate.ts";
 import { SITE_TEST_CRITERIA, collectSiteFacts, runSiteTests, type SiteFacts } from "./own/site.ts";
-import { applyState, bannerVisible, findStates, type StateAction } from "./own/states.ts";
+import { applyState, bannerVisible, findStates, type NotApplied, type StateAction } from "./own/states.ts";
 import { decideContrastQuestions } from "./own/contrast.ts";
 import { runProcesses, type ProcessRun } from "./process.ts";
 import { DRY_SUBMIT_CRITERIA, findForms, runDrySubmit, type DryRun, type FormCandidate } from "./own/dry-submit.ts";
@@ -24,7 +24,7 @@ import { renderReport, type TemplateDifference } from "./report.ts";
 import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import { buildOverview, historyOverview, readHistory } from "./overview.ts";
-import { inScope, type NotTestedReason, type Outcome, type PageRecord } from "./types.ts";
+import { NOT_OPENED, inScope, notOpened, type NotTestedReason, type Outcome, type PageRecord } from "./types.ts";
 
 export interface AuditOptions {
   config: Config; outDir: string; only?: string[]; maxPages?: number;
@@ -38,6 +38,9 @@ export interface AuditOptions {
   signal?: AbortSignal;
   /** Continue the last run of the results folder that a stop or a crash ended, from its pages in runs/<run>/pages.partial.jsonl. */
   resume?: boolean;
+  /** The shares of the time budget: the pages end at `pages` (0.85), the quick check at `quick` (0.9). The states, the dry submits,
+   *  and the processes have the rest. A test can give other shares. */
+  shares?: { pages?: number; quick?: number };
 }
 
 /** The state of a run in runs/<run>/state.json: what a resume needs. finished: the results were written. */
@@ -142,8 +145,14 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   writeState(false);
   const shoot = (page: import("playwright").Page, outcomes: Outcome[]) => shootQuestions(page, outcomes, outDir, shotDir);
   const frontier = newFrontier();
-  await seed(config, frontier, limiter, only);
-  log(`${queuedCount(frontier)} addresses to start, ${frontier.sitemapUrls.length} from ${frontier.sitemapFiles.length} sitemap files, ${concurrency} workers`);
+  const seedStats = await seed(config, frontier, limiter, only);
+  // The count from each source, then what the rules left, so that a person can check the discovery.
+  const fromApis = seedStats.apis.reduce((n, a) => n + a.addresses, 0);
+  log(`sources: ${seedStats.settings} from the settings, ${seedStats.sitemapAddresses} from ${seedStats.sitemapFiles} sitemap files${seedStats.apis.length ? `, ${fromApis} from ${seedStats.apis.length} WordPress APIs` : ""}`);
+  for (const a of seedStats.apis) log(`  API ${pageKey(config.site.url, a.url)}: ${a.addresses} addresses`);
+  for (const g of frontier.groupChoices) log(`  address group ${g.pattern}: ${g.chosen} of ${g.found} addresses chosen, order "${g.order}"`);
+  const notCrawled = Object.entries(seedStats.skipped).map(([r, n]) => `${r} ${n}`).join(", ");
+  log(`${queuedCount(frontier)} addresses to start (${seedStats.queued.settings} from the settings, ${seedStats.queued.sources} from the sitemaps and the API)${notCrawled ? ", not crawled: " + notCrawled : ""}, ${seedStats.repeated} repeated or not permitted, ${concurrency} workers`);
 
   const browser = await launch();
   const browserVersion = "Chromium " + browser.version();
@@ -208,17 +217,23 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     try { appendFileSync(partialPath, JSON.stringify(line) + "\n"); } catch (e) { log(`  could not save the page: ${(e as Error).message}`); }
   };
 
-  /** After the first load: is the address a page of the site to test? "out": a page record that is not tested, with the reason.
-   *  "drop": no page record, because the redirect reached a page that another address gave. */
-  const scopeAfterLoad = async (record: PageRecord, opened: Opened, errorTemplate: boolean): Promise<"test" | "out" | "drop"> => {
+  /** After the first load, or after a quick check: is the address a page of the site to test? "out": a page record that is not
+   *  tested, with the reason. "drop": no page record, because the redirect reached a page that another address gave. "unknown": a
+   *  quick check that met a bot challenge, so nothing is known. A quick check that finds a page gives "test", and the page stays not
+   *  tested, with its status. */
+  const scopeAfterLoad = async (record: PageRecord, opened: Pick<Opened, "finalUrl" | "status" | "contentType" | "challenge">, errorTemplate: boolean, quick = false): Promise<"test" | "out" | "drop" | "unknown"> => {
     const url = record.url;
     const final = normalizeUrl(config, opened.finalUrl || url, url) || url;
     const moved = final !== url;
     if (moved) redirected.set(url, final);
+    const where = quick ? `  quick check ${key(url)}: ` : "  ";
     const out = (reason: NotTestedReason, detail?: string) => {
       record.not_tested_reason = reason;
       if (moved) record.redirects_to = final;
-      log(`  not tested: ${reason}${moved ? ", redirects to " + final : ""}${detail ? " (" + detail + ")" : ""}`);
+      // The sitemap file or the API that gave the address, so that a person can correct the source.
+      const source = frontier.foundIn.get(url);
+      if (source && !inScope(record)) record.found_in = key(source);
+      log(`${where}not tested: ${reason}${moved ? ", redirects to " + final : ""}${detail ? " (" + detail + ")" : ""}`);
       return "out" as const;
     };
     if (moved && !isPermitted(config, final)) return out("redirects off site");
@@ -227,13 +242,13 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       return out("skipped after redirect");
     }
     const status = opened.status || 0;
-    if (opened.challenge || status === 429) return out("blocked", `status ${status}`);
+    if (opened.challenge || status === 429) return quick ? "unknown" : out("blocked", `status ${status}`);
     if (status === 401) return out("permission");
     if (status >= 400 && status < 500) {
       const from = frontier.linkedFrom.get(url);
       if (from?.length) record.linked_from = from.map(key);
       // The error template is tested once: the error page of the settings, or one broken link after the crawl. The other errors are broken links.
-      const errorPage = (status === 404 || status === 410) && (errorTemplate || required.has(pathKey(url)) || required.has(pathKey(final)));
+      const errorPage = !quick && (status === 404 || status === 410) && (errorTemplate || required.has(pathKey(url)) || required.has(pathKey(final)));
       if (!errorPage) return out("broken link", `status ${status}`);
       errorPageTested = true;
     }
@@ -241,7 +256,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     if (moved) {
       if (claimed.has(final) && copyOf.get(final) !== url) {
         frontier.skipped.push({ url, reason: "redirects to a page that the audit tests" });
-        log(`  redirects to ${final}, a page that the audit tests`);
+        log(`${where}redirects to ${final}, a page that the audit tests`);
         return "drop";
       }
       claimed.add(final); copyOf.delete(final); frontier.seen.add(final);
@@ -260,11 +275,14 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     pages.push(record);
     recordOf.set(address, record);
     const elapsed = (Date.now() - startedAt) / 60000;
-    if (pages.filter(inScope).length > maxPages) { record.not_tested_reason = "page limit"; if (!budgetReached.includes("pages")) budgetReached.push("pages"); return; }
-    // The pages get 85% of the time budget. The states and the processes get the rest.
-    if (elapsed > config.budgets.time_budget_minutes * 0.85 && !opts.errorTemplate) { record.not_tested_reason = "time budget"; if (!budgetReached.includes("time")) budgetReached.push("time"); return; }
+    // The page limit counts the pages that the audit opened: an address that a budget left is not a page that the audit tested.
+    // An address that a budget leaves is not claimed: the quick check and a redirect from another address can still reach it.
+    if (pages.filter((p) => inScope(p) && !(p.not_tested_reason && NOT_OPENED.has(p.not_tested_reason))).length > maxPages) { record.not_tested_reason = "page limit"; claimed.delete(url); if (!budgetReached.includes("pages")) budgetReached.push("pages"); return; }
+    // The pages get 85% of the time budget. The quick check, the states, and the processes get the rest.
+    if (elapsed > config.budgets.time_budget_minutes * (options.shares?.pages ?? 0.85) && !opts.errorTemplate) { record.not_tested_reason = "time budget"; claimed.delete(url); if (!budgetReached.includes("time")) budgetReached.push("time"); return; }
     log(`page ${pages.length}: ${url}`);
     const candidates: { width: number; states: StateAction[] }[] = [];
+    const imagesMeasured = new Set<string>();
     for (const w of widths) {
       await limiter.wait();
       let opened = await openPage(contexts.get(w)!, url, config);
@@ -280,9 +298,18 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         await opened.page.close();
         // A file that the browser downloads, for example a PDF at an address with no extension, is not a page.
         if (w === first && /download is starting/i.test(opened.error || "")) { record.not_tested_reason = "not a page"; log("  not tested: not a page (a download)"); return; }
-        record.not_tested_reason = "did not load"; record.facts.loadError = opened.error; log(`  did not load at ${w}: ${opened.error}`); break;
+        record.facts.loadError = opened.error;
+        if (!record.tested) { record.not_tested_reason = "did not load"; log(`  did not load at ${w}: ${opened.error}`); break; }
+        // The page loaded at an earlier width: it stays tested there, and the widths that did not load are listed.
+        record.widths_not_loaded = [...(record.widths_not_loaded || []), w];
+        log(`  did not load at ${w}: ${opened.error}. The page is tested at the other widths`);
+        continue;
       }
       record.http_status = opened.status;
+      if (opened.loadIncomplete) {
+        record.facts.loadIncomplete = [...((record.facts.loadIncomplete as number[] | undefined) || []), w];
+        log(`  the load event did not come in ${config.crawl.load_wait_seconds ?? LOAD_WAIT_SECONDS} s at ${w}: the page is tested as it is`);
+      }
       if (w === first) {
         const scope = await scopeAfterLoad(record, opened, !!opts.errorTemplate);
         if (scope !== "test") { await opened.page.close(); if (scope === "drop") { pages.splice(pages.indexOf(record), 1); dropped.add(record); } return; }
@@ -310,6 +337,10 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
             offer(config, frontier, canonical, url, { tier: 1 });
             return;
           }
+          // The contrast of the letters of a transparent image of text, right after the load: a slideshow changes its slides some
+          // seconds later, and then the image is hidden or moves. A second run after the other tests measures the images that came later.
+          record.outcomes.push(...(await runImageTextContrastTest(page, url, w, [], imagesMeasured)));
+          await page.evaluate("window.scrollTo(0, 0)").catch(() => {});
           siteFacts.set(url, await collectSiteFacts(page));
           if (!only) for (const l of [...facts.links, ...facts.alternates]) offer(config, frontier, l, url, { tier: 2, from: url });
           record.facts.technologies = facts.technologies;
@@ -330,15 +361,16 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         if (w === first) Object.assign(record.facts, own.facts);
         for (const c of PAGE_TEST_CRITERIA) tested.add(c);
         // The images of text look the same at every width: one pass at the first width, and the criterion counts as tested at all.
-        // The contrast of the letters of a transparent image of text, then the images of text, at the first width.
         if (w === first) {
-          record.outcomes.push(...(await runImageTextContrastTest(page, url, w, [])));
+          record.outcomes.push(...(await runImageTextContrastTest(page, url, w, [], imagesMeasured)));
           record.outcomes.push(...(await runImageOfTextTest(page, url, w, [])));
           tested.add("1.4.5");
         }
         // The forms for the dry submit, before the operate tests change the page.
         if (record.sample && w === first && config.interaction.dry_submit) formsOf.set(record, await findForms(page));
         if (record.sample && (w === first || w === last)) {
+          // The controls of the states, before the focus pass and the operate tests change the page: the state phase opens a new render.
+          if (config.interaction.max_states_per_page > 0) candidates.push({ width: w, states: await findStates(page, config, config.interaction.max_states_per_page) });
           // The focus pass runs at the smallest and the largest width.
           record.outcomes.push(...(await runFocusTests(page, url, w, [], opened.blocked)));
           for (const c of FOCUS_TEST_CRITERIA) tested.add(c);
@@ -348,7 +380,6 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
             record.outcomes.push(...(await runOperateTests(page, config, url, w, [], opened.blocked)));
             for (const c of OPERATE_TEST_CRITERIA) tested.add(c);
           }
-          if (config.interaction.max_states_per_page > 0) candidates.push({ width: w, states: await findStates(page, config, config.interaction.max_states_per_page) });
         }
         await shoot(page, record.outcomes.filter((o) => o.url === url && o.width === w));
         record.outcomes.push(...(await runSpacing(page, url, w, [])));
@@ -423,15 +454,23 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
   };
 
+  // The state phase: each planned state is tested or not applied, with the reason.
+  let statesPlanned = 0;
+  const statesNotApplied = new Map<NotApplied, number>();
+  const notApplied = (record: PageRecord, w: number, s: StateAction, reason: NotApplied, detail?: string) => {
+    statesNotApplied.set(reason, (statesNotApplied.get(reason) || 0) + 1);
+    log(`  state not applied (${reason}): ${key(record.url)} at ${w}, ${s.label}${detail ? ": " + detail : ""}`);
+  };
+
   /** One state of one page: its own render, the action, then the rule engine, the page tests, and a focus pass. */
   const runStateJob = async (record: PageRecord, w: number, s: StateAction) => {
     await limiter.wait();
     const opened = await openPage(contexts.get(w)!, record.url, config);
     renders++; record.renders++;
-    if (!opened.ok) { await opened.page.close(); return; }
+    if (!opened.ok || opened.challenge) { await opened.page.close(); notApplied(record, w, s, "page did not open", opened.challenge ? "bot challenge" : opened.error); return; }
     try {
       const applied = await applyState(opened.page, s);
-      if (!applied.ok) return;
+      if (!applied.ok) { notApplied(record, w, s, applied.reason || "no change"); return; }
       const state = [s.label];
       const outcomes: Outcome[] = [];
       const axe = await decideContrastQuestions(opened.page, await runAxe(opened.page, record.url, w, state));
@@ -444,7 +483,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       record.states.push({ id: `S${record.states.length + 1}`, actions: state });
       statesTested++;
     } catch (e) {
-      log(`  state error (${s.label}): ${(e as Error).message.split("\n")[0]}`);
+      notApplied(record, w, s, "error", (e as Error).message.split("\n")[0]);
     } finally {
       await opened.page.close();
     }
@@ -491,6 +530,46 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       log(`stopped: ${pages.filter((p) => p.tested).length} pages tested, ${left} addresses not opened`);
     }
 
+    // The addresses that a budget left. One that differs from an opened address only by the trailing slash is that page: its record goes.
+    if (!stopping && !only) {
+      const openedKeys = new Set(pages.filter((p) => !notOpened(p) && inScope(p)).map((p) => p.url.replace(/\/$/, "")));
+      const copies = pages.filter((p) => notOpened(p) && openedKeys.has(p.url.replace(/\/$/, "")));
+      for (const p of copies) { pages.splice(pages.indexOf(p), 1); frontier.skipped.push({ url: p.url, reason: "copy of an opened address" }); }
+      if (copies.length) log(`${copies.length} addresses that the audit did not open differ from an opened page only by the trailing slash: their records go`);
+      // The quick check: one request with no browser for each address that is left, until 90% of the time budget. It finds the
+      // redirects, the broken links, and the files, so that only the pages stay "not tested". A bot challenge leaves the address unknown.
+      const left = pages.filter(notOpened);
+      if (left.length) {
+        log(`quick check of ${left.length} addresses that the audit did not open`);
+        const follow = (from: string) => (next: string) => {
+          const n = normalizeUrl(config, next, from);
+          return !!n && isPermitted(config, n) && !isSkipped(config, n) && !FILE_ADDRESS.test(pathOf(n)) && !claimed.has(n)
+            && !(config.crawl.obey_robots && new URL(n).origin === siteOrigin && robotsDisallows(frontier.robots, pathOf(n)));
+        };
+        const results = new Map<string, number>();
+        const count = (what: string) => results.set(what, (results.get(what) || 0) + 1);
+        let nextQuick = 0;
+        const quickWorker = async () => {
+          for (;;) {
+            if (stopping || nextQuick >= left.length || (Date.now() - startedAt) / 60000 > config.budgets.time_budget_minutes * (options.shares?.quick ?? 0.9)) return;
+            const record = left[nextQuick++];
+            if (claimed.has(record.url)) { pages.splice(pages.indexOf(record), 1); frontier.skipped.push({ url: record.url, reason: "redirects to a page that the audit tests" }); count("copy of a page"); continue; }
+            const answer = await quickCheck(record.url, limiter, follow(record.url)).catch(() => null);
+            if (!answer) { count("no answer"); continue; }
+            const kept = record.not_tested_reason;
+            const scope = await scopeAfterLoad(record, answer, false, true);
+            if (scope === "unknown") { count("bot challenge"); continue; }
+            if (scope === "drop") { pages.splice(pages.indexOf(record), 1); count("copy of a page"); continue; }
+            record.http_status = answer.status;
+            if (scope === "test") { record.not_tested_reason = kept; count("page"); } else count(record.not_tested_reason || "page");
+          }
+        };
+        await Promise.all(Array.from({ length: concurrency }, () => quickWorker()));
+        const unchecked = left.length - nextQuick;
+        log(`quick check: ${[...results].map(([w, n]) => `${w} ${n}`).join(", ")}${unchecked ? `, ${unchecked} not checked before 90% of the time budget` : ""}`);
+      }
+    }
+
     // The error template: when the settings name no error page, one broken link is tested as the error page, the first by its address.
     if (!stopping && !errorPageTested && !only && (Date.now() - startedAt) / 60000 < config.budgets.time_budget_minutes) {
       const broken = pages.filter((p) => p.not_tested_reason === "broken link" && (p.http_status === 404 || p.http_status === 410)).sort((a, b) => a.url.localeCompare(b.url))[0];
@@ -519,16 +598,24 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
     if (stopping) jobs.length = 0;
     else log(`${jobs.length} states on ${candidatesOf.size} pages`);
+    statesPlanned = jobs.length;
+    const testedBefore = statesTested;
     let next = 0;
     const stateWorker = async () => {
       for (;;) {
-        const job = jobs[next++];
-        if (!job || stopping) return;
+        if (next >= jobs.length) return;
+        const job = jobs[next];
+        if (stopping) return;
         if ((Date.now() - startedAt) / 60000 > config.budgets.time_budget_minutes) { if (!budgetReached.includes("time")) budgetReached.push("time"); return; }
-        try { await runStateJob(job.record, job.width, job.state); } catch (e) { log(`  state error at ${job.record.url}: ${(e as Error).message.split("\n")[0]}`); }
+        next++;
+        try { await runStateJob(job.record, job.width, job.state); } catch (e) { notApplied(job.record, job.width, job.state, "error", (e as Error).message.split("\n")[0]); }
       }
     };
     await Promise.all(Array.from({ length: concurrency }, () => stateWorker()));
+    // The states that a budget or a stop left: not applied, with that reason.
+    const left = jobs.length - next;
+    if (left > 0) statesNotApplied.set(stopping ? "stopped" : "time budget", (statesNotApplied.get(stopping ? "stopped" : "time budget") || 0) + left);
+    if (jobs.length) log(`states: ${statesTested - testedBefore} of ${jobs.length} tested${statesNotApplied.size ? ", not applied: " + [...statesNotApplied].map(([r, n]) => `${r} ${n}`).join(", ") : ""}`);
 
     // The dry submits, after the states, in the same order. A form that another page gave is not repeated. See FORMS.md.
     const seenForms = new Set<string>();
@@ -569,7 +656,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
 
     // The site tests, on all pages together.
-    const siteOutcomes = runSiteTests(pages, siteFacts, frontier.sitemapUrls, first);
+    const siteOutcomes = runSiteTests(pages, siteFacts, frontier.sitemapUrls, first, { siteUrl: config.site.url, skipped: frontier.skipped, robots: frontier.robots });
     for (const o of siteOutcomes) pages.find((p) => p.url === o.url)?.outcomes.push(o);
     for (const p of pages) if (p.tested) for (const c of SITE_TEST_CRITERIA) p.testedCriteria[first]?.add(c);
     // The processes, after the pages, so that their outcomes do not repeat the outcomes of the pages.
@@ -653,7 +740,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
   }
 
-  const coverage = { ...pageCoverage(pages), states_tested: statesTested, forms_tested: dryRuns.filter((r) => r.tested).length, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
+  const coverage = { ...pageCoverage(pages), states_tested: statesTested, ...(statesPlanned ? { states_planned: statesPlanned, states_not_applied: Object.fromEntries(statesNotApplied) } : {}), forms_tested: dryRuns.filter((r) => r.tested).length, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
   const processes = Object.fromEntries(processRuns.map((r) => [r.name, r.tested ? { tested: true, ...processSummary(r.records, [first]) } : { tested: false, reason: r.reason || "not tested" }]));
   const overview = buildOverview(all, widths, criteria, issues, decisions);
   const summary = { schema: "summary/1", site: config.site.url, run, date, standard: "WCAG 2.2", level: "AA", versions, baseline, counts, coverage, criteria, processes, overview };
@@ -661,7 +748,9 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const pageFiles = all.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
   const questionsAnswered = { ai: questions.filter((q) => q.ai_answer).length, person: questions.filter((q) => q.person_answer).length };
   const history = { schema: "history/1", run, started: started.toISOString(), duration_seconds: durationSeconds, kind: kind || "full", started_by: options.startedBy || "person", environment: config.site.environment, versions, baseline, counts, coverage, renders, questions_answered: questionsAnswered, overview: historyOverview(overview) };
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences, statesTested, decisions, skipped: frontier.skipped, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
+  const notOpenedBySource = { settings: 0, sources: 0, links: 0 };
+  for (const p of pages) if (notOpened(p)) { const t = frontier.tierOf.get(p.url) ?? 2; notOpenedBySource[t === 0 ? "settings" : t === 1 ? "sources" : "links"]++; }
+  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences, statesTested, coverage, notOpenedBySource, groupChoices: frontier.groupChoices, decisions, skipped: frontier.skipped, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
   writeResults(outDir, { config, summary, pages: pageFiles, issues, questions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });
   writeState(true);
   options.signal?.removeEventListener("abort", onStop);
