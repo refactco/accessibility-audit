@@ -8,7 +8,13 @@ import { pageKey, templateOf } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer } from "./decide.ts";
 import { stableHtml } from "./stable.ts";
+import { FOCUS_RULES } from "./own/focus.ts";
+import { LISTENER_RULES } from "./own/listeners.ts";
+import { OPERATE_RULES } from "./own/operate.ts";
 import type { Outcome, PageRecord, Severity } from "./types.ts";
+
+/** The rules of the tests that run on the sample pages only. The dry submit gives its outcomes a state, so they count as states. */
+const SAMPLE_RULES = new Set<string>([...LISTENER_RULES, ...FOCUS_RULES, ...OPERATE_RULES]);
 
 const SEVERITY_ORDER: Severity[] = ["critical", "serious", "moderate", "minor"];
 
@@ -178,24 +184,50 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // a first AI answer that the verifier did not confirm. It never existed in a finished run, so it goes, with no resolution.
     if (old.status === "new" && old.status_by?.run === run) continue;
     const by = { who: "engine", mode: "automatic", date, run };
-    // The same issue under a new ID takes the status, the origin, the source, the specific solution, and the decision of the old
-    // one. The old one is resolved with the reason "rule changed": it is not a fix.
-    const same = old.status_by?.run !== run ? sameUnderNewId(old) : undefined;
-    if (same && same.status === "new") {
-      Object.assign(same, {
-        status: old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
-        replaces: old.id, first_seen: old.first_seen || same.first_seen, origin: old.origin || same.origin, source: old.source || same.source, source_warning: old.source_warning ?? same.source_warning,
-        solution: old.solution?.type === "specific" ? old.solution : same.solution, decision: old.decision || same.decision,
-      });
+    const same = sameUnderNewId(old);
+    // An issue that a run resolved as fixed while the same issue under its new ID was open in that same run was not fixed: 1.3.0
+    // did this when several old IDs gave one new ID. The reason becomes "rule changed". The run and the date of the resolution stay.
+    if (same && old.status === "resolved" && old.status_by?.reason === "fixed") {
+      const then = existing.get(same.id);
+      if (then && ["new", "open", "reopened"].includes(then.status) && then.status_by?.run === old.status_by?.run) {
+        issues.push({ ...old, status_by: { ...old.status_by, reason: "rule changed" } });
+        continue;
+      }
+    }
+    // The same issue under a new ID. The old one is resolved with the reason "rule changed": it is not a fix. The first old ID gives
+    // the new issue its status, origin, source, specific solution, and decision. Several old IDs can give one new ID, for example
+    // one select whose random name was different on each page: each other old ID gives only what the new issue does not have yet.
+    if (same && old.status_by?.run !== run) {
+      if (same.status === "new") {
+        Object.assign(same, {
+          status: old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
+          replaces: old.id, first_seen: old.first_seen || same.first_seen, origin: old.origin || same.origin, source: old.source || same.source, source_warning: old.source_warning ?? same.source_warning,
+          solution: old.solution?.type === "specific" ? old.solution : same.solution, decision: old.decision || same.decision,
+        });
+      } else {
+        if (old.first_seen && old.first_seen < same.first_seen) same.first_seen = old.first_seen;
+        if (same.origin === "unknown" && old.origin) same.origin = old.origin;
+        if (!same.source?.length && old.source?.length) { same.source = old.source; same.source_warning = old.source_warning ?? null; }
+        if (same.solution?.type !== "specific" && old.solution?.type === "specific") same.solution = old.solution;
+        if (!same.decision && old.decision) same.decision = old.decision;
+      }
       issues.push(["resolved", "page removed", "dismissed"].includes(old.status) ? old : { ...old, status: "resolved", status_by: { ...by, reason: "rule changed" } });
+      continue;
+    }
+    // A refresh of the same run corrects a resolution of 1.3.0: it checked the issues of the sample tests against all the tested pages,
+    // so an issue on a tested page out of the sample was resolved, although its test did not run there.
+    if (old.status === "resolved" && old.status_by?.run === run && !same && context?.samplePaths && SAMPLE_RULES.has(old.rule?.id)
+      && (old.examples || []).some((e: { url: string }) => context.testedPaths.has(e.url) && !context.samplePaths!.has(e.url))) {
+      issues.push({ ...old, status: "not checked", status_by: by });
       continue;
     }
     if (old.status === "resolved" || old.status === "page removed" || old.status === "dismissed") { issues.push(old); continue; }
     const paths: string[] = (old.examples || []).map((e: { url: string }) => e.url);
     if (context && paths.length && paths.every((p) => context.gonePaths.has(p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "page removed" } }); continue; }
-    // An issue from a template test or a state needs its pages in the sample of this run, because those tests run only there.
+    // An issue from a template test, a sample test, or a state needs its pages in the sample of this run, because those tests run
+    // only there. The rule decides, not the criterion: 4.1.2 has page tests, but its listener test runs on the sample only.
     const criterion = CRITERIA_BY_ID.get(old.wcag?.criterion);
-    const templateIssue = criterion?.test_groups?.[0] === "template" || (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length);
+    const templateIssue = criterion?.test_groups?.[0] === "template" || SAMPLE_RULES.has(old.rule?.id) || (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length);
     const checked = templateIssue && context?.samplePaths ? context.samplePaths : context?.testedPaths;
     // A page that is gone cannot have the issue any more: it counts as checked.
     if (context && checked && !paths.every((p) => checked.has(p) || context.gonePaths.has(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }

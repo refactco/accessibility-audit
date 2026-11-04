@@ -7,6 +7,8 @@ import { toOutcome, type Found } from "./page.ts";
 import type { Outcome } from "../types.ts";
 
 export const FOCUS_TEST_CRITERIA = ["2.4.7", "2.4.11", "3.2.1", "2.1.2", "2.1.1", "2.4.3"];
+/** The rules of this test. It runs on the sample pages only, so a stored issue of one of these rules is checked there only. */
+export const FOCUS_RULES = ["change-of-context-on-focus", "dialog-without-exit", "focus-entirely-hidden", "focus-indicator-contrast", "focus-leaves-dialog", "focus-not-visible", "keyboard-trap"];
 
 const STYLE_KEYS = ["outlineStyle", "outlineWidth", "outlineColor", "outlineOffset", "boxShadow", "borderTopColor", "borderBottomColor", "backgroundColor", "color", "textDecorationLine", "filter", "transform"];
 

@@ -68,6 +68,9 @@ export interface AuditResult { run: string; pages: PageRecord[]; issues: number;
 /** The non-interference criteria that run with the cookie banner open. */
 const NON_INTERFERENCE = new Set(["1.4.2", "2.1.2", "2.2.2", "2.3.1", "2.4.3"]);
 const TEMPLATE_CRITERIA = new Set([...FOCUS_TEST_CRITERIA, ...LISTENER_TEST_CRITERIA, ...OPERATE_TEST_CRITERIA]);
+/** The errors of a load that a short fault of the network gives, not the site: the load gets one more try after a pause. */
+const TRANSIENT_NETWORK_ERROR = /net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|NETWORK_IO_SUSPENDED|CONNECTION_RESET|CONNECTION_CLOSED|CONNECTION_ABORTED|CONNECTION_TIMED_OUT|TIMED_OUT|EMPTY_RESPONSE|ADDRESS_UNREACHABLE|NAME_NOT_RESOLVED)\b/;
+const NETWORK_RETRY_PAUSE = 5000;
 
 const sameUrl = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
 
@@ -166,6 +169,9 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const budgetReached: ("pages" | "time" | "states" | "questions" | "issues" | "stopped")[] = [];
   let renders = 0;
   let statesTested = 0;
+  // The states outside the state phase: the cookie banner open, once for each template, and the dry submits. They count in statesTested too.
+  let bannerStates = 0;
+  let formStates = 0;
   let bannerRan = false;
   const siteLang = config.site.languages?.[0] || null;
 
@@ -287,9 +293,11 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       await limiter.wait();
       let opened = await openPage(contexts.get(w)!, url, config);
       renders++; record.renders++;
-      if (!opened.ok && /Timeout/.test(opened.error || "")) {
-        // A load that ran into the time limit gets one more try.
+      if (!opened.ok && (/Timeout/.test(opened.error || "") || TRANSIENT_NETWORK_ERROR.test(opened.error || ""))) {
+        // A load that ran into the time limit gets one more try. So does a load that a short network fault stopped, for example a
+        // change of the network of the audit machine, after a pause.
         await opened.page.close();
+        if (!/Timeout/.test(opened.error || "")) { log(`  network error at ${w}, one more try in ${NETWORK_RETRY_PAUSE / 1000} s: ${opened.error?.split("\n")[0]}`); await new Promise((r) => setTimeout(r, NETWORK_RETRY_PAUSE)); }
         await limiter.wait();
         opened = await openPage(contexts.get(w)!, url, config);
         renders++; record.renders++;
@@ -414,7 +422,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
           outcomes.push(...(await runFocusTests(opened.page, url, first, state, opened.blocked, { limit: 30 })).filter((o) => NON_INTERFERENCE.has(o.criterion)));
           record.outcomes.push(...newOnly(record, first, outcomes));
           record.states.push({ id: `S${record.states.length + 1}`, actions: state });
-          statesTested++;
+          statesTested++; bannerStates++;
           bannerRan = true;
         }
       } catch (e) {
@@ -507,7 +515,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       if (r.sample && r.sampleReason === "template" && r.template) templateSeen.add(r.template);
       if (r.sample && (r.sampleReason === "random" || r.sampleReason?.startsWith("technology"))) extraSample++;
       for (const t of (r.facts.technologies as string[] | undefined) || []) technologySeen.add((r.template || "") + "|" + t);
-      if (r.states.some((st) => st.actions.includes("cookie banner open"))) { bannerTested.add(r.template || r.url); bannerRan = true; statesTested++; }
+      if (r.states.some((st) => st.actions.includes("cookie banner open"))) { bannerTested.add(r.template || r.url); bannerRan = true; statesTested++; bannerStates++; }
       if (r.tested && (r.http_status === 404 || r.http_status === 410)) errorPageTested = true;
       if (typeof r.facts.redirectedFrom === "string") redirected.set(r.facts.redirectedFrom, r.url);
       if (r.redirects_to) redirected.set(r.url, r.redirects_to);
@@ -638,7 +646,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
           const r = await runDrySubmit(browser, config, job.record, first, job.form, { contextOptions, limiter, siteLang, shoot });
           dryRuns.push(r);
           renders += r.renders;
-          statesTested += r.states;
+          statesTested += r.states; formStates += r.states;
           log(`  dry submit ${pathOf(job.record.url)} '${job.form.name}': ${r.submissions.map((s) => `${s.variant} ${s.kind}${s.blocked.length ? ` (${s.blocked.length} blocked)` : ""}`).join(", ")}${r.error ? " - " + r.error : ""}`);
         } catch (e) {
           log(`  dry submit error at ${job.record.url}: ${(e as Error).message.split("\n")[0]}`);
@@ -740,7 +748,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     }
   }
 
-  const coverage = { ...pageCoverage(pages), states_tested: statesTested, ...(statesPlanned ? { states_planned: statesPlanned, states_not_applied: Object.fromEntries(statesNotApplied) } : {}), forms_tested: dryRuns.filter((r) => r.tested).length, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
+  const coverage = { ...pageCoverage(pages), states_tested: statesTested, ...(statesPlanned ? { states_planned: statesPlanned, states_not_applied: Object.fromEntries(statesNotApplied) } : {}), ...(bannerStates ? { banner_states_tested: bannerStates } : {}), ...(formStates ? { form_states_tested: formStates } : {}), forms_tested: dryRuns.filter((r) => r.tested).length, processes_tested: processesTested, processes_not_tested: config.interaction.processes.length - processesTested, tests_not_run: testsNotRun, budget_reached: budgetReached };
   const processes = Object.fromEntries(processRuns.map((r) => [r.name, r.tested ? { tested: true, ...processSummary(r.records, [first]) } : { tested: false, reason: r.reason || "not tested" }]));
   const overview = buildOverview(all, widths, criteria, issues, decisions);
   const summary = { schema: "summary/1", site: config.site.url, run, date, standard: "WCAG 2.2", level: "AA", versions, baseline, counts, coverage, criteria, processes, overview };

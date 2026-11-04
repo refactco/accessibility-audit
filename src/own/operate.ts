@@ -7,6 +7,8 @@ import { toOutcome, type Found } from "./page.ts";
 import type { Outcome } from "../types.ts";
 
 export const OPERATE_TEST_CRITERIA = ["4.1.2", "3.2.2", "4.1.3", "1.4.13"];
+/** The rules of this test. It runs on the sample pages only, so a stored issue of one of these rules is checked there only. */
+export const OPERATE_RULES = ["change-of-context-on-input", "composite-parts-unreachable", "expanded-state-not-updated", "hover-content", "message-not-in-live-region"];
 
 function denied(name: string, config: Config): boolean {
   const n = name.toLowerCase();

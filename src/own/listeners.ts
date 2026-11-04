@@ -6,6 +6,8 @@ import { toOutcome, type Found } from "./page.ts";
 import type { Outcome } from "../types.ts";
 
 export const LISTENER_TEST_CRITERIA = ["2.1.4", "2.5.1", "2.5.2", "2.5.4", "2.5.7", "2.1.1", "4.1.2"];
+/** The rules of this test. It runs on the sample pages only, so a stored issue of one of these rules is checked there only. */
+export const LISTENER_RULES = ["control-not-focusable", "control-without-role", "device-motion-listener", "down-event-listener", "drag-listener", "gesture-listener", "single-key-shortcut"];
 
 const INTERACTIVE = "a[href], button, input, select, textarea, [role=button], [role=link], [role=checkbox], [role=radio], [role=switch], [role=tab], [role=menuitem], [tabindex], summary";
 

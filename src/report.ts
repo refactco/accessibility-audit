@@ -62,11 +62,14 @@ export function renderReport(r: ReportInput): string {
     lines.push(`${unopened.length} addresses were not opened, because a budget or a stop came first (${reasons}). They do not count in the pages found, because nothing is known about them.${s ? ` From the settings: ${s.settings}, from the sitemaps and the API: ${s.sources}, from the links: ${s.links}.` : ""}\n`);
   }
   const c = r.coverage;
+  // The states outside the state phase, so that the planned and the tested states of the state phase and the total agree.
+  const otherStates = [c?.banner_states_tested ? `${c.banner_states_tested} with the cookie banner open, one for each template` : "", c?.form_states_tested ? `${c.form_states_tested} after a dry submit` : ""].filter(Boolean);
+  const otherLine = otherStates.length ? ` Other states: ${otherStates.join(", ")}. ${c?.states_tested} states tested in all.` : "";
   if (c?.states_planned) {
     const notApplied = Object.entries((c.states_not_applied || {}) as Record<string, number>);
     const failed = notApplied.reduce((n, [, v]) => n + v, 0);
-    lines.push(`State phase: ${c.states_planned} states planned, ${c.states_planned - failed} tested, ${failed} not applied${notApplied.length ? ": " + notApplied.map(([k, v]) => `${k} ${v}`).join(", ") : ""}. The log names each state that was not applied.\n`);
-  }
+    lines.push(`State phase: ${c.states_planned} states planned, ${c.states_planned - failed} tested, ${failed} not applied${notApplied.length ? ": " + notApplied.map(([k, v]) => `${k} ${v}`).join(", ") : ""}. The log names each state that was not applied.${otherLine}\n`);
+  } else if (otherLine) lines.push(otherLine.trim() + "\n");
   if (r.groupChoices?.length) lines.push(`Address groups: ${r.groupChoices.map((g) => `${g.pattern} took ${g.chosen} of ${g.found} addresses from the sitemaps and the API, order "${g.order}"`).join("; ")}.\n`);
   const partial = tested.filter((p) => p.widths_not_loaded?.length);
   if (partial.length) lines.push(`${partial.length} pages did not load at some widths and are tested at the others: ${partial.slice(0, 20).map((p) => `${key(p.url)} (not at ${p.widths_not_loaded!.join(", ")})`).join(", ")}${partial.length > 20 ? ", and more" : ""}.\n`);
