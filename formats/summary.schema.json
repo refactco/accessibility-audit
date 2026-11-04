@@ -136,7 +136,18 @@
         },
         "states_tested": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "All the states tested: the tested states of the state phase, plus banner_states_tested and form_states_tested."
+        },
+        "banner_states_tested": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The states with the cookie banner open, one for each template. Not in states_planned."
+        },
+        "form_states_tested": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The states after a dry submit. Not in states_planned. See FORMS.md."
         },
         "states_planned": {
           "type": "integer",

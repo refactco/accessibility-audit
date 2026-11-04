@@ -2,6 +2,26 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.1, 2026-11-04
+
+Fixes from the third full audit of the large WordPress multisite, with 1.3.0, on 2026-11-03. The audit compared the site with results of 1.1.1. It marked 10 issues "fixed", but their elements still failed.
+
+The statuses:
+
+- When several issue IDs of an older version give one new ID, each old ID is resolved with the reason "rule changed". Before, only the first old ID got "rule changed", and the others got "fixed". This happens when an element had a new random name on each page, for example the select of a slider. The new issue takes the origin, the source, the specific solution, and the decision from the old IDs that have them.
+- Some tests run on the sample pages only, for example the listener test. An issue of such a test is "not checked" when its page is not in the sample. Before, the engine decided by the criterion. axe-core tests 4.1.2 on each page. So an issue of the listener test on a page out of the sample was resolved, but the test did not run there.
+- A refresh corrects the statuses that 1.3.0 gave for these two reasons. A false "fixed" becomes "rule changed", and a false "resolved" on a page out of the sample becomes "not checked". The run and the date of a resolution stay. The next audit corrects a false "fixed" too. After the upgrade, run `refact-a11y refresh` once on a results folder of 1.3.0.
+
+The page loads:
+
+- A short fault of the network can stop a load, for example `net::ERR_NETWORK_CHANGED` when the network of the audit machine changes. Then the load gets one more try after 5 seconds. The log names the error. Before, only a load that ran into the time limit got a second try, and the page was "did not load".
+
+The counts:
+
+- The states with the cookie banner open and the states of the dry submit have their own counts, `coverage.banner_states_tested` and `coverage.form_states_tested`. They are not in `states_planned`. The report gives them after the state phase, with the total. Before, `states_tested` was larger than `states_planned`, and nothing told why.
+
+The tests: a new test file, `statuses`, in `npm test`. Each check of a fix fails on 1.3.0.
+
 ## 1.3.0, 2026-11-03
 
 Fixes from the second full audit of the large WordPress multisite, with 1.2.0, on 2026-11-02. The sitemaps filled the time budget, so the audit opened no address that only links give. Of the 198 planned states, 161 did not count, and the log gave no reason.
