@@ -8,7 +8,7 @@ import { FILE_ADDRESS, RateLimiter, isCommonPage, isPermitted, isSkipped, newFro
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
-import { applyAnswers, buildIssues, buildQuestions, loadExisting, needsSample, sha, type CompareContext } from "./issues.ts";
+import { applyAnswers, buildIssues, buildQuestions, hasPath, loadExisting, needsSample, sha, type CompareContext } from "./issues.ts";
 import { ENGINE_VERSION, PAGE_TEST_CRITERIA, dropTargetQuestions, runPageTests, runUpdateWatch } from "./own/page.ts";
 import { runImageOfTextTest, runImageTextContrastTest } from "./own/images.ts";
 import { LAYOUT_TEST_CRITERIA, runReflow, runSpacing, runZoom } from "./own/layout.ts";
@@ -21,7 +21,7 @@ import { decideContrastQuestions } from "./own/contrast.ts";
 import { runProcesses, type ProcessRun } from "./process.ts";
 import { DRY_SUBMIT_CRITERIA, findForms, runDrySubmit, type DryRun, type FormCandidate } from "./own/dry-submit.ts";
 import { renderReport, type ReportData, type TemplateDifference } from "./report.ts";
-import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
+import { countIssues, issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import { buildOverview, historyOverview, readHistory } from "./overview.ts";
 import { NOT_OPENED, inScope, notOpened, type NotTestedReason, type Outcome, type PageRecord } from "./types.ts";
@@ -150,18 +150,28 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   writeState(false);
   const shoot = (page: import("playwright").Page, outcomes: Outcome[]) => shootQuestions(page, outcomes, outDir, shotDir);
   const frontier = newFrontier();
+  // The results of the earlier runs in the folder. The audit compares with them at the end.
+  const existingIssues = loadExisting(outDir, "issues");
+  const existingQuestions = loadExisting(outDir, "questions");
   // The pages of the open and the "not checked" issues of the tests that run on the sample only: they open first and join the sample,
   // so that this audit checks each such issue. Before 1.3.2 they joined the sample only by chance.
-  const issuePages = only ? [] : [...new Set([...loadExisting(outDir, "issues").values()]
-    .filter((i) => ["new", "open", "reopened", "not checked"].includes(i.status) && needsSample(i.rule?.id, i.wcag?.criterion, (i.examples || []).some((e: { state?: string[] }) => !!e.state?.length)))
+  const issuePages = only ? [] : [...new Set([...existingIssues.values()]
+    .filter((i) => ["new", "open", "reopened", "not checked"].includes(i.status) && needsSample(i.rule?.id, i.wcag?.criterion, (i.examples || []).some((e: { state?: string[] }) => !!e.state?.length), i.rule?.engine))
     .flatMap((i) => (i.examples || []).map((e: { url: string }) => new URL(e.url, base).toString())))].sort();
-  const seedStats = await seed(config, frontier, limiter, only, issuePages);
+  // The pages of the questions of the sample tests that have no answer yet, at most the limit of the sample. The random part of the
+  // sample changes in each run, so that the deep tests reach more of the site: without this, such a question is "not checked" in the
+  // next run. Since 1.3.3.
+  const questionPages = only ? [] : [...new Set([...existingQuestions.values()]
+    .filter((q) => !effectiveAnswer(q).value && needsSample(q.evidence?.rule || "", q.criterion, false))
+    .flatMap((q) => ((q.evidence?.pages || []) as string[]).map((u) => new URL(u, base).toString())))].filter((u) => !issuePages.includes(u)).sort().slice(0, sampleLimit);
+  const seedStats = await seed(config, frontier, limiter, only, [...issuePages, ...questionPages]);
   // The count from each source, then what the rules left, so that a person can check the discovery.
   const fromApis = seedStats.apis.reduce((n, a) => n + a.addresses, 0);
   log(`sources: ${seedStats.settings} from the settings, ${seedStats.sitemapAddresses} from ${seedStats.sitemapFiles} sitemap files${seedStats.apis.length ? `, ${fromApis} from ${seedStats.apis.length} WordPress APIs` : ""}`);
   for (const a of seedStats.apis) log(`  API ${pageKey(config.site.url, a.url)}: ${a.addresses} addresses`);
   for (const g of frontier.groupChoices) log(`  address group ${g.pattern}: ${g.chosen} of ${g.found} addresses chosen, order "${g.order}"`);
   if (issuePages.length) log(`  ${issuePages.length} pages of open issues of the sample tests: they open first and join the sample`);
+  if (questionPages.length) log(`  ${questionPages.length} pages of open questions of the sample tests: they open first and join the sample`);
   const notCrawled = Object.entries(seedStats.skipped).map(([r, n]) => `${r} ${n}`).join(", ");
   log(`${queuedCount(frontier)} addresses to start (${seedStats.queued.settings} from the settings, ${seedStats.queued.sources} from the sitemaps and the API)${notCrawled ? ", not crawled: " + notCrawled : ""}, ${seedStats.repeated} repeated or not permitted, ${concurrency} workers`);
 
@@ -194,6 +204,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   for (const t of config.crawl.templates) if (t.example_page) required.set(pathKey(t.example_page), "template example");
   for (const p of config.interaction.processes) for (const s of p.steps) required.set(pathKey(s.page), "process");
   for (const u of issuePages) if (!required.has(pathKey(u))) required.set(pathKey(u), "open issue");
+  for (const u of questionPages) if (!required.has(pathKey(u))) required.set(pathKey(u), "open question");
   const templateSeen = new Set(config.crawl.templates.filter((t) => t.example_page).map((t) => t.name));
   const technologySeen = new Set<string>();
   let extraSample = 0;
@@ -526,6 +537,9 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
 
   let processRuns: ProcessRun[] = [];
   const dryRuns: DryRun[] = [];
+  // The pages of earlier results that the crawl did not find: gone (404, 410, or a redirect), or still there with no source.
+  const earlierGone = new Set<string>();
+  const earlierFound: string[] = [];
   // A resume: the pages of the partial file come back as they were at the end of the crawl phase. Their links go into the frontier
   // again, and the workers skip each address that the run already finished.
   if (resumed) {
@@ -602,6 +616,37 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         await Promise.all(Array.from({ length: concurrency }, () => quickWorker()));
         const unchecked = left.length - nextQuick;
         log(`quick check: ${[...results].map(([w, n]) => `${w} ${n}`).join(", ")}${unchecked ? `, ${unchecked} not checked before 90% of the time budget` : ""}`);
+      }
+
+      // The pages of the earlier issues and questions that this run did not meet: no sitemap, API, or link gives them now. One request
+      // each, with no browser, tells if a page is gone: 404, 410, or a redirect. Then its issues are "page removed" and its questions
+      // go. A page that still answers keeps its results "not checked", and the report names it. Before 1.3.3 such results stayed
+      // "not checked" with no end. At most 500 addresses, until 90% of the time budget.
+      const met = new Set<string>([...pages.map((p) => key(p.url)), ...[...claimed].map(key), ...frontier.skipped.map((s) => key(s.url)), ...[...redirected.keys()].map(key)]);
+      const earlier = new Set<string>();
+      for (const i of existingIssues.values()) if (["new", "open", "reopened", "not checked", "accepted"].includes(i.status)) for (const e of i.examples || []) earlier.add(e.url);
+      for (const q of existingQuestions.values()) for (const p of (q.evidence?.pages || []) as string[]) earlier.add(p);
+      const unseen = [...earlier].filter((p) => !hasPath(met, p)).sort().slice(0, 500);
+      if (unseen.length) {
+        let nextOld = 0;
+        let unknown = 0;
+        const oldWorker = async () => {
+          for (;;) {
+            if (stopping || nextOld >= unseen.length || (Date.now() - startedAt) / 60000 > config.budgets.time_budget_minutes * (options.shares?.quick ?? 0.9)) return;
+            const p = unseen[nextOld++];
+            const url = new URL(p, base).toString();
+            const answer = await quickCheck(url, limiter, (next) => { const n = normalizeUrl(config, next, url); return !!n && isPermitted(config, n); }).catch(() => null);
+            if (!answer || answer.challenge || answer.status === 429) { unknown++; continue; }
+            const final = normalizeUrl(config, answer.finalUrl || url, url) || answer.finalUrl;
+            const from = normalizeUrl(config, url, url) || url;
+            if (answer.status === 404 || answer.status === 410 || (final && final !== from)) earlierGone.add(p);
+            else if (answer.status >= 200 && answer.status < 300) earlierFound.push(p);
+            else unknown++;
+          }
+        };
+        await Promise.all(Array.from({ length: concurrency }, () => oldWorker()));
+        earlierFound.sort();
+        log(`${unseen.length} pages of earlier results were not found by the crawl: ${earlierGone.size} gone, ${earlierFound.length} still answer${unknown ? `, ${unknown} with no clear answer` : ""}${unseen.length - nextOld > 0 ? `, ${unseen.length - nextOld} not checked before 90% of the time budget` : ""}`);
       }
     }
 
@@ -703,8 +748,6 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
 
   const processPages = processRuns.flatMap((r) => r.records);
   const all = [...pages, ...processPages];
-  const existingIssues = loadExisting(outDir, "issues");
-  const existingQuestions = loadExisting(outDir, "questions");
   // The last run before this one. A resumed run that a stop ended is in the history already.
   const previous = (readHistory(outDir) as Record<string, any>[]).filter((h) => h.run !== run).pop() || null;
   const versions = { engine: ENGINE_VERSION, axe_core: AXE_VERSION, browser: browserVersion };
@@ -715,7 +758,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   try { for (const line of readFileSync(join(outDir, "pages.jsonl"), "utf8").split("\n")) { if (!line) continue; const p = JSON.parse(line); if (p.http_status && !p.redirects_to) previousStatus.set(key(p.url), p.http_status); } } catch { /* the first run */ }
   // A page of the last audit is gone when it gives 404 or 410 now, or when its address redirects now.
   const wasPage = (u: string) => previousStatus.has(key(u)) && (previousStatus.get(key(u)) || 0) < 400;
-  const gone = new Set([...pages.filter((p) => (p.http_status === 404 || p.http_status === 410) && wasPage(p.url)).map((p) => key(p.url)), ...[...redirected.keys()].filter(wasPage).map(key)]);
+  const gone = new Set([...pages.filter((p) => (p.http_status === 404 || p.http_status === 410) && wasPage(p.url)).map((p) => key(p.url)), ...[...redirected.keys()].filter(wasPage).map(key), ...earlierGone]);
   const context: CompareContext = {
     testedPaths: new Set(all.filter((p) => p.tested).map((p) => key(p.url))),
     samplePaths: new Set(all.filter((p) => p.tested && p.sample).map((p) => key(p.url))),
@@ -738,10 +781,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const processesTested = processRuns.filter((r) => r.tested).length;
   const criteria = siteSummary(all, widths, { all: config.interaction.processes.length, tested: processesTested }, issueCounts, questionCounts, aiOnly, decisions);
   const durationSeconds = Math.round((Date.now() - startedAt) / 1000);
-  const count = (s: string) => issues.filter((i) => i.status === s).length;
-  // A replaced pair does not count as one resolved issue and one new issue.
-  const replaced = new Set(issues.filter((i) => i.replaces).map((i) => i.replaces));
-  const counts = { new: issues.filter((i) => i.status === "new" && !i.replaces).length, open: count("open"), resolved: issues.filter((i) => i.status === "resolved" && i.status_by.run === run && i.status_by.reason === "fixed" && !replaced.has(i.id)).length, resolved_rule_changed: issues.filter((i) => i.status === "resolved" && i.status_by.run === run && i.status_by.reason === "rule changed").length, reopened: count("reopened"), not_checked: count("not checked"), page_removed: count("page removed"), accepted: count("accepted"), dismissed: count("dismissed") };
+  const counts = countIssues(issues, run);
   const tested = pages.filter((p) => p.tested);
 
   // The tests that did not run, with the reason.
@@ -797,7 +837,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     budgetLeft.bySection[section] = (budgetLeft.bySection[section] || 0) + 1;
   }
   // The parts of the report that come from the crawl, in the run folder, so that a refresh writes the same report.
-  const reportData: ReportData = { notOpenedBySource, budgetLeft, groupChoices: frontier.groupChoices, differences, skipped: frontier.skipped };
+  const reportData: ReportData = { notOpenedBySource, budgetLeft, groupChoices: frontier.groupChoices, differences, skipped: frontier.skipped, ...(earlierGone.size || earlierFound.length ? { earlierPages: { gone: earlierGone.size, found: earlierFound } } : {}) };
   writeFileSync(join(runDir, "report-data.json"), JSON.stringify(reportData) + "\n");
   const report = renderReport({ config, run, date, versions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested, coverage, ...reportData, decisions, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
   writeResults(outDir, { config, summary, pages: pageFiles, issues, questions: allQuestions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });

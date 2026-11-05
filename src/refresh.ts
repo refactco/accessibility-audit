@@ -9,7 +9,7 @@ import { effectiveAnswer, loadDecisions } from "./decide.ts";
 import { applyAnswers, buildIssues, buildQuestions, lastRun, loadExisting, type CompareContext } from "./issues.ts";
 import { buildOverview, historyOverview, readHistory, updateHistoryLine } from "./overview.ts";
 import { renderReport, type ReportData } from "./report.ts";
-import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
+import { countIssues, issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import type { Outcome, PageRecord } from "./types.ts";
 
@@ -80,9 +80,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const processNames: string[] = Object.keys(summary.processes || {});
   const processesTested = processNames.filter((name) => summary.processes[name].tested).length;
   const criteria = siteSummary(records, widths, { all: processNames.length, tested: processesTested }, issueCounts, questionCounts, aiOnly, decisions);
-  const count = (s: string) => issues.filter((i) => i.status === s).length;
-  const replaced = new Set(issues.filter((i) => i.replaces).map((i) => i.replaces));
-  const counts = { new: issues.filter((i) => i.status === "new" && !i.replaces).length, open: count("open"), resolved: issues.filter((i) => i.status === "resolved" && i.status_by.run === run && i.status_by.reason === "fixed" && !replaced.has(i.id)).length, resolved_rule_changed: issues.filter((i) => i.status === "resolved" && i.status_by.run === run && i.status_by.reason === "rule changed").length, reopened: count("reopened"), not_checked: count("not checked"), page_removed: count("page removed"), accepted: count("accepted"), dismissed: count("dismissed") };
+  const counts = countIssues(issues, run);
   const processes = Object.fromEntries(processNames.map((name) => {
     const old = summary.processes[name];
     if (!old.tested) return [name, old];
@@ -92,7 +90,9 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const overview = buildOverview(records, widths, criteria, issues, decisions);
   // The page counts come from the page records of today: a person can remove the records of addresses that are not pages of the site.
   const { pages_out_of_scope: _old, pages_not_opened: _unknown, ...kept } = summary.coverage || {};
-  const coverage = { ...kept, ...pageCoverage(records) };
+  // The page counts first, then the other parts, as the audit writes them: a refresh with no new answer gives the same file.
+  const pageCounts = pageCoverage(records);
+  const coverage = { ...pageCounts, ...kept, ...pageCounts };
   const newSummary = { ...summary, counts, coverage, criteria, processes, overview };
   updateHistoryLine(outDir, run, { counts, overview: historyOverview(overview) });
   const byPage = issuesByPage(issues as { id: string; examples: { url: string }[] }[]);

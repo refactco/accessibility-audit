@@ -87,6 +87,22 @@ export function processSummary(records: PageRecord[], widths: number[]): { resul
   return { result: rollUp(Object.values(criteria)), criteria };
 }
 
+/** The counts of the issues of a run, for summary.json, history.jsonl, and the report. A new issue that replaces an issue that this
+ *  run resolved as fixed, after a change of the markup, counts as "replaced": the pair does not count as one new and one resolved
+ *  issue. Before 1.3.3 the report counted the pair, and summary.json did not. */
+export function countIssues(issues: Record<string, any>[], run: string) {
+  const count = (s: string) => issues.filter((i) => i.status === s).length;
+  const thisRun = (reason: string) => issues.filter((i) => i.status === "resolved" && i.status_by?.run === run && i.status_by?.reason === reason);
+  const replacedIds = new Set(issues.filter((i) => i.replaces).map((i) => i.replaces));
+  const fixed = thisRun("fixed");
+  return {
+    new: issues.filter((i) => i.status === "new" && !i.replaces).length, open: count("open"),
+    resolved: fixed.filter((i) => !replacedIds.has(i.id)).length, resolved_rule_changed: thisRun("rule changed").length,
+    replaced: issues.filter((i) => i.status === "new" && i.replaces).length,
+    reopened: count("reopened"), not_checked: count("not checked"), page_removed: count("page removed"), accepted: count("accepted"), dismissed: count("dismissed"),
+  };
+}
+
 export function outcomesOf(pages: PageRecord[]): Outcome[] {
   return pages.flatMap((p) => p.outcomes);
 }
