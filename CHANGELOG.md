@@ -2,6 +2,32 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.3, 2026-11-05
+
+Fixes from the fifth full audit of the large WordPress multisite, with 1.3.2 and the full budget, on 2026-11-05. The site did not change, but some issues and questions came and went from run to run. Also, the report and `summary.json` gave different counts.
+
+The tests:
+
+- The focus test counts only the points of a control that are in the viewport. It reads a control that looks hidden a second time, when the control and the page do not move any more. Before, one read 25 ms after the key decided, and a point outside the viewport counted as covered. So a control gave an issue while the browser scrolled to it, or while a skip link moved in. The same page gave different issues in each run. The detection of `focus-entirely-hidden` is now 1.3.3: an issue of an older engine that goes away is "rule changed".
+- The watch of the content that changes by itself leaves out the body and the elements that hold the main content. Before, a script that adds an element to the body gave a question on the body. The pages with such a question were different in each run. For an element that changes, the item of the question has no text, and the HTML has only the start tag. So the ID and the answer stay. The detection of `content-updates-by-itself` is now 1.3.3.
+
+The results from run to run:
+
+- The name of a state comes from the text of its control. When that text changes, for example the options of a list, the IDs of the issues in the state change. Now the new ID continues the old one when the same element fails in a state of the same page: it is open, with the origin, the source, the solution, and the decision of the old one. The old ID is resolved with the reason "rule changed". Before, the old ID was "fixed", and the new one was "new", with no origin. A refresh corrects such a pair of 1.3.2. After the upgrade, run `refact-a11y refresh` once on a results folder of 1.3.2.
+- An example path of an older version can differ from the page by the trailing slash, for example `/about` for `/about/`. The comparison now accepts both forms. Before, such an issue stayed "not checked" in each run.
+- The pages of earlier issues and questions that the crawl did not find get one request each, with no browser. A page that gives 404 or 410, or that redirects, is gone: its issues are "page removed", and its questions go. A page that still answers keeps its results "not checked", and the report names it. Before, such results stayed "not checked" with no end.
+- Some questions come from tests that run on the sample only. The pages of such questions with no answer now open first and join the sample, with the reason "open question". The limit of the sample applies. The random part of the sample still changes in each run, so that the deep tests reach more of the site.
+- An issue of axe-core needs the sample only in a state. axe-core runs on each tested page, also for a template criterion such as 2.1.1. Before, such an issue took a place in the sample.
+- Two old questions can give one new ID, for example an image with `lazyloaded` and the same image with `ls-is-cached lazyloaded`. Then the question with an answer continues. The answer stays when the old hash differs only by a part that this version leaves out. Before, the first old ID that the search found continued, and the answer of another one went.
+- A change of an ID matches only an issue that the run found. Before, an old issue sometimes matched another old issue.
+
+The counts and the refresh:
+
+- `summary.json`, `history.jsonl`, and the report count the issues with one function. Some new issues replace an issue that the run resolved as fixed. Such an issue counts as `replaced`, a new count. It does not count as new or as resolved. Before, the report counted the pair, and `summary.json` did not.
+- A refresh with no new answer writes the same `summary.json`. Before, it moved `coverage.pages_out_of_scope` to the end.
+
+The tests: a new test file, `false-changes`, in `npm test`. 17 of its 21 checks fail on 1.3.2. The other 4 are 3 checks of the setup and one check that passes on both versions.
+
 ## 1.3.2, 2026-11-05
 
 Fixes from the fourth full audit of the large WordPress multisite, with 1.3.1 and a short time budget, on 2026-11-04. The run lost 17 AI answers, and a refresh changed many files with no new data.

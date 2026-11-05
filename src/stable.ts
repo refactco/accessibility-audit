@@ -60,7 +60,8 @@ function classesOf(html: string): string[] {
 }
 
 /** The items that 1.3.1 and older versions gave for an element with the classes of a lazy load: the first three classes as they were,
- *  and the same without ls-is-cached, the class that changes with the cache. Empty when the element has no such class. */
+ *  the same without ls-is-cached, the class that changes with the cache, and the same with ls-is-cached before lazyloaded.
+ *  Empty when the element has no such class. */
 export function legacyItems(item: string, html: string): string[] {
   const raw = classesOf(html);
   if (!raw.some((c) => LAZY_CLASS.test(c))) return [];
@@ -71,7 +72,11 @@ export function legacyItems(item: string, html: string): string[] {
   if (now && !head.endsWith("." + now)) return [];
   const base = now ? head.slice(0, head.length - now.length - 1) : head;
   const out = new Set<string>();
-  for (const list of [raw, raw.filter((c) => c !== "ls-is-cached")]) {
+  const lists = [raw, raw.filter((c) => c !== "ls-is-cached")];
+  // The same image with ls-is-cached, when it was in the cache of the browser in the old run and not in this one.
+  const at = raw.indexOf("lazyloaded");
+  if (at >= 0 && !raw.includes("ls-is-cached")) lists.push([...raw.slice(0, at), "ls-is-cached", ...raw.slice(at)]);
+  for (const list of lists) {
     const cls = list.slice(0, 3).join(".");
     out.add(base + (cls ? "." + cls : "") + item.slice(bar));
   }

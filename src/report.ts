@@ -5,7 +5,7 @@ import type { Config } from "./config.ts";
 import { effectiveAnswer, type Decision } from "./decide.ts";
 import type { IssueFile, QuestionFile } from "./issues.ts";
 import type { ProcessRun } from "./process.ts";
-import type { CriterionSummary } from "./results.ts";
+import { countIssues, type CriterionSummary } from "./results.ts";
 import { inScope, notOpened, type PageRecord } from "./types.ts";
 import { renderOverviewMarkdown, type HistoryPoint, type Overview } from "./overview.ts";
 
@@ -21,6 +21,9 @@ export interface ReportData {
   budgetLeft?: { count: number; bySource: { settings: number; sources: number; links: number }; bySection: Record<string, number> };
   /** How each address group with a limit chose its addresses. */
   groupChoices?: { pattern: string; order: string; chosen: number; found: number }[];
+  /** The pages of earlier issues and questions that the crawl did not find: the count of the gone pages, and the pages that still
+   *  answer. Since 1.3.3. */
+  earlierPages?: { gone: number; found: string[] };
 }
 
 export interface ReportInput extends ReportData {
@@ -55,16 +58,19 @@ export function renderReport(r: ReportInput): string {
   const unopened = crawled.filter(notOpened);
   const outside = r.pages.filter((p) => !inScope(p));
   const tested = crawled.filter((p) => p.tested);
-  const counts = (status: string) => r.issues.filter((i) => i.status === status).length;
-  // The issues that this run resolved, for any reason. The resolutions of older runs stay in their files, but they are not of this run.
-  const resolved = r.issues.filter((i) => i.status === "resolved" && i.status_by.run === r.run);
+  // The counts of summary.json. A new issue that replaces an issue that this run resolved counts in neither column: the line of the
+  // replaced issues names the pairs.
+  const n = countIssues(r.issues, r.run);
+  const replacedIds = new Set(r.issues.filter((i) => i.status === "new" && i.replaces).map((i) => i.replaces));
+  // The issues that this run resolved, for any reason, but not the replaced ones. The resolutions of older runs are not of this run.
+  const resolved = r.issues.filter((i) => i.status === "resolved" && i.status_by.run === r.run && !replacedIds.has(i.id));
   lines.push(`# Accessibility audit of ${r.config.site.url}\n`);
   lines.push(`Run ${r.run}, ${r.config.site.environment}, WCAG 2.2 AA. Engine ${r.versions.engine}, axe-core ${r.versions.axe_core}, ${r.versions.browser}. ${Math.round(r.durationSeconds)} seconds, ${r.renders} renders.\n`);
   lines.push(`## Summary\n`);
   const results = Object.values(r.criteria).map((c) => c.result);
   const count = (x: string) => results.filter((v) => v === x).length;
   lines.push(`| Pages found | Pages tested | In the sample | States | Processes | Issues new | Issues open | Resolved | Questions for the AI | Questions for a person |\n|---|---|---|---|---|---|---|---|---|---|`);
-  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${resolved.length} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
+  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${n.new} | ${n.open + n.reopened} | ${n.resolved + n.resolved_rule_changed} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
   lines.push(`Criteria: ${count("failed")} failed, ${count("needs review")} need a review, ${count("needs a person")} need a person, ${count("no issue found")} with no issue found, ${count("no content found")} with no content found, ${count("not tested")} not tested, ${count("passed")} passed, ${count("not applicable")} not applicable.\n`);
   if (r.budgetReached.length) lines.push(`The audit reached a budget: ${r.budgetReached.join(", ")}. The pages that it did not test are in the page list.\n`);
   const left = r.budgetLeft;
@@ -72,6 +78,8 @@ export function renderReport(r: ReportInput): string {
     const sections = Object.entries(left.bySection).sort((a, b) => b[1] - a[1]);
     lines.push(`${left.count} pages were found but not tested, because a budget came first. From the settings: ${left.bySource.settings}, from the sitemaps and the API: ${left.bySource.sources}, from the links: ${left.bySource.links}. By section: ${sections.slice(0, 10).map(([k, v]) => `${k} ${v}`).join(", ")}${sections.length > 10 ? `, and ${sections.length - 10} more sections` : ""}.\n`);
   }
+  const ep = r.earlierPages;
+  if (ep && (ep.gone || ep.found.length)) lines.push(`${ep.gone + ep.found.length} pages of earlier issues and questions were not found by the crawl: no sitemap, API, or link gives them now.${ep.gone ? ` ${ep.gone} are gone (404, 410, or a redirect), so their issues are "page removed" and their questions go.` : ""}${ep.found.length ? ` ${ep.found.length} still answer, so their issues and questions stay "not checked": ${ep.found.slice(0, 10).join(", ")}${ep.found.length > 10 ? ", and more" : ""}. Add them to crawl.sample_pages to test them, or remove their results.` : ""}\n`);
   if (r.questionsNotChecked) lines.push(`${r.questionsNotChecked} questions of earlier runs are not checked: this run did not test their pages, or their test runs on the sample only and their pages were not in it. They keep their answers, and they do not count here.\n`);
   if (unopened.length) {
     const by = (reason: string) => unopened.filter((p) => p.not_tested_reason === reason).length;
@@ -125,8 +133,10 @@ export function renderReport(r: ReportInput): string {
   if (resolved.length) lines.push(`${resolved.length} issues are resolved in this audit: ${resolved.map((i) => i.id + (i.status_by.reason === "rule changed" ? " (rule changed)" : "")).join(", ")}.\n`);
   const notChecked = r.issues.filter((i) => i.status === "not checked");
   if (notChecked.length) lines.push(`${notChecked.length} issues are not checked, because the audit did not test all their pages: ${notChecked.map((i) => i.id).join(", ")}.\n`);
-  const replaced = r.issues.filter((i) => i.replaces);
-  if (replaced.length) lines.push(`${replaced.length} new issues replace an older issue after a change of the markup: ${replaced.map((i) => i.id + " replaces " + i.replaces).join(", ")}.\n`);
+  const replaced = r.issues.filter((i) => i.status === "new" && i.replaces);
+  if (replaced.length) lines.push(`${replaced.length} new issues replace an older issue after a change of the markup: ${replaced.map((i) => i.id + " replaces " + i.replaces).join(", ")}. They do not count as new or as resolved.\n`);
+  const continued = r.issues.filter((i) => i.status !== "new" && i.replaces && r.issues.some((o) => o.id === i.replaces && o.status_by?.run === r.run));
+  if (continued.length) lines.push(`${continued.length} issues continue an older issue under a new ID, for example after a new name of a state: ${continued.map((i) => i.id + " continues " + i.replaces).join(", ")}. The old ID is resolved with the reason "rule changed".\n`);
   const decided = r.issues.filter((i) => i.status === "accepted" || i.status === "dismissed");
   if (decided.length) lines.push(`${decided.length} issues are accepted or dismissed: ${decided.map((i) => i.id + " (" + i.status + ")").join(", ")}.\n`);
 

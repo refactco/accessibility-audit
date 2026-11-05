@@ -64,6 +64,11 @@
           "type": "integer",
           "minimum": 0
         },
+        "replaced": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The new issues that replace an issue that this run resolved as fixed, after a change of the markup. The pair counts neither in new nor in resolved. Since 1.3.3."
+        },
         "reopened": {
           "type": "integer",
           "minimum": 0

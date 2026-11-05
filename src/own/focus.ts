@@ -22,13 +22,15 @@ const READ = `(() => {
   const r = el.getBoundingClientRect();
   const points = [];
   for (const fx of [0.1, 0.5, 0.9]) for (const fy of [0.1, 0.5, 0.9]) points.push([r.left + r.width * fx, r.top + r.height * fy]);
-  let covered = 0, inViewport = r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
+  let covered = 0, inside = 0, inViewport = r.width > 0 && r.height > 0 && r.bottom > 0 && r.right > 0 && r.top < innerHeight && r.left < innerWidth;
   let coverer = "";
+  // Only the points in the viewport count. A point outside it is not hidden by content: the browser can still scroll to it, or the
+  // control can still move in, for example a skip link that slides down. Before 1.3.3 such a point counted as covered.
   for (const [x, y] of points) {
-    if (x < 0 || y < 0 || x > innerWidth || y > innerHeight) { covered++; continue; }
+    if (x < 0 || y < 0 || x >= innerWidth || y >= innerHeight) continue;
+    inside++;
     const hit = document.elementFromPoint(x, y);
-    if (!hit) { covered++; continue; }
-    if (hit === el || el.contains(hit) || hit.contains(el)) continue;
+    if (!hit || hit === el || el.contains(hit) || hit.contains(el)) continue;
     covered++; coverer = coverer || sel(hit);
   }
   function lum(c) { const m = c.match(/[\\d.]+/g); if (!m) return null; const [rr, g, b] = m.slice(0, 3).map(Number); const a = m[3] !== undefined ? Number(m[3]) : 1; if (a === 0) return null; const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(rr) + 0.7152 * f(g) + 0.0722 * f(b); }
@@ -36,8 +38,25 @@ const READ = `(() => {
   const outlineLum = cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0 ? lum(cs.outlineColor) : null;
   const back = bg(el.parentElement || el);
   const outlineContrast = outlineLum === null ? null : Math.round(((Math.max(outlineLum, back) + 0.05) / (Math.min(outlineLum, back) + 0.05)) * 100) / 100;
-  return { selector: sel(el), item: item(el), html: html(el), tag: el.localName, styles, inViewport, covered, points: points.length, coverer, outlineContrast, rect: { top: Math.round(r.top), left: Math.round(r.left), width: Math.round(r.width), height: Math.round(r.height) }, href: el.getAttribute("href") || "" };
+  return { selector: sel(el), item: item(el), html: html(el), tag: el.localName, styles, inViewport, covered, points: inside, coverer, outlineContrast, rect: { top: Math.round(r.top), left: Math.round(r.left), width: Math.round(r.width), height: Math.round(r.height) }, href: el.getAttribute("href") || "" };
 })()`;
+
+/** Waits until the focused control and the page stop moving: at least 250 ms, then three equal reads of the position of the control
+ *  and of the scroll, 60 ms apart, at most 1.2 s. A smooth scroll or a transition can take some hundred milliseconds. */
+const SETTLE = `new Promise((resolve) => {
+  const el = document.activeElement;
+  const start = performance.now();
+  let last = "", same = 0;
+  const tick = () => {
+    const r = el && el.getBoundingClientRect ? el.getBoundingClientRect() : { top: 0, left: 0 };
+    const k = [Math.round(r.top), Math.round(r.left), Math.round(scrollX), Math.round(scrollY)].join(",");
+    same = k === last ? same + 1 : 0; last = k;
+    const t = performance.now() - start;
+    if ((t >= 250 && same >= 2) || t > 1200) return resolve(same >= 2);
+    setTimeout(tick, 60);
+  };
+  tick();
+})`;
 
 const UNFOCUSED = `(() => {
   const el = document.activeElement;
@@ -124,11 +143,17 @@ export async function runFocusTests(page: Page, url: string, width: number, stat
           solution: { summary: "Do not change the page on focus.", steps: ["Remove the handler that navigates on focus."] } });
         blocked.length = blockedBefore;
       }
-      // Focus not obscured: all sampled points of the control are covered by other content.
-      if (r.inViewport && r.covered >= r.points && r.rect.width > 0) {
-        found.push({ criterion: "2.4.11", rule: "focus-entirely-hidden", kind: "failed", selector: r.selector, html: r.html, item: r.item + "|" + (forward ? "forward" : "backward"), facts: { coveredBy: r.coverer, direction: forward ? "forward" : "backward", rect: r.rect },
-          summary: "The control that has the focus is entirely hidden by other content.", severity: "serious",
-          solution: { summary: "Keep the focused control visible, for example with scroll-padding for fixed bars.", steps: ["Add scroll-padding-top or scroll-padding-bottom equal to the height of the fixed bar.", "Or make the bar static."] } });
+      // Focus not obscured: all sampled points of the control in the viewport are covered by other content. The read comes 25 ms after
+      // the key, so the browser can still scroll to the control, and a header or the control can still move. A second read decides,
+      // when the position is stable. Before 1.3.3 one read decided, and the same page gave other issues in each run.
+      if (r.inViewport && r.points > 0 && r.covered >= r.points && r.rect.width > 0) {
+        await page.evaluate(SETTLE).catch(() => {});
+        const again = await page.evaluate(READ).catch(() => null) as Record<string, any> | null;
+        if (again && again.selector === r.selector && again.inViewport && again.points > 0 && again.covered >= again.points && again.rect.width > 0) {
+          found.push({ criterion: "2.4.11", rule: "focus-entirely-hidden", kind: "failed", selector: again.selector, html: again.html, item: again.item + "|" + (forward ? "forward" : "backward"), facts: { coveredBy: again.coverer, direction: forward ? "forward" : "backward", rect: again.rect },
+            summary: "The control that has the focus is entirely hidden by other content.", severity: "serious",
+            solution: { summary: "Keep the focused control visible, for example with scroll-padding for fixed bars.", steps: ["Add scroll-padding-top or scroll-padding-bottom equal to the height of the fixed bar.", "Or make the bar static."] } });
+        }
       }
       if (!forward || seen.has(r.selector)) continue;
       seen.add(r.selector);

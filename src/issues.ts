@@ -17,9 +17,25 @@ import type { Outcome, PageRecord, Severity } from "./types.ts";
 /** The rules of the tests that run on the sample pages only. The dry submit gives its outcomes a state, so they count as states. */
 const SAMPLE_RULES = new Set<string>([...LISTENER_RULES, ...FOCUS_RULES, ...OPERATE_RULES]);
 
-/** True when the test of a rule runs on the sample pages only: a template criterion, a test of the sample, or a state. */
-export function needsSample(rule: string, criterion: string, inState: boolean): boolean {
+/** True when the test of a rule runs on the sample pages only: a template criterion, a test of the sample, or a state. axe-core runs
+ *  on each tested page, so its rules need the sample only in a state, also for a template criterion such as 2.1.1. */
+export function needsSample(rule: string, criterion: string, inState: boolean, engine?: string): boolean {
+  if (engine === "axe-core") return inState;
   return CRITERIA_BY_ID.get(criterion)?.test_groups?.[0] === "template" || SAMPLE_RULES.has(rule) || inState;
+}
+
+/** The other form of a path: with no trailing slash when it has one, and with one when it has none. Since 1.3.0 the engine merges
+ *  the two forms into one page, but the results of older versions kept the form of the link, for example /about. */
+export function otherSlash(p: string): string {
+  const q = p.indexOf("?");
+  const path = q < 0 ? p : p.slice(0, q);
+  if (!path || path === "/" || /^[a-z][a-z0-9+.-]*:\/\/[^/]*\/?$/i.test(path)) return p;
+  return (path.endsWith("/") ? path.slice(0, -1) : path + "/") + (q < 0 ? "" : p.slice(q));
+}
+
+/** True when a set of page paths has the path in one of its two forms. */
+export function hasPath(set: Set<string>, p: string): boolean {
+  return set.has(p) || set.has(otherSlash(p));
 }
 
 const SEVERITY_ORDER: Severity[] = ["critical", "serious", "moderate", "minor"];
@@ -179,13 +195,15 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
   }
   // The ID that an older issue has with the identity of this version: before 1.3.0 the identity kept the random parts of ids and
   // names, and before 1.3.2 the classes of a lazy load. When that ID is an issue of this run, the issue is the same, under a new ID.
+  // Only an issue that this run found: the loop below adds the old issues to the list too.
+  const foundNow = new Set(issues.map((i) => i.id));
   const sameUnderNewId = (old: IssueFile): IssueFile | undefined => {
     const moved = movedFrom.get(old.id);
-    if (moved && moved !== old.id) return issues.find((i) => i.id === moved);
+    if (moved && moved !== old.id && foundNow.has(moved)) return issues.find((i) => i.id === moved);
     const e = old.examples?.[0];
     if (old.rule?.engine !== "axe-core" || STYLE_RULES.has(old.rule?.id) || !e?.html) return undefined;
     const id = "ISS-" + sha(`axe-core|${old.rule.id}|${old.wcag?.criterion}|${itemFromHtml(e.html, e.selector || "")}|${(e.state || []).join(">")}`).slice(0, 8);
-    return id === old.id ? undefined : issues.find((i) => i.id === id);
+    return id === old.id || !foundNow.has(id) ? undefined : issues.find((i) => i.id === id);
   };
   // Stored issues that the audit did not find again: resolved when all their pages were tested, not checked when not,
   // page removed when all their pages are gone, and resolved with the reason "rule changed" when the engine version changed.
@@ -229,20 +247,25 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // A refresh of the same run corrects a resolution of 1.3.0: it checked the issues of the sample tests against all the tested pages,
     // so an issue on a tested page out of the sample was resolved, although its test did not run there.
     if (old.status === "resolved" && old.status_by?.run === run && !same && context?.samplePaths && SAMPLE_RULES.has(old.rule?.id)
-      && (old.examples || []).some((e: { url: string }) => context.testedPaths.has(e.url) && !context.samplePaths!.has(e.url))) {
+      && (old.examples || []).some((e: { url: string }) => hasPath(context.testedPaths, e.url) && !hasPath(context.samplePaths!, e.url))) {
       issues.push({ ...old, status: "not checked", status_by: by });
       continue;
     }
-    if (old.status === "resolved" || old.status === "page removed" || old.status === "dismissed") { issues.push(old); continue; }
+    if (old.status === "resolved" || old.status === "page removed" || old.status === "dismissed") {
+      // A refresh of the same run looks at its fixes again, so that it can correct a fix of 1.3.2 that a new name of a state gave.
+      if (old.status === "resolved" && old.status_by?.reason === "fixed" && old.status_by?.run === run) { const copy = { ...old }; issues.push(copy); resolvedNow.push(copy); continue; }
+      issues.push(old); continue;
+    }
     const paths: string[] = (old.examples || []).map((e: { url: string }) => e.url);
-    if (context && paths.length && paths.every((p) => context.gonePaths.has(p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "page removed" } }); continue; }
+    if (context && paths.length && paths.every((p) => hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "page removed" } }); continue; }
     // An issue from a template test, a sample test, or a state needs its pages in the sample of this run, because those tests run
     // only there. The rule decides, not the criterion: 4.1.2 has page tests, but its listener test runs on the sample only.
     const criterion = CRITERIA_BY_ID.get(old.wcag?.criterion);
-    const templateIssue = needsSample(old.rule?.id, criterion?.id || old.wcag?.criterion, (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length));
+    const templateIssue = needsSample(old.rule?.id, criterion?.id || old.wcag?.criterion, (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length), old.rule?.engine);
     const checked = templateIssue && context?.samplePaths ? context.samplePaths : context?.testedPaths;
-    // A page that is gone cannot have the issue any more: it counts as checked.
-    if (context && checked && !paths.every((p) => checked.has(p) || context.gonePaths.has(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
+    // A page that is gone cannot have the issue any more: it counts as checked. A path of an older version can differ from the
+    // tested page by the trailing slash.
+    if (context && checked && !paths.every((p) => hasPath(checked, p) || hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
     // An axe-core rule changed when the version of axe-core changed. An own rule changed when the engine that found the issue had an
     // older detection of that rule than this engine: a release that does not change the test is not a rule change.
     const changed = old.rule?.engine === "axe-core"
@@ -254,12 +277,33 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     if (reason === "fixed") resolvedNow.push(resolved);
   }
   // A new issue with the rule and the pages of an issue that was resolved in this run replaces it: the markup changed.
+  const slashless = (p: string) => p.length > 1 ? p.replace(/\/(?=\?|$)/, "") : p;
+  const pagesOf = (x: IssueFile) => new Set((x.examples || []).map((e: { url: string }) => slashless(e.url)));
+  // The elements of the examples in a state, by page: the tag, the id, and the classes, with no text.
+  const stateElements = (x: IssueFile) => new Set((x.examples || []).filter((e: { state?: string[] }) => e.state?.length)
+    .map((e: { url: string; html?: string; selector?: string }) => slashless(e.url) + "|" + itemFromHtml(e.html || "", e.selector || "").split("|")[0]));
   for (const i of issues) {
     if (i.status !== "new") continue;
-    const pagesOf = (x: IssueFile) => new Set((x.examples || []).map((e: { url: string }) => e.url));
     const mine = pagesOf(i);
     const old = resolvedNow.find((r) => r.rule.id === i.rule.id && r.wcag.criterion === i.wcag.criterion && [...pagesOf(r)].some((p) => mine.has(p)));
-    if (old) { i.replaces = old.id; i.first_seen = old.first_seen; }
+    if (!old) continue;
+    i.replaces = old.id; i.first_seen = old.first_seen;
+    // The same element fails in a state of the same page, and only the name of the state changed: the name comes from the text of
+    // its control, for example a list whose name is the text of its options. It is the same issue: the new ID continues the old
+    // one, with its status, origin, source, solution, and decision, and the old ID is resolved with the reason "rule changed", as
+    // for the other changes of an ID. Before 1.3.3 the old ID was "fixed", and the work of the locate step went.
+    const mineElements = stateElements(i);
+    if (![...stateElements(old)].some((k) => mineElements.has(k))) continue;
+    const was = existing.get(old.id) || old;
+    Object.assign(i, {
+      status: was.status === "accepted" || was.status === "dismissed" ? was.status : "open",
+      origin: i.origin === "unknown" && old.origin ? old.origin : i.origin,
+      source: i.source?.length ? i.source : old.source || [], source_warning: i.source?.length ? i.source_warning : old.source_warning ?? null,
+      solution: i.solution?.type !== "specific" && old.solution?.type === "specific" ? old.solution : i.solution,
+      decision: i.decision || old.decision || null,
+    });
+    old.status_by = { ...old.status_by, reason: "rule changed" };
+    resolvedNow.splice(resolvedNow.indexOf(old), 1);
   }
   return issues.sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || b.reach.pages - a.reach.pages);
 }
@@ -292,20 +336,30 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     const id = "Q-" + fp.slice(0, 8);
     let old = existing.get(id);
     if (!old && !STYLE_RULES.has(list[0].rule)) {
-      search: for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) {
+      // All the old IDs of the group: items that differed only by a class of a lazy load are one item now. The question with an
+      // answer continues, a person's answer first. The others go with it. Before 1.3.3 the first old ID that the search found
+      // continued, and an answer of another one could go.
+      const found = new Map<string, QuestionFile>();
+      for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) {
         const before = existing.get("Q-" + questionFingerprintOf({ ...o, item }, config).slice(0, 8));
-        if (before && !groups.has(before.fingerprint)) { old = before; break search; }
+        if (before && !groups.has(before.fingerprint)) found.set(before.id, before);
       }
+      const olds = [...found.values()].sort((a, b) => a.id.localeCompare(b.id));
+      old = olds.find((q) => q.person_answer) || olds.find((q) => q.ai_answer && q.verification) || olds.find((q) => q.ai_answer) || olds[0];
+      for (const q of olds) continued.add(q.id);
     }
     if (old) continued.add(old.id);
     // The answer stays while one item of the group has a hash that the answer saw: the hash of its example, or one of the hashes
     // of its group. So a page that goes, for example after a person removes a page record, does not take the answer with it.
     const short = (h: string) => h.slice(0, 16);
-    const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || [])]);
+    // The example of the old question, hashed as this version hashes: an item hash of an older version can differ only by a part
+    // that this version leaves out, for example the class ls-is-cached.
+    const now = old?.evidence ? short(hashes({ html: old.evidence.html || "", facts: old.evidence.facts || {} } as Outcome).item) : "";
+    const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || []), ...(now ? [now] : [])]);
     const all = list.map((o) => ({ o, h: hashes(o) }));
     // The example that the answer saw comes first, so that the example stays when it is still in the group. Then any item that the answer saw.
     const was = old?.item_hash ? short(old.item_hash) : "";
-    const match = old ? (all.find((x) => !!was && (short(x.h.item) === was || x.h.legacy.some((h) => short(h) === was)))
+    const match = old ? (all.find((x) => (!!was && (short(x.h.item) === was || x.h.legacy.some((h) => short(h) === was))) || (!!now && short(x.h.item) === now))
       || all.find((x) => known.has(short(x.h.item)) || x.h.legacy.some((h) => known.has(short(h))))) : undefined;
     // The example of the question: the item that the answer saw, when it is still there.
     const first = match ? match.o : list[0];
@@ -336,7 +390,7 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
       if (now.has(id) || continued.has(id)) continue;
       const paths: string[] = old.evidence?.pages || [];
       const checked = needsSample(old.evidence?.rule || "", old.criterion, false) && context.samplePaths ? context.samplePaths : context.testedPaths;
-      if (!paths.length || paths.some((p) => checked.has(p) || context.gonePaths.has(p))) continue;
+      if (!paths.length || paths.some((p) => hasPath(checked, p) || hasPath(context.gonePaths, p))) continue;
       questions.push({ ...old, not_checked: true });
     }
   }
