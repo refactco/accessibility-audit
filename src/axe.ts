@@ -2,7 +2,7 @@
 import { createRequire } from "node:module";
 import type { Page } from "playwright";
 import { AXE_RULE_CRITERIA } from "./criteria.ts";
-import { stableSelector, unrandom } from "./stable.ts";
+import { LAZY_CLASS, stableSelector, unrandom } from "./stable.ts";
 import type { Outcome, Severity } from "./types.ts";
 
 const require = createRequire(import.meta.url);
@@ -61,7 +61,7 @@ export function itemFromHtml(html: string, selector: string): string {
   const tag = (html.match(/^<([a-z0-9-]+)/i) || [, "el"])[1].toLowerCase();
   const rawId = (html.match(/\sid="([^"]*)"/) || [])[1];
   const id = rawId ? unrandom(rawId) : rawId;
-  const cls = (html.match(/\sclass="([^"]*)"/) || [, ""])[1].split(/\s+/).filter(Boolean).slice(0, 3).join(".");
+  const cls = (html.match(/\sclass="([^"]*)"/) || [, ""])[1].split(/\s+/).filter((c) => c && !LAZY_CLASS.test(c)).slice(0, 3).join(".");
   const attr = html.match(/\s(src|href|name|aria-label)="([^"]*)"/);
   const key = attr ? (attr[1] === "name" ? unrandom(attr[2]) : attr[2]).split("/").pop() || "" : "";
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 40);

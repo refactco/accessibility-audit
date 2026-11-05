@@ -83,10 +83,12 @@ export function exportVerifyTasks(dir: string, file: string, all = false): numbe
   return list.length;
 }
 
+/** The questions of the last run. A question that the run did not check, because it did not test its pages, waits for a run that does:
+ *  it is not a task for the review or the verifier. */
 export function loadQuestions(dir: string): Record<string, any>[] {
   const path = join(dir, "questions");
   if (!existsSync(path)) return [];
-  return readdirSync(path).filter((f) => f.endsWith(".json")).map((f) => JSON.parse(readFileSync(join(path, f), "utf8")));
+  return readdirSync(path).filter((f) => f.endsWith(".json")).map((f) => JSON.parse(readFileSync(join(path, f), "utf8"))).filter((q) => !q.not_checked);
 }
 
 /** A person confirms the facts of the AI answer, or marks one as wrong. Confirmed facts count as agreement. A wrong fact sends the question back to the AI. */

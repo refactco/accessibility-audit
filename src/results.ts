@@ -110,10 +110,15 @@ export function pageCoverage(pages: PageRecord[]): { pages_found: number; pages_
 export function pageFileOf(p: PageRecord, run: string, widths: number[], decisions: Decision[], issuesByKey: Map<string, string[]>, siteUrl: string): Record<string, unknown> {
   return {
     schema: "page/1", url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states, run, tested: p.tested,
+    // The reason of the sample and the title, for the page list of the report: a refresh writes it from this file.
+    ...(p.sample && p.sampleReason ? { sample_reason: p.sampleReason } : {}), ...(p.title ? { title: p.title } : {}),
     ...(p.not_tested_reason ? { not_tested_reason: p.not_tested_reason } : {}), ...(p.http_status ? { http_status: p.http_status } : {}),
     ...(p.redirects_to ? { redirects_to: p.redirects_to } : {}), ...(p.linked_from?.length ? { linked_from: p.linked_from } : {}),
     ...(p.found_in ? { found_in: p.found_in } : {}), ...(p.widths_not_loaded?.length ? { widths_not_loaded: p.widths_not_loaded } : {}),
     ...(p.content_hash ? { content_hash: p.content_hash } : {}),
+    // The widths where the load event did not come in time: the page is tested as it was. A refresh gives them to the report again.
+    ...(Array.isArray(p.facts?.loadIncomplete) && (p.facts.loadIncomplete as number[]).length ? { load_incomplete: p.facts.loadIncomplete } : {}),
+    ...(Array.isArray(p.facts?.stylesMissing) && (p.facts.stylesMissing as string[]).length ? { styles_missing: p.facts.stylesMissing } : {}),
     results: pageResults(p, widths, decisions), issues: issuesByKey.get(pageKey(siteUrl, p.url)) || [],
   };
 }

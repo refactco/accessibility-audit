@@ -2,6 +2,34 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.2, 2026-11-05
+
+Fixes from the fourth full audit of the large WordPress multisite, with 1.3.1 and a short time budget, on 2026-11-04. The run lost 17 AI answers, and a refresh changed many files with no new data.
+
+The results from run to run:
+
+- A question whose pages the run did not test stays in the results folder with its answers, and gets `"not_checked": true`. Before, the run deleted the file and the answers. Each short check (`refact-a11y check`) did this too: it deleted the questions of all the pages that it did not test. A question of a test that runs on the sample only also stays when its pages are not in the sample. The report counts these questions apart, and they are not tasks for the review.
+- Some issues come from tests that run on the sample only. The pages of such issues that are open or "not checked" now open first and join the sample, with the reason "open issue". So each audit checks these issues. Before, such a page joined the random part of the sample only by chance.
+- An issue of an own test that goes away is "fixed" when the engine that found it had the same detection of the rule. `src/own/versions.ts` gives the detection version of each own rule, now 1.3.0 for all. Before, each release of the engine made such an issue "rule changed".
+- The identity of an element and the hash of a question leave out the classes that a lazy-load script sets, for example `lazyloaded` and `ls-is-cached`. Before, an answer went when the image came from the cache of the browser. One time, the IDs of the elements with these classes change. Their issues and questions move to the new IDs with their status, answers, and solution. The old issue IDs are "rule changed".
+
+The refresh:
+
+- A refresh keeps `replaces`. Before, it cleared it.
+- A question keeps the example that its answer saw. Before, a refresh or an audit could move the example to another item of the group.
+- A refresh writes the same report as the audit. The audit writes the parts that come from the crawl to `runs/<run>/report-data.json`. `pages.jsonl` keeps the title, the reason of the sample, the widths with no load event (`load_incomplete`), and the missing stylesheets (`styles_missing`). A refresh of a run of 1.3.1 or older does not have these parts.
+
+The page loads:
+
+- A page whose stylesheet request failed or gave an error status loads once more after 3 seconds. Before, the engine tested the page with no style, and it found faults that the site does not have. A stylesheet that is missing again is broken on the site. The report names the pages, and the next pages do not load again for it.
+
+The report:
+
+- The report gives the pages that a budget left after the quick check found them, by source and by section.
+- The "Resolved" column counts the issues that this run resolved. Before, it also counted the resolutions of older runs.
+
+The tests: a new test file, `across-runs`, in `npm test`. Each check of a fix fails on 1.3.1. An audit now adds such a page to the sample. So the test `statuses` checks the "not checked" rule of 1.3.1 with the status code.
+
 ## 1.3.1, 2026-11-04
 
 Fixes from the third full audit of the large WordPress multisite, with 1.3.0, on 2026-11-03. The audit compared the site with results of 1.1.1. It marked 10 issues "fixed", but their elements still failed.

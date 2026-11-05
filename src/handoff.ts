@@ -14,7 +14,7 @@ export function writeHandoff(config: Config, outDir: string, file: string, optio
   const summary = JSON.parse(readFileSync(join(outDir, "summary.json"), "utf8"));
   const issues = [...loadExisting(outDir, "issues").values()].filter((i) => ["new", "open", "reopened"].includes(i.status));
   issues.sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity) || b.reach.pages - a.reach.pages);
-  const questions = [...loadExisting(outDir, "questions").values()];
+  const questions = [...loadExisting(outDir, "questions").values()].filter((q) => !q.not_checked);
   const unresolved = questions.filter((q) => q.kind === "review" && effectiveAnswer(q).unresolved).length;
   const tasks = issues.map((i, n) => ({
     issue: i.id, order: n + 1, criterion: i.wcag.criterion, criterion_name: CRITERIA_BY_ID.get(i.wcag.criterion)?.name || i.wcag.criterion,

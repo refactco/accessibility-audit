@@ -1,0 +1,25 @@
+// The version of the detection of the own rules. A stored issue of an own rule that the audit does not find again is "fixed" when the
+// engine that found it had the same detection, and "rule changed" when its detection was older. Before 1.3.2 the engine compared the
+// version of the package, so each release made every such issue "rule changed".
+//
+// When a change of the code changes what an own rule finds, put the rule in RULE_VERSIONS with the version of that release. A change
+// that does not change the findings, for example a new log line or a faster loop, needs no entry.
+
+/** The version of the last change of the detection of all the own rules: the states, the dialogs, and the images of text in 1.3.0. */
+export const OWN_DETECTION_VERSION = "1.3.0";
+
+/** The rules whose detection changed after OWN_DETECTION_VERSION, with the version of the change. */
+export const RULE_VERSIONS: Record<string, string> = {};
+
+/** The version of the detection of an own rule. */
+export function detectionVersion(rule: string): string {
+  return RULE_VERSIONS[rule] || OWN_DETECTION_VERSION;
+}
+
+/** Compares two versions of the form 1.2.3: negative when a is older, 0 when equal, positive when a is newer. */
+export function compareVersions(a: string, b: string): number {
+  const pa = String(a).split(".").map((n) => parseInt(n, 10) || 0);
+  const pb = String(b).split(".").map((n) => parseInt(n, 10) || 0);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i++) if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  return 0;
+}

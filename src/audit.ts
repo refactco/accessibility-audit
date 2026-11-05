@@ -8,19 +8,19 @@ import { FILE_ADDRESS, RateLimiter, isCommonPage, isPermitted, isSkipped, newFro
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
-import { applyAnswers, buildIssues, buildQuestions, loadExisting, sha, type CompareContext } from "./issues.ts";
+import { applyAnswers, buildIssues, buildQuestions, loadExisting, needsSample, sha, type CompareContext } from "./issues.ts";
 import { ENGINE_VERSION, PAGE_TEST_CRITERIA, dropTargetQuestions, runPageTests, runUpdateWatch } from "./own/page.ts";
 import { runImageOfTextTest, runImageTextContrastTest } from "./own/images.ts";
 import { LAYOUT_TEST_CRITERIA, runReflow, runSpacing, runZoom } from "./own/layout.ts";
 import { FOCUS_TEST_CRITERIA, runFocusTests } from "./own/focus.ts";
 import { LISTENER_TEST_CRITERIA, runListenerTest } from "./own/listeners.ts";
 import { OPERATE_TEST_CRITERIA, runOperateTests } from "./own/operate.ts";
-import { SITE_TEST_CRITERIA, collectSiteFacts, runSiteTests, type SiteFacts } from "./own/site.ts";
+import { SITE_TEST_CRITERIA, collectSiteFacts, runSiteTests, sectionOf, type SiteFacts } from "./own/site.ts";
 import { applyState, bannerVisible, findStates, type NotApplied, type StateAction } from "./own/states.ts";
 import { decideContrastQuestions } from "./own/contrast.ts";
 import { runProcesses, type ProcessRun } from "./process.ts";
 import { DRY_SUBMIT_CRITERIA, findForms, runDrySubmit, type DryRun, type FormCandidate } from "./own/dry-submit.ts";
-import { renderReport, type TemplateDifference } from "./report.ts";
+import { renderReport, type ReportData, type TemplateDifference } from "./report.ts";
 import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import { buildOverview, historyOverview, readHistory } from "./overview.ts";
@@ -71,6 +71,8 @@ const TEMPLATE_CRITERIA = new Set([...FOCUS_TEST_CRITERIA, ...LISTENER_TEST_CRIT
 /** The errors of a load that a short fault of the network gives, not the site: the load gets one more try after a pause. */
 const TRANSIENT_NETWORK_ERROR = /net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|NETWORK_IO_SUSPENDED|CONNECTION_RESET|CONNECTION_CLOSED|CONNECTION_ABORTED|CONNECTION_TIMED_OUT|TIMED_OUT|EMPTY_RESPONSE|ADDRESS_UNREACHABLE|NAME_NOT_RESOLVED)\b/;
 const NETWORK_RETRY_PAUSE = 5000;
+/** The pause before the second load of a page whose stylesheet did not apply. */
+const STYLE_RETRY_PAUSE = 3000;
 
 const sameUrl = (a: string, b: string) => a.replace(/\/$/, "") === b.replace(/\/$/, "");
 
@@ -148,12 +150,18 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   writeState(false);
   const shoot = (page: import("playwright").Page, outcomes: Outcome[]) => shootQuestions(page, outcomes, outDir, shotDir);
   const frontier = newFrontier();
-  const seedStats = await seed(config, frontier, limiter, only);
+  // The pages of the open and the "not checked" issues of the tests that run on the sample only: they open first and join the sample,
+  // so that this audit checks each such issue. Before 1.3.2 they joined the sample only by chance.
+  const issuePages = only ? [] : [...new Set([...loadExisting(outDir, "issues").values()]
+    .filter((i) => ["new", "open", "reopened", "not checked"].includes(i.status) && needsSample(i.rule?.id, i.wcag?.criterion, (i.examples || []).some((e: { state?: string[] }) => !!e.state?.length)))
+    .flatMap((i) => (i.examples || []).map((e: { url: string }) => new URL(e.url, base).toString())))].sort();
+  const seedStats = await seed(config, frontier, limiter, only, issuePages);
   // The count from each source, then what the rules left, so that a person can check the discovery.
   const fromApis = seedStats.apis.reduce((n, a) => n + a.addresses, 0);
   log(`sources: ${seedStats.settings} from the settings, ${seedStats.sitemapAddresses} from ${seedStats.sitemapFiles} sitemap files${seedStats.apis.length ? `, ${fromApis} from ${seedStats.apis.length} WordPress APIs` : ""}`);
   for (const a of seedStats.apis) log(`  API ${pageKey(config.site.url, a.url)}: ${a.addresses} addresses`);
   for (const g of frontier.groupChoices) log(`  address group ${g.pattern}: ${g.chosen} of ${g.found} addresses chosen, order "${g.order}"`);
+  if (issuePages.length) log(`  ${issuePages.length} pages of open issues of the sample tests: they open first and join the sample`);
   const notCrawled = Object.entries(seedStats.skipped).map(([r, n]) => `${r} ${n}`).join(", ");
   log(`${queuedCount(frontier)} addresses to start (${seedStats.queued.settings} from the settings, ${seedStats.queued.sources} from the sitemaps and the API)${notCrawled ? ", not crawled: " + notCrawled : ""}, ${seedStats.repeated} repeated or not permitted, ${concurrency} workers`);
 
@@ -172,6 +180,8 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   // The states outside the state phase: the cookie banner open, once for each template, and the dry submits. They count in statesTested too.
   let bannerStates = 0;
   let formStates = 0;
+  // The stylesheets that did not apply after a second load: broken on the site, so a page does not load again for them.
+  const brokenStyles = new Set<string>();
   let bannerRan = false;
   const siteLang = config.site.languages?.[0] || null;
 
@@ -183,6 +193,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   for (const p of config.crawl.sample_pages) required.set(pathKey(p), "settings");
   for (const t of config.crawl.templates) if (t.example_page) required.set(pathKey(t.example_page), "template example");
   for (const p of config.interaction.processes) for (const s of p.steps) required.set(pathKey(s.page), "process");
+  for (const u of issuePages) if (!required.has(pathKey(u))) required.set(pathKey(u), "open issue");
   const templateSeen = new Set(config.crawl.templates.filter((t) => t.example_page).map((t) => t.name));
   const technologySeen = new Set<string>();
   let extraSample = 0;
@@ -301,6 +312,22 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         await limiter.wait();
         opened = await openPage(contexts.get(w)!, url, config);
         renders++; record.renders++;
+      }
+      // A stylesheet that did not apply, for example after a failed request, shows the page with no style, and the tests would find
+      // faults that the site does not have. The page loads once more after a pause. A stylesheet that is missing again is broken on
+      // the site: the next pages do not load again for it, and the record names it.
+      if (opened.ok && opened.stylesMissing.some((h) => !brokenStyles.has(h))) {
+        log(`  stylesheet not applied at ${w}, one more load in ${STYLE_RETRY_PAUSE / 1000} s: ${opened.stylesMissing.slice(0, 3).join(", ")}`);
+        await opened.page.close();
+        await new Promise((r) => setTimeout(r, STYLE_RETRY_PAUSE));
+        await limiter.wait();
+        opened = await openPage(contexts.get(w)!, url, config);
+        renders++; record.renders++;
+      }
+      if (opened.ok && opened.stylesMissing.length) {
+        for (const h of opened.stylesMissing) brokenStyles.add(h);
+        record.facts.stylesMissing = [...new Set([...((record.facts.stylesMissing as string[] | undefined) || []), ...opened.stylesMissing])];
+        log(`  tested at ${w} without the stylesheets that did not apply: ${opened.stylesMissing.slice(0, 3).join(", ")}`);
       }
       if (!opened.ok) {
         await opened.page.close();
@@ -695,7 +722,9 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     gonePaths: gone,
     versions,
   };
-  const questions = buildQuestions(all, config, existingQuestions);
+  // The questions of this run. The old questions whose pages this run did not test stay in the folder with their answers, out of the counts.
+  const allQuestions = buildQuestions(all, config, existingQuestions, context);
+  const questions = allQuestions.filter((q) => !q.not_checked);
   applyAnswers(all, config, questions);
   const issues = buildIssues(all, config, run, date, existingIssues, context);
   for (const i of issues) if (i.question) { const q = questions.find((x) => x.id === i.question); if (q) q.issue = i.id; }
@@ -756,10 +785,22 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const pageFiles = all.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
   const questionsAnswered = { ai: questions.filter((q) => q.ai_answer).length, person: questions.filter((q) => q.person_answer).length };
   const history = { schema: "history/1", run, started: started.toISOString(), duration_seconds: durationSeconds, kind: kind || "full", started_by: options.startedBy || "person", environment: config.site.environment, versions, baseline, counts, coverage, renders, questions_answered: questionsAnswered, overview: historyOverview(overview) };
+  const sourceOf = (p: PageRecord) => { const t = frontier.tierOf.get(p.url) ?? 2; return t === 0 ? "settings" : t === 1 ? "sources" : "links"; };
   const notOpenedBySource = { settings: 0, sources: 0, links: 0 };
-  for (const p of pages) if (notOpened(p)) { const t = frontier.tierOf.get(p.url) ?? 2; notOpenedBySource[t === 0 ? "settings" : t === 1 ? "sources" : "links"]++; }
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences, statesTested, coverage, notOpenedBySource, groupChoices: frontier.groupChoices, decisions, skipped: frontier.skipped, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
-  writeResults(outDir, { config, summary, pages: pageFiles, issues, questions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });
+  for (const p of pages) if (notOpened(p)) notOpenedBySource[sourceOf(p)]++;
+  // The pages that a budget left after the quick check found them: by source and by section, so that the report says what the budget cut.
+  const budgetLeft: NonNullable<ReportData["budgetLeft"]> = { count: 0, bySource: { settings: 0, sources: 0, links: 0 }, bySection: {} };
+  for (const p of pages) {
+    if (p.tested || notOpened(p) || !inScope(p) || (p.not_tested_reason !== "time budget" && p.not_tested_reason !== "page limit")) continue;
+    budgetLeft.count++; budgetLeft.bySource[sourceOf(p)]++;
+    const section = sectionOf(p.url, config.site.url);
+    budgetLeft.bySection[section] = (budgetLeft.bySection[section] || 0) + 1;
+  }
+  // The parts of the report that come from the crawl, in the run folder, so that a refresh writes the same report.
+  const reportData: ReportData = { notOpenedBySource, budgetLeft, groupChoices: frontier.groupChoices, differences, skipped: frontier.skipped };
+  writeFileSync(join(runDir, "report-data.json"), JSON.stringify(reportData) + "\n");
+  const report = renderReport({ config, run, date, versions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested, coverage, ...reportData, decisions, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
+  writeResults(outDir, { config, summary, pages: pageFiles, issues, questions: allQuestions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });
   writeState(true);
   options.signal?.removeEventListener("abort", onStop);
   log(`done: ${pages.length} pages, ${statesTested} states, ${processesTested} of ${config.interaction.processes.length} processes, ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions, ${durationSeconds} s`);

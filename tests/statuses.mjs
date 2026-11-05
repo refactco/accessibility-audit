@@ -12,6 +12,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { runAudit } from "../src/audit.ts";
 import { configForUrl } from "../src/config.ts";
+import { buildIssues } from "../src/issues.ts";
 import { refresh } from "../src/refresh.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -114,8 +115,9 @@ try {
     summary: "A control that a screen reader does not announce.", solution: { type: "general", summary: "Give the control a role.", steps: ["Use a button element."] },
     examples: [{ url, width: 390, state: [], selector: "div.card", html: '<div class="card">Open</div>', facts: {} }],
   });
+  // Since 1.3.2 an audit adds the page of an open issue of the listener test to the sample. So the issue on /other/ is not stored
+  // before this audit: check 2 gives it to the status code with the pages of the audit, and the refresh check stores it after.
   writeIssue(control("ISS-0c0c0c01", "/", version));
-  writeIssue(control("ISS-0c0c0c02", "/other/", version));
   const second = await audit();
   const issues = new Map(readDir("issues").map((i) => [i.id, i]));
   const now = issues.get(select.id);
@@ -127,8 +129,13 @@ try {
   check(now?.origin === "code" && now?.solution.type === "specific", `1: the new ID takes the origin and the solution of the skill from the old ID that has them, in any order (origin ${now?.origin}, solution ${now?.solution.type})`);
 
   // 2: the issues of the listener test.
-  const onHome = issues.get("ISS-0c0c0c01"), onOther = issues.get("ISS-0c0c0c02");
-  check(onOther?.status === "not checked", `2: an issue of the listener test on a page that is not in the sample is not checked, because the test did not run there (${onOther?.status} ${onOther?.status_by?.reason || ""})`);
+  const onHome = issues.get("ISS-0c0c0c01");
+  const pathOf = (u) => new URL(u).pathname;
+  const tested = second.result.pages.filter((p) => p.tested);
+  const ctx = { testedPaths: new Set(tested.map((p) => pathOf(p.url))), samplePaths: new Set(tested.filter((p) => p.sample).map((p) => pathOf(p.url))), gonePaths: new Set(), versions: second.summary.versions };
+  const onOtherStored = control("ISS-0c0c0c02", "/other/", version);
+  const onOther = buildIssues(second.result.pages, config, "2099-01-01T00:00:00Z", "2099-01-01", new Map([[onOtherStored.id, onOtherStored]]), ctx).find((i) => i.id === onOtherStored.id);
+  check(onOther?.status === "not checked", `2: an issue of the listener test on a tested page that is not in the sample is not checked, because the test did not run there (${onOther?.status} ${onOther?.status_by?.reason || ""})`);
   check(onHome?.status === "resolved" && onHome?.status_by.reason === "fixed", `2: the same issue on a page of the sample is resolved: the test ran there and did not find it (${onHome?.status} ${onHome?.status_by?.reason || ""})`);
   check(second.summary.counts.resolved === 1, `1, 2: only the issue on the sample page counts as a fix (${second.summary.counts.resolved} resolved, ${second.summary.counts.resolved_rule_changed} rule changed)`);
 
@@ -136,7 +143,7 @@ try {
   // the new ID was open. The issue of the listener test on /other/ is put back resolved in the same run. A refresh corrects both.
   const falseFix = { ...b, status_by: { ...b.status_by, reason: "fixed" } };
   writeIssue(falseFix);
-  writeIssue({ ...onOther, status: "resolved", status_by: { ...onOther.status_by, reason: "fixed" } });
+  writeIssue({ ...onOtherStored, status: "resolved", status_by: { who: "engine", mode: "automatic", date: second.summary.date, run: second.result.run, reason: "fixed" } });
   refresh(config, dir);
   const refreshed = new Map(readDir("issues").map((i) => [i.id, i]));
   const summaryAfter = JSON.parse(fs.readFileSync(path.join(dir, "summary.json"), "utf8"));
