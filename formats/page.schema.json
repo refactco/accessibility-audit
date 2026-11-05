@@ -37,6 +37,10 @@
     "found_in": { "type": "string", "description": "For an address that is not a page of the site: the sitemap file or the CMS API that gave it, as a key of the results." },
     "widths_not_loaded": { "type": "array", "items": { "type": "integer" }, "description": "The widths at which a tested page did not load. The page is tested at the other widths." },
     "content_hash": { "type": "string" },
+    "sample_reason": { "type": "string", "description": "Why the page is in the sample, for example settings, template example, common page, random, technology, or open issue. Since 1.3.2." },
+    "title": { "type": "string", "description": "The title of the page. Since 1.3.2." },
+    "styles_missing": { "type": "array", "items": { "type": "string" }, "description": "The stylesheets that did not apply, also after a second load: the engine tested the page without them. Since 1.3.2." },
+    "load_incomplete": { "type": "array", "items": { "type": "integer" }, "description": "The widths at which the load event did not come in crawl.load_wait_seconds. The engine tested the page as it was. Since 1.3.2." },
     "results": {
       "type": "object",
       "description": "Keyed by the width in CSS px, then by the criterion ID.",

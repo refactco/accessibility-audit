@@ -8,7 +8,7 @@ import { pageKey } from "./crawl.ts";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
 import { applyAnswers, buildIssues, buildQuestions, lastRun, loadExisting, type CompareContext } from "./issues.ts";
 import { buildOverview, historyOverview, readHistory, updateHistoryLine } from "./overview.ts";
-import { renderReport } from "./report.ts";
+import { renderReport, type ReportData } from "./report.ts";
 import { issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
 import type { Outcome, PageRecord } from "./types.ts";
@@ -33,7 +33,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const records: PageRecord[] = pageLines.map((p) => {
     const testedCriteria: Record<number, Set<string>> = {};
     for (const [w, results] of Object.entries(p.results || {})) testedCriteria[Number(w)] = new Set(Object.entries(results as Record<string, string>).filter(([, r]) => r !== "not tested").map(([c]) => c));
-    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, redirects_to: p.redirects_to, linked_from: p.linked_from, found_in: p.found_in, widths_not_loaded: p.widths_not_loaded, content_hash: p.content_hash, testedCriteria, outcomes: [], links: [], renders: 0, facts: {} };
+    return { url: p.url, template: p.template, set: p.set, sample: p.sample, process: p.process || null, states: p.states || [], tested: p.tested, not_tested_reason: p.not_tested_reason, http_status: p.http_status, redirects_to: p.redirects_to, linked_from: p.linked_from, found_in: p.found_in, widths_not_loaded: p.widths_not_loaded, content_hash: p.content_hash, sampleReason: p.sample_reason, title: p.title, testedCriteria, outcomes: [], links: [], renders: 0, facts: { ...(p.load_incomplete ? { loadIncomplete: p.load_incomplete } : {}), ...(p.styles_missing ? { stylesMissing: p.styles_missing } : {}) } };
   });
   const byUrl = new Map<string, PageRecord>();
   for (const r of records) if (!r.process || !byUrl.has(r.url)) byUrl.set(r.url, r);
@@ -64,7 +64,9 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
     gonePaths: new Set<string>(),
     versions,
   };
-  const questions = buildQuestions(records, config, existingQuestions);
+  // The questions of the run. The old questions whose pages the run did not test stay with their answers, out of the counts.
+  const allQuestions = buildQuestions(records, config, existingQuestions, context);
+  const questions = allQuestions.filter((q) => !q.not_checked);
   applyAnswers(records, config, questions);
   const issues = buildIssues(records, config, run, date, existingIssues, context);
   for (const i of issues) if (i.question) { const q = questions.find((x) => x.id === i.question); if (q) q.issue = i.id; }
@@ -96,8 +98,12 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const byPage = issuesByPage(issues as { id: string; examples: { url: string }[] }[]);
   const pageFiles = records.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
   const processRuns = processNames.map((name) => ({ name, tested: !!summary.processes[name].tested, reason: summary.processes[name].reason, records: records.filter((r) => r.process === name), steps: 0, renders: 0 }));
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, pages, processes: processRuns, differences: [], statesTested: summary.coverage?.states_tested || 0, coverage, decisions, skipped: [], durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
-  writeResults(outDir, { config, summary: newSummary, pages: pageFiles, issues, questions, history: null, report, run, outcomes: null });
+  // The parts of the report that come from the crawl: the audit wrote them to the run folder. A run of 1.3.1 or older has no such file.
+  const dataPath = join(runDir, "report-data.json");
+  let reportData: ReportData = { differences: [], skipped: [] };
+  try { if (existsSync(dataPath)) reportData = { ...reportData, ...JSON.parse(readFileSync(dataPath, "utf8")) }; } catch { /* a broken file: the report has no crawl parts */ }
+  const report = renderReport({ config, run, date, versions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested: summary.coverage?.states_tested || 0, coverage, ...reportData, decisions, durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
+  writeResults(outDir, { config, summary: newSummary, pages: pageFiles, issues, questions: allQuestions, history: null, report, run, outcomes: null });
   log(`refreshed: ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions`);
   return { run, issues: issues.length, questions: questions.length };
 }

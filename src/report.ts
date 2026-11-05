@@ -11,18 +11,28 @@ import { renderOverviewMarkdown, type HistoryPoint, type Overview } from "./over
 
 export interface TemplateDifference { template: string; example: string; page: string; onlyInPage: string[]; onlyInExample: string[] }
 
-export interface ReportInput {
+/** The parts of the report that come from the crawl. The audit writes them to runs/<run>/report-data.json, and a refresh reads them. */
+export interface ReportData {
+  differences: TemplateDifference[];
+  skipped: { url: string; reason: string }[];
+  /** The addresses that the audit did not open, by the source that gave them. */
+  notOpenedBySource?: { settings: number; sources: number; links: number };
+  /** The pages that a budget left after the quick check found them, by source and by section. */
+  budgetLeft?: { count: number; bySource: { settings: number; sources: number; links: number }; bySection: Record<string, number> };
+  /** How each address group with a limit chose its addresses. */
+  groupChoices?: { pattern: string; order: string; chosen: number; found: number }[];
+}
+
+export interface ReportInput extends ReportData {
   config: Config; run: string; date: string; versions: { engine: string; axe_core: string; browser: string };
   criteria: Record<string, CriterionSummary>; issues: IssueFile[]; questions: QuestionFile[]; pages: PageRecord[];
-  processes: ProcessRun[]; differences: TemplateDifference[]; statesTested: number; decisions: Decision[];
-  skipped: { url: string; reason: string }[]; durationSeconds: number; renders: number; budgetReached: string[];
+  processes: ProcessRun[]; statesTested: number; decisions: Decision[];
+  durationSeconds: number; renders: number; budgetReached: string[];
   overview?: Overview; history?: HistoryPoint[];
   /** The coverage of the summary: the state phase. */
   coverage?: Record<string, any>;
-  /** The addresses that the audit did not open, by the source that gave them. */
-  notOpenedBySource?: { settings: number; sources: number; links: number };
-  /** How each address group with a limit chose its addresses. */
-  groupChoices?: { pattern: string; order: string; chosen: number; found: number }[];
+  /** The old questions that stay with their answers, because this run did not test their pages. */
+  questionsNotChecked?: number;
 }
 
 /** A guess at the cause of a broken link from its address: an email address or a web address with no scheme, or a mailto with a typo. */
@@ -46,15 +56,23 @@ export function renderReport(r: ReportInput): string {
   const outside = r.pages.filter((p) => !inScope(p));
   const tested = crawled.filter((p) => p.tested);
   const counts = (status: string) => r.issues.filter((i) => i.status === status).length;
+  // The issues that this run resolved, for any reason. The resolutions of older runs stay in their files, but they are not of this run.
+  const resolved = r.issues.filter((i) => i.status === "resolved" && i.status_by.run === r.run);
   lines.push(`# Accessibility audit of ${r.config.site.url}\n`);
   lines.push(`Run ${r.run}, ${r.config.site.environment}, WCAG 2.2 AA. Engine ${r.versions.engine}, axe-core ${r.versions.axe_core}, ${r.versions.browser}. ${Math.round(r.durationSeconds)} seconds, ${r.renders} renders.\n`);
   lines.push(`## Summary\n`);
   const results = Object.values(r.criteria).map((c) => c.result);
   const count = (x: string) => results.filter((v) => v === x).length;
   lines.push(`| Pages found | Pages tested | In the sample | States | Processes | Issues new | Issues open | Resolved | Questions for the AI | Questions for a person |\n|---|---|---|---|---|---|---|---|---|---|`);
-  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${counts("resolved")} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
+  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${counts("new")} | ${counts("open") + counts("reopened")} | ${resolved.length} | ${r.questions.filter((q) => q.kind === "review" && !q.ai_answer).length} | ${r.questions.filter((q) => q.kind === "person" && !q.person_answer).length} |\n`);
   lines.push(`Criteria: ${count("failed")} failed, ${count("needs review")} need a review, ${count("needs a person")} need a person, ${count("no issue found")} with no issue found, ${count("no content found")} with no content found, ${count("not tested")} not tested, ${count("passed")} passed, ${count("not applicable")} not applicable.\n`);
   if (r.budgetReached.length) lines.push(`The audit reached a budget: ${r.budgetReached.join(", ")}. The pages that it did not test are in the page list.\n`);
+  const left = r.budgetLeft;
+  if (left?.count) {
+    const sections = Object.entries(left.bySection).sort((a, b) => b[1] - a[1]);
+    lines.push(`${left.count} pages were found but not tested, because a budget came first. From the settings: ${left.bySource.settings}, from the sitemaps and the API: ${left.bySource.sources}, from the links: ${left.bySource.links}. By section: ${sections.slice(0, 10).map(([k, v]) => `${k} ${v}`).join(", ")}${sections.length > 10 ? `, and ${sections.length - 10} more sections` : ""}.\n`);
+  }
+  if (r.questionsNotChecked) lines.push(`${r.questionsNotChecked} questions of earlier runs are not checked: this run did not test their pages, or their test runs on the sample only and their pages were not in it. They keep their answers, and they do not count here.\n`);
   if (unopened.length) {
     const by = (reason: string) => unopened.filter((p) => p.not_tested_reason === reason).length;
     const reasons = ["time budget", "page limit", "stopped"].filter((x) => by(x)).map((x) => `${x} ${by(x)}`).join(", ");
@@ -75,6 +93,11 @@ export function renderReport(r: ReportInput): string {
   if (partial.length) lines.push(`${partial.length} pages did not load at some widths and are tested at the others: ${partial.slice(0, 20).map((p) => `${key(p.url)} (not at ${p.widths_not_loaded!.join(", ")})`).join(", ")}${partial.length > 20 ? ", and more" : ""}.\n`);
   const early = tested.filter((p) => Array.isArray(p.facts?.loadIncomplete) && (p.facts.loadIncomplete as number[]).length);
   if (early.length) lines.push(`${early.length} pages were tested before their load event, which did not come in ${r.config.crawl.load_wait_seconds ?? 20} seconds: ${early.slice(0, 20).map((p) => key(p.url)).join(", ")}${early.length > 20 ? ", and more" : ""}. A slow image or script can be the cause.\n`);
+  const unstyled = tested.filter((p) => Array.isArray(p.facts?.stylesMissing) && (p.facts.stylesMissing as string[]).length);
+  if (unstyled.length) {
+    const sheets = [...new Set(unstyled.flatMap((p) => p.facts.stylesMissing as string[]))];
+    lines.push(`${unstyled.length} pages were tested without a stylesheet that did not apply, also after a second load: ${unstyled.slice(0, 20).map((p) => key(p.url)).join(", ")}${unstyled.length > 20 ? ", and more" : ""}. The stylesheets: ${sheets.slice(0, 5).join(", ")}${sheets.length > 5 ? ", and more" : ""}. A broken stylesheet can give faults that a person with the full style does not see. Check that the site serves it.\n`);
+  }
   lines.push(`A result "no issue found" means that the tests ran and found nothing. It is not a pass. Only a person gives "passed". A result "no content found" means that the engine found no content of that type, and the engine can miss content.\n`);
   if (r.overview) lines.push(...renderOverviewMarkdown(r.overview, r.history || []));
 
@@ -99,7 +122,6 @@ export function renderReport(r: ReportInput): string {
     lines.push(`- Solution: ${i.solution.summary} ${i.solution.steps.join(" ")}`);
     lines.push(`- Origin: ${i.origin}. ${i.source.length ? "Source: " + i.source.map((s: Record<string, unknown>) => s.file || s.item).join(", ") : "The skill finds the source file."}\n`);
   }
-  const resolved = r.issues.filter((i) => i.status === "resolved" && i.status_by.run === r.run);
   if (resolved.length) lines.push(`${resolved.length} issues are resolved in this audit: ${resolved.map((i) => i.id + (i.status_by.reason === "rule changed" ? " (rule changed)" : "")).join(", ")}.\n`);
   const notChecked = r.issues.filter((i) => i.status === "not checked");
   if (notChecked.length) lines.push(`${notChecked.length} issues are not checked, because the audit did not test all their pages: ${notChecked.map((i) => i.id).join(", ")}.\n`);

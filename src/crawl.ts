@@ -499,7 +499,7 @@ export interface SeedStats {
 }
 
 /** Seeds the frontier: the start address, the settings, robots.txt, the sitemaps, and the CMS API. */
-export async function seed(config: Config, f: Frontier, limiter: RateLimiter, only?: string[]): Promise<SeedStats> {
+export async function seed(config: Config, f: Frontier, limiter: RateLimiter, only?: string[], issuePages: string[] = []): Promise<SeedStats> {
   const base = config.site.url + "/";
   const stats: SeedStats = { settings: 0, sitemapFiles: 0, sitemapAddresses: 0, apis: [], queued: { settings: 0, sources: 0 }, skipped: {}, repeated: 0 };
   let offered = 0;
@@ -521,6 +521,8 @@ export async function seed(config: Config, f: Frontier, limiter: RateLimiter, on
   const settings = [base, ...config.crawl.sample_pages, ...config.crawl.templates.flatMap((t) => (t.example_page ? [t.example_page] : [])), ...config.interaction.processes.flatMap((p) => p.steps.map((s) => s.page))];
   for (const u of settings) give(u, { tier: 0 });
   stats.settings = settings.length;
+  // The pages of the open issues of the sample tests come with the settings: an audit with a short budget checks them too.
+  for (const u of issuePages) give(u, { tier: 0 });
   const sitemaps = f.robots?.sitemaps.length ? [...f.robots.sitemaps] : [new URL("/sitemap.xml", base).toString()];
   // A site under a path, for example a test site, can have its own sitemap under that path.
   if (new URL(base).pathname !== "/") sitemaps.push(new URL("sitemap.xml", base).toString());

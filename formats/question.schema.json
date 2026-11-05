@@ -201,6 +201,10 @@
       "minimum": 0,
       "description": "The count of pages that the answer closes."
     },
+    "not_checked": {
+      "type": "boolean",
+      "description": "True when the last run did not test the pages of the question, or its test runs on the sample only and its pages were not in the sample. The question keeps its answers for the next run that tests a page, and it does not count in the results of the run. Since 1.3.2."
+    },
     "steps": {
       "type": "array",
       "items": {

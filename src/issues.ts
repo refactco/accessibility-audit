@@ -7,7 +7,8 @@ import { CRITERIA_BY_ID } from "./criteria.ts";
 import { pageKey, templateOf } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer } from "./decide.ts";
-import { stableHtml } from "./stable.ts";
+import { legacyItems, stableHtml, stableIdsHtml, withoutClass } from "./stable.ts";
+import { compareVersions, detectionVersion } from "./own/versions.ts";
 import { FOCUS_RULES } from "./own/focus.ts";
 import { LISTENER_RULES } from "./own/listeners.ts";
 import { OPERATE_RULES } from "./own/operate.ts";
@@ -15,6 +16,11 @@ import type { Outcome, PageRecord, Severity } from "./types.ts";
 
 /** The rules of the tests that run on the sample pages only. The dry submit gives its outcomes a state, so they count as states. */
 const SAMPLE_RULES = new Set<string>([...LISTENER_RULES, ...FOCUS_RULES, ...OPERATE_RULES]);
+
+/** True when the test of a rule runs on the sample pages only: a template criterion, a test of the sample, or a state. */
+export function needsSample(rule: string, criterion: string, inState: boolean): boolean {
+  return CRITERIA_BY_ID.get(criterion)?.test_groups?.[0] === "template" || SAMPLE_RULES.has(rule) || inState;
+}
 
 const SEVERITY_ORDER: Severity[] = ["critical", "serious", "moderate", "minor"];
 
@@ -132,10 +138,13 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     groups.set(fp, [...(groups.get(fp) || []), o]);
   }
   const issues: IssueFile[] = [];
+  // The IDs that 1.3.1 and older versions gave to the elements with the classes of a lazy load, and the ID of each now.
+  const movedFrom = new Map<string, string>();
   for (const [fp, list] of groups) {
     const first = list[0];
     const c = CRITERIA_BY_ID.get(first.criterion)!;
     const id = "ISS-" + fp.slice(0, 8);
+    if (!STYLE_RULES.has(first.rule)) for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) movedFrom.set("ISS-" + fingerprintOf({ ...o, item }, config).slice(0, 8), id);
     const old = existing.get(id);
     // A rule or a person gives "fail". The AI alone gives "ai fail".
     const certainty = first.kind === "failed" ? "fail" : list.some((o) => o.answeredBy === "person") ? "fail" : "ai fail";
@@ -159,7 +168,8 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       affects: c.affects, severity, summary: first.summary,
       reach: { pages: urls.length, occurrences: list.length, templates, widths: [...new Set(list.map((o) => o.width))].sort((a, b) => a - b) },
       first_seen: old?.first_seen || date, last_seen: date, environment: config.site.environment,
-      question: list.find((o) => o.questionId)?.questionId || null, replaces: null, origin: old?.origin || "unknown", source: old?.source || [], source_warning: old?.source_warning ?? null,
+      // A refresh of the same run keeps the old issue that this one replaces: only a new run decides it again.
+      question: list.find((o) => o.questionId)?.questionId || null, replaces: old && old.status_by?.run === run ? (old.replaces ?? null) : null, origin: old?.origin || "unknown", source: old?.source || [], source_warning: old?.source_warning ?? null,
       examples,
       // The specific solution of the skill stays. The general solution of the engine is only for an issue with no specific one yet.
       solution: old?.solution?.type === "specific" ? old.solution : { type: "general", summary: first.solution.summary, steps: first.solution.steps, ...(first.solution.example ? { example: first.solution.example } : {}) },
@@ -167,9 +177,11 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       untrusted_fields: ["examples[].html", "examples[].facts"],
     });
   }
-  // The ID that an older axe-core issue has with the identity of this version: before 1.3.0 the identity kept the random parts of
-  // ids and names. When that ID is an issue of this run, the issue is the same, under a new ID.
+  // The ID that an older issue has with the identity of this version: before 1.3.0 the identity kept the random parts of ids and
+  // names, and before 1.3.2 the classes of a lazy load. When that ID is an issue of this run, the issue is the same, under a new ID.
   const sameUnderNewId = (old: IssueFile): IssueFile | undefined => {
+    const moved = movedFrom.get(old.id);
+    if (moved && moved !== old.id) return issues.find((i) => i.id === moved);
     const e = old.examples?.[0];
     if (old.rule?.engine !== "axe-core" || STYLE_RULES.has(old.rule?.id) || !e?.html) return undefined;
     const id = "ISS-" + sha(`axe-core|${old.rule.id}|${old.wcag?.criterion}|${itemFromHtml(e.html, e.selector || "")}|${(e.state || []).join(">")}`).slice(0, 8);
@@ -227,12 +239,16 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // An issue from a template test, a sample test, or a state needs its pages in the sample of this run, because those tests run
     // only there. The rule decides, not the criterion: 4.1.2 has page tests, but its listener test runs on the sample only.
     const criterion = CRITERIA_BY_ID.get(old.wcag?.criterion);
-    const templateIssue = criterion?.test_groups?.[0] === "template" || SAMPLE_RULES.has(old.rule?.id) || (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length);
+    const templateIssue = needsSample(old.rule?.id, criterion?.id || old.wcag?.criterion, (old.examples || []).some((e: { state?: string[] }) => e.state && e.state.length));
     const checked = templateIssue && context?.samplePaths ? context.samplePaths : context?.testedPaths;
     // A page that is gone cannot have the issue any more: it counts as checked.
     if (context && checked && !paths.every((p) => checked.has(p) || context.gonePaths.has(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
-    const current = old.rule?.engine === "axe-core" ? context?.versions.axe_core : context?.versions.engine;
-    const reason = context && current && old.rule?.engine_version !== current ? "rule changed" : "fixed";
+    // An axe-core rule changed when the version of axe-core changed. An own rule changed when the engine that found the issue had an
+    // older detection of that rule than this engine: a release that does not change the test is not a rule change.
+    const changed = old.rule?.engine === "axe-core"
+      ? !!context?.versions.axe_core && old.rule?.engine_version !== context.versions.axe_core
+      : compareVersions(old.rule?.engine_version || "0", detectionVersion(old.rule?.id)) < 0;
+    const reason = context && changed ? "rule changed" : "fixed";
     const resolved = { ...old, status: "resolved", status_by: { ...by, reason } };
     issues.push(resolved);
     if (reason === "fixed") resolvedNow.push(resolved);
@@ -248,7 +264,7 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
   return issues.sort((a, b) => SEVERITY_ORDER.indexOf(a.severity) - SEVERITY_ORDER.indexOf(b.severity) || b.reach.pages - a.reach.pages);
 }
 
-export function buildQuestions(pages: PageRecord[], config: Config, existing: Map<string, QuestionFile>): QuestionFile[] {
+export function buildQuestions(pages: PageRecord[], config: Config, existing: Map<string, QuestionFile>, context?: CompareContext): QuestionFile[] {
   const groups = new Map<string, Outcome[]>();
   for (const p of pages) for (const o of p.outcomes) {
     if (o.kind !== "cantTell" && o.kind !== "candidate") continue;
@@ -264,17 +280,33 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     const { measured: _m, changes: _c, texts: _t, seconds: _s, hiddenWidth: _w, hiddenHeight: _h, ...stableFacts } = factsOfRun;
     // The files before 2026-10-15 hashed the measurements too, and the files before 1.3.0 hashed the HTML as it was. Their answers
     // stay when the item of this run gives one of those hashes.
-    return { item: sha(stableHtml(o.html || "") + JSON.stringify(stableFacts)), legacy: [sha((o.html || "") + JSON.stringify(stableFacts)), sha((o.html || "") + JSON.stringify(factsOfRun))] };
+    // The files of 1.3.0 and 1.3.1 kept the classes of a lazy load in the HTML: their hash, as it was and without ls-is-cached.
+    const html = o.html || "";
+    const facts = JSON.stringify(stableFacts);
+    return { item: sha(stableHtml(html) + facts), legacy: [sha(html + facts), sha(html + JSON.stringify(factsOfRun)), sha(stableIdsHtml(html) + facts), sha(stableIdsHtml(withoutClass(html, "ls-is-cached")) + facts)] };
   };
+  // The old questions that a question of this run continues: the same ID, or the ID that 1.3.1 and older versions gave to an item
+  // with the classes of a lazy load.
+  const continued = new Set<string>();
   for (const [fp, list] of groups) {
     const id = "Q-" + fp.slice(0, 8);
-    const old = existing.get(id);
+    let old = existing.get(id);
+    if (!old && !STYLE_RULES.has(list[0].rule)) {
+      search: for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) {
+        const before = existing.get("Q-" + questionFingerprintOf({ ...o, item }, config).slice(0, 8));
+        if (before && !groups.has(before.fingerprint)) { old = before; break search; }
+      }
+    }
+    if (old) continued.add(old.id);
     // The answer stays while one item of the group has a hash that the answer saw: the hash of its example, or one of the hashes
     // of its group. So a page that goes, for example after a person removes a page record, does not take the answer with it.
     const short = (h: string) => h.slice(0, 16);
     const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || [])]);
     const all = list.map((o) => ({ o, h: hashes(o) }));
-    const match = old ? all.find((x) => known.has(short(x.h.item)) || x.h.legacy.some((h) => known.has(short(h)))) : undefined;
+    // The example that the answer saw comes first, so that the example stays when it is still in the group. Then any item that the answer saw.
+    const was = old?.item_hash ? short(old.item_hash) : "";
+    const match = old ? (all.find((x) => !!was && (short(x.h.item) === was || x.h.legacy.some((h) => short(h) === was)))
+      || all.find((x) => known.has(short(x.h.item)) || x.h.legacy.some((h) => known.has(short(h))))) : undefined;
     // The example of the question: the item that the answer saw, when it is still there.
     const first = match ? match.o : list[0];
     const c = CRITERIA_BY_ID.get(first.criterion)!;
@@ -295,6 +327,18 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
       pages: new Set(list.map((o) => o.url)).size,
       ...(kind === "person" ? { steps: first.steps || (c.person_task ? [c.person_task] : [c.review_or_person_check || "Check the item."]) } : {}),
     });
+  }
+  // An old question whose pages this run did not test stays, with its answers, and is "not checked": a budget or a short check left
+  // its pages, or its test runs on the sample only and its pages were not in the sample. The next run that tests a page decides it.
+  if (context) {
+    const now = new Set(questions.map((q) => q.id));
+    for (const [id, old] of existing) {
+      if (now.has(id) || continued.has(id)) continue;
+      const paths: string[] = old.evidence?.pages || [];
+      const checked = needsSample(old.evidence?.rule || "", old.criterion, false) && context.samplePaths ? context.samplePaths : context.testedPaths;
+      if (!paths.length || paths.some((p) => checked.has(p) || context.gonePaths.has(p))) continue;
+      questions.push({ ...old, not_checked: true });
+    }
   }
   return questions.sort((a, b) => a.criterion.localeCompare(b.criterion, undefined, { numeric: true }) || b.pages - a.pages);
 }

@@ -3,7 +3,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from "playwrig
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { Config } from "./config.ts";
-import { unrandom } from "./stable.ts";
+import { LAZY_CLASS, unrandom } from "./stable.ts";
 
 /** The storage state file of a login role. The secret names an environment variable that holds the path. The value is never printed. */
 export function storageStateFor(secretName?: string): { path?: string; warning?: string } {
@@ -18,6 +18,7 @@ export function storageStateFor(secretName?: string): { path?: string; warning?:
  *  makes new on each render, is not used in a selector, and the identity of an element leaves the random part out. */
 export const HELPERS = `
 ${unrandom.toString()}
+const LAZY_CLASS = ${LAZY_CLASS.toString()};
 function stableId(el) { return !!el.id && unrandom(el.id) === el.id && document.querySelectorAll("#" + CSS.escape(el.id)).length === 1; }
 function sel(el) {
   if (!el || el.nodeType !== 1) return "";
@@ -39,7 +40,7 @@ function sel(el) {
 }
 function item(el) {
   if (!el || el.nodeType !== 1) return "";
-  const cls = Array.from(el.classList).slice(0, 3).join(".");
+  const cls = Array.from(el.classList).filter((c) => !LAZY_CLASS.test(c)).slice(0, 3).join(".");
   const key = el.getAttribute("src") || el.getAttribute("href") || (el.getAttribute("name") ? unrandom(el.getAttribute("name")) : "") || el.getAttribute("aria-label") || "";
   const text = (el.innerText || el.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40);
   return el.localName + (el.id ? "#" + unrandom(el.id) : "") + (cls ? "." + cls : "") + "|" + (key ? key.split("/").pop() : "") + "|" + text;
@@ -79,7 +80,10 @@ export async function launch(): Promise<Browser> {
 /** blocked: the navigations of the main frame that scripts started after the load. blockedRequests: the non-GET requests on production.
  *  finalUrl: the address after the redirects. contentType: of the main document. challenge: a bot challenge answered instead of the page.
  *  loadIncomplete: the load event did not come in the load wait, for example because of a slow image, and the page is tested as it was. */
-export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[]; finalUrl: string; contentType: string | null; challenge: boolean; loadIncomplete: boolean }
+export interface Opened { page: Page; status: number | undefined; ok: boolean; error?: string; blocked: string[]; blockedRequests: string[]; finalUrl: string; contentType: string | null; challenge: boolean; loadIncomplete: boolean;
+  /** The stylesheets of the page that did not apply, for example after a failed request. The page then shows with no style or with part of it. */
+  stylesMissing: string[] }
+
 
 /** The seconds that a page has for its document, and the default seconds that it has after that for its load event. */
 const DOCUMENT_TIMEOUT = 45;
@@ -112,6 +116,11 @@ export async function openPage(context: BrowserContext, url: string, config: Con
   const page = await context.newPage();
   const blocked: string[] = [];
   const blockedRequests: string[] = [];
+  // The stylesheets whose request failed or gave an error status, with no later success: Chromium keeps an empty sheet for them,
+  // so only the network tells. A page with such a stylesheet shows with no style or with part of it.
+  const styleFailed = new Set<string>();
+  page.on("requestfailed", (req) => { if (req.resourceType() === "stylesheet") styleFailed.add(req.url()); });
+  page.on("response", (res) => { if (res.request().resourceType() !== "stylesheet") return; if (res.status() >= 400) styleFailed.add(res.url()); else styleFailed.delete(res.url()); });
   let loaded = false;
   await page.route("**/*", async (route) => {
     const req = route.request();
@@ -133,6 +142,7 @@ export async function openPage(context: BrowserContext, url: string, config: Con
   let contentType: string | null = null;
   let challenge = false;
   let loadIncomplete = false;
+  let stylesMissing: string[] = [];
   try {
     const went = await gotoPage(page, url, config);
     const response = went.response;
@@ -143,13 +153,14 @@ export async function openPage(context: BrowserContext, url: string, config: Con
     challenge = await isChallenge(page, status, headers);
     await waitForFonts(page);
     await page.waitForTimeout(400);
+    if (!challenge) stylesMissing = [...styleFailed];
   } catch (e) {
     ok = false;
     error = (e as Error).message.split("\n")[0];
   }
   loaded = true;
   if (ok && !challenge && options.closeBanner !== false) await closeBanner(page, config);
-  return { page, status, ok, error, blocked, blockedRequests, finalUrl: page.url(), contentType, challenge, loadIncomplete };
+  return { page, status, ok, error, blocked, blockedRequests, finalUrl: page.url(), contentType, challenge, loadIncomplete, stylesMissing };
 }
 
 /** The contexts whose first page waited for the banner. A banner or a popup can open some seconds after the load. */

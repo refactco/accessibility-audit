@@ -31,7 +31,7 @@ function absolute(site: string, url: string): string {
 }
 
 function groups(outDir: string, all: boolean) {
-  const open = [...loadExisting(outDir, "questions").values()].filter((q) => !q.person_answer);
+  const open = [...loadExisting(outDir, "questions").values()].filter((q) => !q.person_answer && !q.not_checked);
   const byReach = (a: Record<string, any>, b: Record<string, any>) => b.pages - a.pages;
   // A question whose facts a person checked is done for the person, until the AI answers again.
   // With the verifier, a person sees only the unresolved questions: the two AI answers differ, or one is unsure. With all: every open question.
