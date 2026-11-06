@@ -67,6 +67,45 @@ const UNFOCUSED = `(() => {
   return styles;
 })()`;
 
+/** The focus inside a frame: the control that has the focus in the document of the frame, and the style keys that change when it loses
+ *  the focus. It gives the focus back after the read. body is true when the document of the frame has the focus and no control has it. */
+const INNER_FOCUS = `(() => {
+  const el = document.activeElement;
+  if (!el || el === document.body || el === document.documentElement) return { body: true, frame: false, tag: "", changed: [] };
+  if (el.localName === "iframe" || el.localName === "frame") return { body: false, frame: true, tag: el.localName, changed: [] };
+  const read = () => { const cs = getComputedStyle(el); const s = {}; for (const k of ${JSON.stringify(STYLE_KEYS)}) s[k] = cs[k]; return s; };
+  const focused = read();
+  el.blur();
+  const unfocused = read();
+  el.focus({ preventScroll: true });
+  const name = (el.getAttribute("aria-label") || el.getAttribute("name") || el.id || "").slice(0, 60);
+  return { body: false, frame: false, tag: el.localName, name, changed: ${JSON.stringify(STYLE_KEYS)}.filter((k) => focused[k] !== unfocused[k]) };
+})()`;
+
+interface InnerFocus { body: boolean; frame: boolean; tag: string; name?: string; changed: string[] }
+
+/** Reads the focus inside the frame of the selector. Playwright runs the code in a frame of another origin too. Null when the
+ *  frame cannot be read, for example when it closed. */
+async function innerFocus(page: Page, selector: string): Promise<InnerFocus | null> {
+  try {
+    const handle = await page.$(selector);
+    const frame = handle ? await handle.contentFrame() : null;
+    if (!frame) return null;
+    return await frame.evaluate(INNER_FOCUS) as InnerFocus;
+  } catch { return null; }
+}
+
+/** Waits for the load of the frame of the selector, at most 3 seconds. A short pause first: a lazy frame starts its load when it comes
+ *  into view. */
+async function frameLoaded(page: Page, selector: string): Promise<void> {
+  try {
+    await page.waitForTimeout(300);
+    const handle = await page.$(selector);
+    const frame = handle ? await handle.contentFrame() : null;
+    await frame?.waitForLoadState("load", { timeout: 3000 });
+  } catch { /* the frame closed or did not load: the test reads it as it is */ }
+}
+
 /** The state of a dialog: open, the focus inside it, and a control that closes it. */
 const DIALOG = (selector: string) => `(() => {
   ${HELPERS}
@@ -157,6 +196,37 @@ export async function runFocusTests(page: Page, url: string, width: number, stat
       }
       if (!forward || seen.has(r.selector)) continue;
       seen.add(r.selector);
+      // Focus visible in a frame: the focus is on a control in the document of the frame, and the frame element does not change. So
+      // the test reads the first control that gets the focus in the frame. Before 1.3.5 it compared the styles of the frame element,
+      // and a form in a frame whose fields show a clear focus gave an issue.
+      if (r.tag === "iframe" || r.tag === "frame") {
+        let inner = await innerFocus(page, r.selector);
+        if (inner?.body) {
+          // The document of the frame has the focus: the frame is still loading, for example a lazy frame that the Tab scrolled into
+          // view, or it has no control. The test waits for its load and presses Tab once more. A control of the frame then has the
+          // focus, and the test reads it. When the focus leaves the frame, the frame has no control: Shift+Tab goes back to it, so
+          // that the pass does not skip the next control.
+          await frameLoaded(page, r.selector);
+          await page.keyboard.press("Tab");
+          await page.waitForTimeout(25);
+          const next = await page.evaluate(READ).catch(() => null) as Record<string, any> | null;
+          if (next?.selector === r.selector) inner = await innerFocus(page, r.selector);
+          else { await page.keyboard.press("Shift+Tab"); await page.waitForTimeout(25); }
+        }
+        if (!inner || inner.frame) {
+          found.push({ criterion: "2.4.7", rule: "focus-not-visible", kind: "cantTell", selector: r.selector, html: r.html, item: r.item, facts: { frame: true, readable: false },
+            summary: "The focus is in a frame that the test cannot read.", severity: "serious",
+            question: "Press Tab until the focus is in this frame. Does the control that gets the focus show a visible change?",
+            solution: { summary: "Show a visible focus indicator in the frame.", steps: ["Add an outline on :focus-visible in the styles of the frame, or ask the provider of the frame for it."] } });
+          continue;
+        }
+        if (inner.changed.length) continue;
+        found.push({ criterion: "2.4.7", rule: "focus-not-visible", kind: "failed", selector: r.selector, html: r.html, item: r.item,
+          facts: { frame: true, focusedInFrame: inner.body ? "the document of the frame" : inner.tag + (inner.name ? ` "${inner.name}"` : "") },
+          summary: inner.body ? "The frame takes the focus and shows no change." : "The control in the frame shows no change when it has the focus.", severity: "serious",
+          solution: { summary: "Show a visible focus indicator in the frame.", steps: ["Add an outline on :focus-visible in the styles of the frame, or ask the provider of the frame for it."] } });
+        continue;
+      }
       // Focus visible: the styles of the control with focus and with no focus.
       const unfocused = await page.evaluate(UNFOCUSED) as Record<string, string> | null;
       await page.evaluate(`(() => { const el = document.querySelector(${JSON.stringify(r.selector)}); if (el) el.focus({ preventScroll: true }); })()`);

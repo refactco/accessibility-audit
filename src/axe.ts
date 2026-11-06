@@ -2,7 +2,7 @@
 import { createRequire } from "node:module";
 import type { Page } from "playwright";
 import { AXE_RULE_CRITERIA } from "./criteria.ts";
-import { LAZY_CLASS, stableSelector, unrandom } from "./stable.ts";
+import { addressTail, LAZY_CLASS, stableSelector, unrandom } from "./stable.ts";
 import type { Outcome, Severity } from "./types.ts";
 
 const require = createRequire(import.meta.url);
@@ -63,7 +63,7 @@ export function itemFromHtml(html: string, selector: string): string {
   const id = rawId ? unrandom(rawId) : rawId;
   const cls = (html.match(/\sclass="([^"]*)"/) || [, ""])[1].split(/\s+/).filter((c) => c && !LAZY_CLASS.test(c)).slice(0, 3).join(".");
   const attr = html.match(/\s(src|href|name|aria-label)="([^"]*)"/);
-  const key = attr ? (attr[1] === "name" ? unrandom(attr[2]) : attr[2]).split("/").pop() || "" : "";
+  const key = attr ? addressTail(attr[1], attr[1] === "name" ? unrandom(attr[2]) : attr[2]) : "";
   const text = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim().slice(0, 40);
   if (!id && !cls && !key && !text) return stableSelector(selector.replace(/:nth-child\(\d+\)/g, ""));
   return `${tag}${id ? "#" + id : ""}${cls ? "." + cls : ""}|${key}|${text}`;

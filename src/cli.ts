@@ -18,7 +18,7 @@ function usage(): never {
   refact-a11y answer <Q-id> <issue | no issue | unsure | not applicable> --by <name or ai> [--reason <text>] [--fact <text>]... [--note <text>] [--confidence low|medium|high] [--model <name>] [--prompt-version <v>] [--out <folder>]
   refact-a11y facts <Q-id> <confirmed | wrong> --by <name> [--note <text>] [--out <folder>]     a person confirms the facts of the AI answer, or marks one as wrong
   refact-a11y verify-tasks --file <tasks.json> [--all] [--out <folder>]     writes the questions that wait for a verification, without the first answer
-  refact-a11y tasks <review | verify | locate> [--out <folder>] [--dir <tasks folder>] [--batch <n>] [--limit <n>]     writes the batch files of one step of the cycle for the agents of the skill, within the budgets of the settings (--limit replaces the budget)
+  refact-a11y tasks <review | verify | locate> [--out <folder>] [--dir <tasks folder>] [--batch <n>] [--limit <n>] [--retry]     writes the batch files of one step of the cycle for the agents of the skill, within the budgets of the settings (--limit replaces the budget; --retry lists only the items of the last batches that still wait)
   refact-a11y verify <Q-id> <issue | no issue | unsure> --by ai --model <name> [--reason <text>] [--fact <text>]... [--confidence low|medium|high] [--out <folder>]     the second, independent AI answer
   refact-a11y pass <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
   refact-a11y not-applicable <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
@@ -59,7 +59,7 @@ for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith("--")) usage();
   const key = a.slice(2);
-  if (key === "quiet" || key === "all" || key === "no-open" || key === "resume") flags[key] = true;
+  if (key === "quiet" || key === "all" || key === "no-open" || key === "resume" || key === "retry") flags[key] = true;
   else if (key === "fact") facts.push(args[++i]);
   else flags[key] = args[++i];
 }
@@ -86,7 +86,7 @@ if (command === "tasks") {
   const outDir = resolve(str("out") || "accessibility-audit");
   if (!["review", "verify", "locate"].includes(target)) { console.error("The step is review, verify, or locate."); process.exit(2); }
   try {
-    const r = writeTasks(loadConfig(join(outDir, "config.json")), outDir, target as Step, resolve(str("dir") || join(outDir, "runs", "tasks")), flags["batch"] ? Number(flags["batch"]) : 20, flags["limit"] ? Number(flags["limit"]) : undefined);
+    const r = writeTasks(loadConfig(join(outDir, "config.json")), outDir, target as Step, resolve(str("dir") || join(outDir, "runs", "tasks")), flags["batch"] ? Number(flags["batch"]) : 20, flags["limit"] ? Number(flags["limit"]) : undefined, !!flags["retry"]);
     console.log(JSON.stringify(r));
   } catch (e) { console.error((e as Error).message); process.exit(1); }
   process.exit(0);

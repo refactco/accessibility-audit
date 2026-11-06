@@ -59,19 +59,31 @@ function classesOf(html: string): string[] {
   return ((tag.match(/\sclass="([^"]*)"/) || [, ""])[1] as string).split(/\s+/).filter(Boolean);
 }
 
-/** The items that 1.3.1 and older versions gave for an element with the classes of a lazy load: the first three classes as they were,
- *  the same without ls-is-cached, the class that changes with the cache, and the same with ls-is-cached before lazyloaded.
- *  Empty when the element has no such class. */
+/** The last part of an address in an item: the last part of the path, with the query. Since 1.3.5 the fragment of a src is not part
+ *  of it: the script of an embed can add one with the times of the load, for example #{"os":487.3}, and the item changed in each run. */
+export function addressTail(attr: string, value: string): string {
+  return (attr === "src" ? value.split("#")[0] : value).split("/").pop() || "";
+}
+
+/** The items that older versions gave for the same element. 1.3.1 and older, for an element with the classes of a lazy load: the first
+ *  three classes as they were, the same without ls-is-cached, the class that changes with the cache, and the same with ls-is-cached
+ *  before lazyloaded. 1.3.4 and older, for an element whose src has a fragment: the item with the fragment. Empty for other elements. */
 export function legacyItems(item: string, html: string): string[] {
+  const out = new Set<string>();
+  // The items of 1.3.4 and older versions kept the fragment of the address of a src. A fragment that does not change, for example
+  // #page=2 of a document, gives the old item again, so its question and its issue continue.
+  const src = (html.match(/^<[^>]*?\ssrc="([^"]*)"/) || [])[1];
+  if (src && src.includes("#")) for (const value of new Set([src, src.replace(/&amp;/g, "&")])) {
+    const now = addressTail("src", value), before = value.split("/").pop() || "";
+    if (before !== now && item.includes("|" + now + "|")) out.add(item.replace("|" + now + "|", () => "|" + before + "|"));
+  }
   const raw = classesOf(html);
-  if (!raw.some((c) => LAZY_CLASS.test(c))) return [];
   const bar = item.indexOf("|");
-  if (bar < 0) return [];
+  if (!raw.some((c) => LAZY_CLASS.test(c)) || bar < 0) { out.delete(item); return [...out]; }
   const head = item.slice(0, bar);
   const now = raw.filter((c) => !LAZY_CLASS.test(c)).slice(0, 3).join(".");
-  if (now && !head.endsWith("." + now)) return [];
+  if (now && !head.endsWith("." + now)) { out.delete(item); return [...out]; }
   const base = now ? head.slice(0, head.length - now.length - 1) : head;
-  const out = new Set<string>();
   const lists = [raw, raw.filter((c) => c !== "ls-is-cached")];
   // The same image with ls-is-cached, when it was in the cache of the browser in the old run and not in this one.
   const at = raw.indexOf("lazyloaded");

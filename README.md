@@ -46,17 +46,17 @@ The package builds itself at install. The plugin loads from the project settings
 
 Run the command as `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`. The old name `a11y` still works in a project that has the package, but never run `npx a11y`: `a11y` is also an unrelated package on the npm registry. When the local package is missing, `npx a11y` downloads and runs that package, and after one such run `npx` keeps a copy in its cache, so even `npx --no a11y` can run it. For the same reason, do not use `npx` with the new name either: the forms above run only the copy in the project.
 
-To update the package to a release tag, for example `v1.3.4`:
+To update the package to a release tag, for example `v1.3.5`:
 
 ```
-pnpm add -Dw github:refactco/accessibility-audit#v1.3.4
+pnpm add -Dw github:refactco/accessibility-audit#v1.3.5
 ```
 
 With npm 12 and `allow-git=root`, an install of a new tag over an old one stops with `EALLOWGIT` ("Fetching non-root packages of type "git" have been disabled"): `package-lock.json` still names the old tag, so npm does not count the package as a dependency of the project. Remove the package first, then install the new tag:
 
 ```
 npm uninstall @refact/a11y
-npm install -D github:refactco/accessibility-audit#v1.3.4
+npm install -D github:refactco/accessibility-audit#v1.3.5
 npm install-scripts approve @refact/a11y --no-allow-scripts-pin
 ```
 
@@ -97,7 +97,7 @@ The commands that the skill runs, which you can run yourself:
 refact-a11y audit <config.json> --out accessibility-audit         the full audit; Ctrl+C stops it with the results so far
 refact-a11y audit <config.json> --out accessibility-audit --resume   continues the last run that a stop or a crash ended
 refact-a11y check <config.json> --out accessibility-audit         the short check of the pages with open issues
-refact-a11y tasks review|verify|locate                            the batch files of one step, for the agents
+refact-a11y tasks review|verify|locate                            the batch files of one step, for the agents; --retry lists only what the last batches left
 refact-a11y refresh                                               the results with the answers of today, no crawl
 refact-a11y handoff                                               fixes.json and fixes.md for the fixing agent
 refact-a11y review                                                the report page, on your machine

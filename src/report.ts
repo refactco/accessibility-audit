@@ -141,7 +141,10 @@ export function renderReport(r: ReportInput): string {
   if (decided.length) lines.push(`${decided.length} issues are accepted or dismissed: ${decided.map((i) => i.id + " (" + i.status + ")").join(", ")}.\n`);
 
   // The answers: how many the AI gave, how many wait for a person, and how often the AI and the person agree.
-  const aiAnswered = r.questions.filter((q) => q.ai_answer && q.ai_answer.value !== "unsure");
+  // All the first AI answers, the unsure ones too: the verifier checks those too, so the count of the verifier is never larger. Before
+  // 1.3.5 the count left out the unsure answers, and the report said that the verifier checked more answers than the AI gave.
+  const aiAnswered = r.questions.filter((q) => q.ai_answer);
+  const aiUnsure = aiAnswered.filter((q) => q.ai_answer.value === "unsure").length;
   const forPerson = r.questions.filter((q) => q.kind === "review" && !q.person_answer && !q.facts_check && !q.verification && (q.sample || (q.ai_answer && q.ai_answer.value === "unsure")));
   // A person agrees with the AI by the same answer, or by a confirmation of the facts of the AI answer.
   const both = r.questions.filter((q) => q.ai_answer && q.ai_answer.value !== "unsure" && ((q.person_answer && q.person_answer.value !== "not applicable") || q.facts_check));
@@ -152,7 +155,7 @@ export function renderReport(r: ReportInput): string {
   const unresolved = r.questions.filter((q) => q.kind === "review" && effectiveAnswer(q).unresolved);
   const unverified = r.questions.filter((q) => q.kind === "review" && effectiveAnswer(q).by === "ai");
   lines.push(`## Answers\n`);
-  lines.push(`The AI answered ${aiAnswered.length} questions, and a person answered ${r.questions.filter((q) => q.person_answer).length}. The verifier, a second independent AI pass, checked ${verified.length} and agreed on ${agreed.length}. ${unresolved.length} questions are unresolved: the two AI answers differ, or one is unsure. ${unverified.length} answers count on the first AI answer alone, with no verification yet.${both.length ? ` On the ${both.length} questions that a person checked, the AI and the person agree on ${agree}.` : ""}${wrongFacts.length ? ` ${wrongFacts.length} questions go back to the AI, because a person found a fact wrong: ${wrongFacts.map((q) => q.id).join(", ")}.` : ""}\n`);
+  lines.push(`The AI answered ${aiAnswered.length} questions${aiUnsure ? ` (${aiUnsure} of them unsure)` : ""}, and a person answered ${r.questions.filter((q) => q.person_answer).length}. The verifier, a second independent AI pass, checked ${verified.length} and agreed on ${agreed.length}. ${unresolved.length} questions are unresolved: the two AI answers differ, or one is unsure. ${unverified.length} answers count on the first AI answer alone, with no verification yet.${both.length ? ` On the ${both.length} questions that a person checked, the AI and the person agree on ${agree}.` : ""}${wrongFacts.length ? ` ${wrongFacts.length} questions go back to the AI, because a person found a fact wrong: ${wrongFacts.map((q) => q.id).join(", ")}.` : ""}\n`);
   if (unresolved.length) lines.push(`Unresolved: ${unresolved.slice(0, 40).map((q) => `${q.id} (${q.criterion}, AI ${q.ai_answer?.value}, verifier ${q.verification?.value || "none"})`).join("; ")}.\n`);
   for (const q of forPerson.slice(0, 40)) lines.push(`- ${q.id} (${q.criterion}, ${q.pages} pages): ${q.question}${q.ai_answer ? " AI: " + q.ai_answer.value + ", " + q.ai_answer.confidence + " confidence, " + q.ai_answer.reason : ""}`);
   if (forPerson.length) lines.push("");
