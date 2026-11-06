@@ -10,10 +10,12 @@ export const OWN_DETECTION_VERSION = "1.3.0";
 
 /** The rules whose detection changed after OWN_DETECTION_VERSION, with the version of the change.
  *  1.3.3: the focus test counts only the points in the viewport and reads a hidden control again when its position is stable.
- *  The watch of the content that changes by itself leaves out the body and the elements that hold the main content. */
+ *  The watch of the content that changes by itself leaves out the body and the elements that hold the main content.
+ *  1.3.4: the item of an image of text uses the address of the image after its load. */
 export const RULE_VERSIONS: Record<string, string> = {
   "focus-entirely-hidden": "1.3.3",
   "content-updates-by-itself": "1.3.3",
+  "image-of-text": "1.3.4",
 };
 
 /** The version of the detection of an own rule. */

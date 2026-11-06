@@ -89,6 +89,19 @@ export function questionFingerprintOf(o: Outcome, config: Config): string {
 }
 
 export type IssueFile = Record<string, any>;
+
+/** The solution of an issue, with its own ID in the commands of a decision: `refact-a11y dismiss`, `accept`, and `locate`. A solution
+ *  that an issue takes from the older ID that it continues names that ID: from gives it, and each time it is in the text it becomes
+ *  the ID of the issue. Other IDs in the text, for example of a related issue, stay. Before 1.3.4 the copied solution told a person
+ *  to dismiss the old ID, not the open issue. */
+export function solutionFor(solution: any, id: string, from?: string): any {
+  if (!solution) return solution;
+  const before = JSON.stringify(solution);
+  let text = from && from !== id ? before.split(from).join(id) : before;
+  text = text.replace(/\b((?:refact-)?a11y\s+(?:accept|dismiss|locate)\s+)ISS-[0-9a-f]{8}\b/g, `$1${id}`);
+  return text === before ? solution : JSON.parse(text);
+}
+
 export type QuestionFile = Record<string, any>;
 
 export function loadExisting(dir: string, folder: "issues" | "questions"): Map<string, IssueFile> {
@@ -110,6 +123,8 @@ export interface CompareContext {
   samplePaths?: Set<string>;
   /** The keys of the pages of the last audit that are gone: they give 404 or 410 now, or their address redirects now. */
   gonePaths: Set<string>;
+  /** The widths at which a tested page did not load, by the key of the page, for example during a short outage of the server. */
+  widthsNotLoaded?: Map<string, number[]>;
   versions: { engine: string; axe_core: string };
 }
 
@@ -184,11 +199,12 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       affects: c.affects, severity, summary: first.summary,
       reach: { pages: urls.length, occurrences: list.length, templates, widths: [...new Set(list.map((o) => o.width))].sort((a, b) => a - b) },
       first_seen: old?.first_seen || date, last_seen: date, environment: config.site.environment,
-      // A refresh of the same run keeps the old issue that this one replaces: only a new run decides it again.
-      question: list.find((o) => o.questionId)?.questionId || null, replaces: old && old.status_by?.run === run ? (old.replaces ?? null) : null, origin: old?.origin || "unknown", source: old?.source || [], source_warning: old?.source_warning ?? null,
+      // The old issue that this one replaces or continues stays in the next runs, so that the file tells the history of its ID. Before
+      // 1.3.4 a new run cleared it. The counts and the report use it only for a "new" issue, and for an old ID resolved in this run.
+      question: list.find((o) => o.questionId)?.questionId || null, replaces: old ? (old.replaces ?? null) : null, origin: old?.origin || "unknown", source: old?.source || [], source_warning: old?.source_warning ?? null,
       examples,
       // The specific solution of the skill stays. The general solution of the engine is only for an issue with no specific one yet.
-      solution: old?.solution?.type === "specific" ? old.solution : { type: "general", summary: first.solution.summary, steps: first.solution.steps, ...(first.solution.example ? { example: first.solution.example } : {}) },
+      solution: old?.solution?.type === "specific" ? solutionFor(old.solution, id) : { type: "general", summary: first.solution.summary, steps: first.solution.steps, ...(first.solution.example ? { example: first.solution.example } : {}) },
       decision: old?.decision || null,
       untrusted_fields: ["examples[].html", "examples[].facts"],
     });
@@ -232,13 +248,13 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
         Object.assign(same, {
           status: old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
           replaces: old.id, first_seen: old.first_seen || same.first_seen, origin: old.origin || same.origin, source: old.source || same.source, source_warning: old.source_warning ?? same.source_warning,
-          solution: old.solution?.type === "specific" ? old.solution : same.solution, decision: old.decision || same.decision,
+          solution: old.solution?.type === "specific" ? solutionFor(old.solution, same.id, old.id) : same.solution, decision: old.decision || same.decision,
         });
       } else {
         if (old.first_seen && old.first_seen < same.first_seen) same.first_seen = old.first_seen;
         if (same.origin === "unknown" && old.origin) same.origin = old.origin;
         if (!same.source?.length && old.source?.length) { same.source = old.source; same.source_warning = old.source_warning ?? null; }
-        if (same.solution?.type !== "specific" && old.solution?.type === "specific") same.solution = old.solution;
+        if (same.solution?.type !== "specific" && old.solution?.type === "specific") same.solution = solutionFor(old.solution, same.id, old.id);
         if (!same.decision && old.decision) same.decision = old.decision;
       }
       issues.push(["resolved", "page removed", "dismissed"].includes(old.status) ? old : { ...old, status: "resolved", status_by: { ...by, reason: "rule changed" } });
@@ -266,6 +282,9 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // A page that is gone cannot have the issue any more: it counts as checked. A path of an older version can differ from the
     // tested page by the trailing slash.
     if (context && checked && !paths.every((p) => hasPath(checked, p) || hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
+    // A page that did not load at the width of an example did not check the issue there: the page is tested at its other widths only.
+    const notAt = (u: string) => context?.widthsNotLoaded?.get(u) || context?.widthsNotLoaded?.get(otherSlash(u)) || [];
+    if ((old.examples || []).some((e: { url: string; width?: number }) => e.width !== undefined && notAt(e.url).includes(e.width))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
     // An axe-core rule changed when the version of axe-core changed. An own rule changed when the engine that found the issue had an
     // older detection of that rule than this engine: a release that does not change the test is not a rule change.
     const changed = old.rule?.engine === "axe-core"
@@ -299,7 +318,7 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       status: was.status === "accepted" || was.status === "dismissed" ? was.status : "open",
       origin: i.origin === "unknown" && old.origin ? old.origin : i.origin,
       source: i.source?.length ? i.source : old.source || [], source_warning: i.source?.length ? i.source_warning : old.source_warning ?? null,
-      solution: i.solution?.type !== "specific" && old.solution?.type === "specific" ? old.solution : i.solution,
+      solution: i.solution?.type !== "specific" && old.solution?.type === "specific" ? solutionFor(old.solution, i.id, old.id) : i.solution,
       decision: i.decision || old.decision || null,
     });
     old.status_by = { ...old.status_by, reason: "rule changed" };
@@ -390,7 +409,10 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
       if (now.has(id) || continued.has(id)) continue;
       const paths: string[] = old.evidence?.pages || [];
       const checked = needsSample(old.evidence?.rule || "", old.criterion, false) && context.samplePaths ? context.samplePaths : context.testedPaths;
-      if (!paths.length || paths.some((p) => hasPath(checked, p) || hasPath(context.gonePaths, p))) continue;
+      // A page that did not load at a width checked the question only at its other widths: a question has no width, so the page does
+      // not count as checked. The question stays one more run, with its answers.
+      const partial = (p: string) => !!(context.widthsNotLoaded?.get(p) || context.widthsNotLoaded?.get(otherSlash(p)))?.length;
+      if (!paths.length || paths.some((p) => (hasPath(checked, p) && !partial(p)) || hasPath(context.gonePaths, p))) continue;
       questions.push({ ...old, not_checked: true });
     }
   }

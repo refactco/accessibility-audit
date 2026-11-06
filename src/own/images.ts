@@ -3,12 +3,24 @@
 // a button, or a quote as an image is an issue; a logo, a brand name, or text inside a photo is essential, and not an issue.
 // The contrast of the text in an image (1.4.3): the letters of a transparent image over the page. axe-core does not read the pixels
 // of an image, so it never measures them. An opaque image is not measured: its letters cannot be told from its ground.
+import { createHash } from "node:crypto";
 import type { Page } from "playwright";
 import { HELPERS } from "../browser.ts";
 import type { Outcome } from "../types.ts";
 import { toOutcome, type Found } from "./page.ts";
 
 interface ImageCandidate { selector: string; html: string; src: string; alt: string; width: number; height: number; inLink: boolean; nearText: string }
+
+/** The file name in the address of an image, for the item of its question. An image whose address holds the image itself (data:)
+ *  gets a short hash of it. The address of a script that sends the image, for example photo.php?id=12, names the image in
+ *  its query: the item keeps it, so that the photos of one script do not share one question. Empty when the image has no address. */
+export function fileName(src: string): string {
+  if (!src) return "";
+  if (src.startsWith("data:")) return "data-" + createHash("sha1").update(src).digest("hex").slice(0, 12);
+  const [path, query] = src.split(/\?(.*)/s);
+  const name = path.split("/").pop() || src;
+  return query && !/\.(png|jpe?g|gif|svg|webp|avif|bmp|ico|tiff?)$/i.test(name) ? name + "?" + query.split("#")[0] : name;
+}
 
 /** The images in the content: visible, large enough, and outside the header, the navigation, and the footer, where the logos live. */
 const FIND_IMAGES = `(() => {
@@ -66,11 +78,17 @@ export async function runImageOfTextTest(page: Page, url: string, width: number,
   const found: Found[] = [];
   for (const c of candidates) {
     let flat: { total: number; bins: number; top: { color: string; share: number }[] };
+    let src = "";
     try {
       // A lazy image is a flat placeholder until it loads: scroll it into view, and wait for its pixels.
       const el = page.locator(c.selector).first();
       await el.scrollIntoViewIfNeeded({ timeout: 2000 });
       await page.waitForFunction((sel: string) => { const img = document.querySelector(sel) as HTMLImageElement | null; return !!img && img.complete && img.naturalWidth > 0; }, c.selector, { timeout: 4000 });
+      // The address of the image after its load. Before its load a lazy image has no address, or the address of a placeholder, and
+      // an image with a srcset has the address of its src. Before 1.3.4 the item used the address before the load: the images that
+      // had not loaded yet shared the item "image|" and one question, and the item of an image changed with the timing of the load.
+      const loaded = await el.evaluate((img) => (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src || "").catch(() => "");
+      src = loaded || (c.src.startsWith("data:") ? "" : c.src);
       const png = (await el.screenshot({ timeout: 3000, animations: "disabled" })).toString("base64");
       flat = await page.evaluate(FLATNESS(png)) as typeof flat;
     } catch { continue; }
@@ -78,10 +96,11 @@ export async function runImageOfTextTest(page: Page, url: string, width: number,
     const topShare = flat.top.reduce((n, b) => n + b.share, 0);
     // Text on a flat ground: three colors cover most of the pixels, and the second color is more than a trace. A photo spreads over many colors.
     if (topShare < 0.85 || flat.top[1].share < 0.02) continue;
-    const name = c.src.split("?")[0].split("/").pop() || c.src;
+    const name = fileName(src);
+    if (!name) continue;
     found.push({
       criterion: "1.4.5", rule: "image-of-text", kind: "candidate", selector: c.selector, html: c.html, item: "image|" + name,
-      facts: { src: c.src, alt: c.alt, width: c.width, height: c.height, inLink: c.inLink, colors: flat.top, flatShare: Math.round(topShare * 1000) / 1000, nearText: c.nearText },
+      facts: { src, alt: c.alt, width: c.width, height: c.height, inLink: c.inLink, colors: flat.top, flatShare: Math.round(topShare * 1000) / 1000, nearText: c.nearText },
       summary: "An image in the content looks like text on a flat ground.", severity: "moderate", context: c.nearText || undefined,
       question: `Does this image show text that real text could present? Its text alternative is "${c.alt || ""}".`,
       solution: { summary: "Replace the image of text with real text and styles.", steps: ["Put the text in the page as HTML text.", "Give it the font, the color, and the layout of the image with CSS.", "Keep the image only when it is a logo, or when the look cannot be made with styles."] },

@@ -2,6 +2,24 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.4, 2026-11-06
+
+Fixes from the sixth full audit of the large WordPress multisite, with 1.3.3 and the full budget, on 2026-11-05. All the fixes of 1.3.3 worked. The site had two short outages during the run, and the engine tested the error pages of its proxy as pages of the site.
+
+The page loads:
+
+- A load that gives a status of 500 or more, with no bot challenge, gets one more load after 15 seconds. When the second load gives such a status too, the width did not load. At the first width, the page is "did not load". At a later width, the page is tested at its other widths only. The states get the same second load. Before, the engine tested the error page as a page of the site, for example the 502 page of a proxy during a short outage. On the large site, 4 such pages gave 8 false new issues and 4 false questions, and 1 question went.
+- The status of a page is the status of the first width that loaded. Before, each width wrote over the status of the width before.
+
+The results from run to run:
+
+- An issue whose page did not load at the width of its example is "not checked". A question whose page did not load at a width stays, "not checked", with its answers. Before, when the page loaded at another width, the issue was "fixed", and the question went.
+- The item of an image of text uses the address of the image after its load. A lazy image has no address before its load. So before, the images that had not loaded yet shared the item `image|` and one question: 280 images on 271 pages of the large site. Also, the item of an image changed with the timing of the load. Now each image has its own question. When the address of an image is a script, for example `photo.php?id=12`, the item keeps the query. The detection of `image-of-text` is now 1.3.4. One time, the shared question goes, and each of its images gets a new question with no answer. The other images keep their questions and their answers.
+- An issue that continues an older ID takes the solution of the old ID. Now each time the old ID is in this solution, it becomes the new ID. Also, the command of a decision in a solution (`refact-a11y dismiss`, `accept`, or `locate`) names the issue of the solution. Before, the solution of a continued issue told a person to dismiss the old ID. A refresh corrects such a solution of 1.3.3. Other IDs in a solution, for example of a related issue, stay.
+- An issue keeps `replaces` in the next runs: the old ID that it replaces or continues. Before, the next run cleared it, and the file did not tell the history of its ID. The counts use `replaces` only for a new issue, so they do not change.
+
+The tests: a new test file, `short-faults`, in `npm test`. 14 of its 15 checks fail on 1.3.3. The other one is a check of the setup. `false-changes` has 5 new checks. 4 of them fail on 1.3.3, and one passes on both versions.
+
 ## 1.3.3, 2026-11-05
 
 Fixes from the fifth full audit of the large WordPress multisite, with 1.3.2 and the full budget, on 2026-11-05. The site did not change, but some issues and questions came and went from run to run. Also, the report and `summary.json` gave different counts.

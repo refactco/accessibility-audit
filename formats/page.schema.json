@@ -31,7 +31,7 @@
       "enum": ["did not load", "page limit", "time budget", "removed", "skipped", "permission", "stopped", "redirects off site", "skipped after redirect", "not a page", "broken link", "blocked"],
       "description": "Why the page was not tested. The last five name an address that is not a page of the site: it does not count in the pages found or in the coverage. stopped: the audit was stopped before this page."
     },
-    "http_status": { "type": "integer" },
+    "http_status": { "type": "integer", "description": "The status of the main document at the first width that loaded. A status of 500 or more gets one more load; a width that gives it again did not load." },
     "redirects_to": { "type": "string", "description": "The address after the redirects, for an address that was not tested there: another site, a skipped path, an error page, or a file." },
     "linked_from": { "type": "array", "items": { "type": "string" }, "maxItems": 5, "description": "For a broken link: the pages that link to it, up to 5." },
     "found_in": { "type": "string", "description": "For an address that is not a page of the site: the sitemap file or the CMS API that gave it, as a key of the results." },
