@@ -4,7 +4,8 @@
 // that the crawl did not find get one request. 5: the pages of the open questions of the sample tests join the sample. 6: the report
 // and summary.json give the same counts. 7: a refresh writes the same summary.json. 8: when two old questions give one new ID, the
 // answer stays. 9: the watch of the content that changes by itself skips the body. D: an issue of axe-core of a template criterion
-// does not need the sample.
+// does not need the sample. And from the sixth full audit, with 1.3.3: S (1.3.4): the solution that a continued issue takes from the
+// old ID names the new ID in its command, and the issue keeps the old ID that it continues in the next runs.
 //
 // Usage: node tests/false-changes.mjs [--verbose]
 import { createHash } from "node:crypto";
@@ -112,8 +113,9 @@ try {
   const stateIssue = issues1.find((i) => i.rule.id === "image-alt" && i.examples.some((e) => e.state?.length));
   const photoIssue = issues1.find((i) => i.rule.id === "image-alt" && i.examples.some((e) => e.url === "/p/"));
   check(!!stateIssue && stateIssue.examples[0].state[0] === "click " + sponsors && !!photoIssue, `the first run gives the image-alt issue in the state "click ${sponsors}" and on /p/ (${stateIssue?.id} ${stateIssue?.examples[0].state.join(">")}, ${photoIssue?.id})`);
-  // The skill located the issue of the state.
-  write("issues", { ...stateIssue, origin: "third-party-controlled", solution: { type: "specific", summary: "Give the sponsor image an alt text in the plugin settings.", steps: ["Open the plugin settings."] } });
+  // The skill located the issue of the state. Its solution names a related issue, and gives the command of a decision on this issue.
+  const located = { type: "specific", summary: "Give the sponsor image an alt text in the plugin settings. The same fix closes ISS-77777777.", steps: ["Open the plugin settings."], example: `node_modules/.bin/refact-a11y dismiss ${stateIssue.id} --by "<name>" --reason "false positive"` };
+  write("issues", { ...stateIssue, origin: "third-party-controlled", solution: located });
   // An issue of the listener test that 1.1.1 found on /third, with no trailing slash. 1.3.0 merged the two forms of the address.
   const base = { ...photoIssue, certainty: "fail", question: null, replaces: null, origin: "unknown", source: [], source_warning: null, decision: null, status_by: { who: "engine", mode: "automatic", date: "2026-11-01", run: "2026-11-01T00:00:00Z" } };
   write("issues", { ...base, id: "ISS-3a3a3a01", status: "not checked", rule: { id: "control-without-role", engine: "a11y", engine_version: "1.3.0" }, wcag: { ...photoIssue.wcag, criterion: "4.1.2" },
@@ -154,6 +156,9 @@ try {
   const oldState = i2.get(stateIssue.id);
   check(!!cont && cont.id !== stateIssue.id && cont.replaces === stateIssue.id && cont.status === "open" && cont.origin === "third-party-controlled" && cont.solution.type === "specific" && cont.first_seen === stateIssue.first_seen,
     `2: the issue in the state with a new name continues the old one: open, with its origin and its solution (${cont ? `${cont.id} ${cont.status}, replaces ${cont.replaces}, origin ${cont.origin}, solution ${cont.solution.type}` : "no issue"})`);
+  const named = (i) => `${i?.solution?.example || "no example"}; ${i?.solution?.summary?.match(/ISS-\w+/g)?.join(", ") || "no ID in the summary"}`;
+  check(cont?.solution.example === `node_modules/.bin/refact-a11y dismiss ${cont?.id} --by "<name>" --reason "false positive"` && !JSON.stringify(cont?.solution).includes(stateIssue.id) && cont?.solution.summary.includes("ISS-77777777"),
+    `S: the solution that the issue took from the old ID names the new ID in its command, and keeps the related ID (${named(cont)})`);
   check(oldState?.status === "resolved" && oldState?.status_by.reason === "rule changed", `2: the old ID is resolved with the reason "rule changed", not "fixed" (${oldState?.status} ${oldState?.status_by?.reason || ""})`);
   check(/1 issues continue an older issue under a new ID/.test(second.report), `2: the report names the issue that continues an older one (${second.report.match(/\d+ issues continue[^\n]*/)?.[0] || "no line"})`);
   // 3: the path with no trailing slash.
@@ -198,6 +203,21 @@ try {
   const i3 = byId("issues");
   check(i3.get(cont.id)?.status === "open" && i3.get(cont.id)?.origin === "third-party-controlled" && i3.get(cont.id)?.solution.type === "specific" && i3.get(stateIssue.id)?.status_by.reason === "rule changed",
     `2: a refresh corrects the results of 1.3.2 for a new name of a state (${i3.get(cont.id)?.status}, origin ${i3.get(cont.id)?.origin}, old ${i3.get(stateIssue.id)?.status_by?.reason})`);
+  check(i3.get(cont.id)?.solution.example?.includes("dismiss " + cont.id) && i3.get(cont.id)?.replaces === stateIssue.id, `S: the refresh names the new ID in the solution that it copies (${named(i3.get(cont.id))}; replaces ${i3.get(cont.id)?.replaces})`);
+
+  // S: a third run with no change of the site. The continued issue keeps the old ID that it continues, and is not "new" or "replaced".
+  const third = await audit();
+  const i4 = byId("issues");
+  const c4 = third.summary.counts;
+  check(i4.get(cont.id)?.status === "open" && i4.get(cont.id)?.replaces === stateIssue.id && i4.get(newPhoto.id)?.replaces === photoIssue.id,
+    `S: in the next run the issues keep the old IDs that they continue or replace (${cont.id} ${i4.get(cont.id)?.status}, replaces ${i4.get(cont.id)?.replaces}; ${newPhoto.id} replaces ${i4.get(newPhoto.id)?.replaces})`);
+  check(c4.new === 0 && c4.replaced === 0 && !/continue an older issue|replace an older issue/.test(third.report), `S: the next run counts no new and no replaced issue, and the report has no line of a pair (new ${c4.new}, replaced ${c4.replaced}, report ${third.report.match(/\d+ (new )?issues (continue|replace)[^\n]*/)?.[0] || "no such line"})`);
+  // S: the file of 1.3.3 after the next run: no old ID, and the copied command of the old ID. A refresh corrects the command.
+  write("issues", { ...i4.get(cont.id), replaces: null, solution: { ...located, example: `node_modules/.bin/a11y dismiss ${stateIssue.id} --by "<name>" --reason "false positive"` } });
+  refresh(config, dir);
+  const i5 = byId("issues");
+  check(i5.get(cont.id)?.solution.example === `node_modules/.bin/a11y dismiss ${cont.id} --by "<name>" --reason "false positive"` && i5.get(cont.id)?.solution.summary.includes("ISS-77777777"),
+    `S: a refresh corrects the command of a decision in a solution of 1.3.3 that names the old ID, and keeps the related ID (${named(i5.get(cont.id))})`);
 } finally {
   await new Promise((r) => server.close(r));
 }

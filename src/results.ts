@@ -93,7 +93,7 @@ export function processSummary(records: PageRecord[], widths: number[]): { resul
 export function countIssues(issues: Record<string, any>[], run: string) {
   const count = (s: string) => issues.filter((i) => i.status === s).length;
   const thisRun = (reason: string) => issues.filter((i) => i.status === "resolved" && i.status_by?.run === run && i.status_by?.reason === reason);
-  const replacedIds = new Set(issues.filter((i) => i.replaces).map((i) => i.replaces));
+  const replacedIds = new Set(issues.filter((i) => i.status === "new" && i.replaces).map((i) => i.replaces));
   const fixed = thisRun("fixed");
   return {
     new: issues.filter((i) => i.status === "new" && !i.replaces).length, open: count("open"),

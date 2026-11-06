@@ -71,6 +71,10 @@ const TEMPLATE_CRITERIA = new Set([...FOCUS_TEST_CRITERIA, ...LISTENER_TEST_CRIT
 /** The errors of a load that a short fault of the network gives, not the site: the load gets one more try after a pause. */
 const TRANSIENT_NETWORK_ERROR = /net::ERR_(NETWORK_CHANGED|INTERNET_DISCONNECTED|NETWORK_IO_SUSPENDED|CONNECTION_RESET|CONNECTION_CLOSED|CONNECTION_ABORTED|CONNECTION_TIMED_OUT|TIMED_OUT|EMPTY_RESPONSE|ADDRESS_UNREACHABLE|NAME_NOT_RESOLVED)\b/;
 const NETWORK_RETRY_PAUSE = 5000;
+/** The pause before the second load of a page that gave a server error, for example a 502 or a 504 of a proxy during a short outage. */
+const SERVER_RETRY_PAUSE = 15000;
+/** A load that gave a status of 500 or more, and no bot challenge: the server, or a proxy in front of it, gave its error page. */
+const serverError = (o: Opened) => o.ok && !o.challenge && (o.status || 0) >= 500;
 /** The pause before the second load of a page whose stylesheet did not apply. */
 const STYLE_RETRY_PAUSE = 3000;
 
@@ -294,6 +298,21 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     return "test";
   };
 
+  /** A server error is a short fault of the site, not its page: the load gets one more try after a pause. When the second load gives a
+   *  server error too, the width did not load. Before 1.3.4 the engine tested the error page as a page of the site: during a short
+   *  outage, the 502 page of a proxy gave false issues and questions, and the old results of the page were compared with it. */
+  const retryServerError = async (opened: Opened, w: number, url: string, record: PageRecord): Promise<Opened> => {
+    if (!serverError(opened)) return opened;
+    log(`  server error ${opened.status} at ${w} for ${key(url)}, one more try in ${SERVER_RETRY_PAUSE / 1000} s`);
+    await opened.page.close();
+    await new Promise((r) => setTimeout(r, SERVER_RETRY_PAUSE));
+    await limiter.wait();
+    const again = await openPage(contexts.get(w)!, url, config);
+    renders++; record.renders++;
+    if (serverError(again)) { again.ok = false; again.error = `status ${again.status}`; }
+    return again;
+  };
+
   const auditOne = async (address: string, opts: { errorTemplate?: boolean } = {}) => {
     let url = address;
     if (!opts.errorTemplate) { if (claimed.has(url)) return; claimed.add(url); }
@@ -324,6 +343,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         opened = await openPage(contexts.get(w)!, url, config);
         renders++; record.renders++;
       }
+      opened = await retryServerError(opened, w, url, record);
       // A stylesheet that did not apply, for example after a failed request, shows the page with no style, and the tests would find
       // faults that the site does not have. The page loads once more after a pause. A stylesheet that is missing again is broken on
       // the site: the next pages do not load again for it, and the record names it.
@@ -351,7 +371,8 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
         log(`  did not load at ${w}: ${opened.error}. The page is tested at the other widths`);
         continue;
       }
-      record.http_status = opened.status;
+      // The status of the first width that loaded. Before 1.3.4 each width wrote over the status of the width before.
+      record.http_status ??= opened.status;
       if (opened.loadIncomplete) {
         record.facts.loadIncomplete = [...((record.facts.loadIncomplete as number[] | undefined) || []), w];
         log(`  the load event did not come in ${config.crawl.load_wait_seconds ?? LOAD_WAIT_SECONDS} s at ${w}: the page is tested as it is`);
@@ -511,7 +532,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   /** One state of one page: its own render, the action, then the rule engine, the page tests, and a focus pass. */
   const runStateJob = async (record: PageRecord, w: number, s: StateAction) => {
     await limiter.wait();
-    const opened = await openPage(contexts.get(w)!, record.url, config);
+    const opened = await retryServerError(await openPage(contexts.get(w)!, record.url, config), w, record.url, record);
     renders++; record.renders++;
     if (!opened.ok || opened.challenge) { await opened.page.close(); notApplied(record, w, s, "page did not open", opened.challenge ? "bot challenge" : opened.error); return; }
     try {
@@ -763,6 +784,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     testedPaths: new Set(all.filter((p) => p.tested).map((p) => key(p.url))),
     samplePaths: new Set(all.filter((p) => p.tested && p.sample).map((p) => key(p.url))),
     gonePaths: gone,
+    widthsNotLoaded: new Map(all.filter((p) => p.tested && p.widths_not_loaded?.length).map((p) => [key(p.url), p.widths_not_loaded!])),
     versions,
   };
   // The questions of this run. The old questions whose pages this run did not test stay in the folder with their answers, out of the counts.

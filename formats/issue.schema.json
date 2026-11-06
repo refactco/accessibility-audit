@@ -67,7 +67,7 @@
     "last_seen": { "type": "string", "format": "date" },
     "environment": { "enum": ["production", "staging", "local"] },
     "question": { "oneOf": [{ "type": "string", "pattern": "^Q-[0-9a-f]{8}$" }, { "type": "null" }], "description": "The review question that made the issue." },
-    "replaces": { "oneOf": [{ "type": "string", "pattern": "^ISS-[0-9a-f]{8}$" }, { "type": "null" }], "description": "The old issue that this issue replaced after a change of markup." },
+    "replaces": { "oneOf": [{ "type": "string", "pattern": "^ISS-[0-9a-f]{8}$" }, { "type": "null" }], "description": "The old issue that this issue replaced after a change of the markup, or continues under a new ID, for example after a new name of a state. It stays in the next runs." },
     "origin": { "enum": ["code", "design", "content", "media", "configuration", "third-party-controlled", "third-party-uncontrolled", "unknown"] },
     "source": {
       "type": "array",

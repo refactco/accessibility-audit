@@ -62,6 +62,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
     samplePaths: new Set(records.filter((p) => p.tested && p.sample).map((p) => key(p.url))),
     // A refresh keeps the statuses of the run: no page is gone in a refresh.
     gonePaths: new Set<string>(),
+    widthsNotLoaded: new Map(records.filter((p) => p.tested && p.widths_not_loaded?.length).map((p) => [key(p.url), p.widths_not_loaded!])),
     versions,
   };
   // The questions of the run. The old questions whose pages the run did not test stay with their answers, out of the counts.
