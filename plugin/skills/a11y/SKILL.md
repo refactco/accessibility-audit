@@ -78,7 +78,7 @@ A wrong "no issue" is the main way to miss a real problem. When in doubt between
 
 Each new issue has `"origin": "unknown"` and a general solution. Read `references/locate.md` for the method. For each issue with the status `new`, in the order of `reach.pages`:
 
-1. Read the examples: the selector, the HTML, the facts, the template, and the state.
+1. Read the examples: the selector, the HTML, the facts, the template, and the state. For an issue of the own tests (`rule.engine` is `a11y`) with no question, confirm the fault on the live page first, read-only. When the page does not show it, write "No change is needed" with the reason, as locate.md says.
 2. Decide the origin: `code` for a template or a script in the repository, `design` for a style rule, `content` for text or an image that an editor wrote, `media` for a file, `configuration` for a setting of the CMS or a plugin, `third-party-controlled` for a dependency the project chooses, `third-party-uncontrolled` for an embed the project cannot change.
 3. Find the source: search the repository for the classes, the ids, the text, and the component names of the HTML. Give each file with a confidence and the method that found it. For content, name the CMS item, for example the post and the attachment, and the edit address when you know it.
 4. Write the specific solution: what to change, where, and a code example that a developer can apply. Give the expected result, so that the next audit can confirm the fix.

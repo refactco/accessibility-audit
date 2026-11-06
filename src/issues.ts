@@ -47,8 +47,10 @@ export function sha(text: string): string {
 /** Rules whose cause is a style or a shared component. Their issues group by the kind of element, not by its text. */
 const STYLE_RULES = new Set(["color-contrast", "link-in-text-block", "target-size", "avoid-inline-spacing", "focus-not-visible", "focus-entirely-hidden", "target-too-small", "placeholder-contrast", "control-border-contrast", "focus-indicator-contrast", "text-cut-with-spacing", "text-cut-at-zoom", "change-of-context-on-focus", "control-not-focusable", "control-without-role", "composite-parts-unreachable", "expanded-state-not-updated", "drag-listener", "down-event-listener"]);
 
-/** The kind of an element: its tag and its classes, from the HTML of the outcome. A contrast issue has the kind of its color pair. */
-export function kindOf(o: Outcome): string {
+/** The kind of an element: its tag and its classes, from the HTML of the outcome. A contrast issue has the kind of its color pair.
+ *  ownRole takes the role from the start tag of the element only. The style rules take the first role in the HTML, also of a child,
+ *  and keep it so that their IDs stay. A layout rule takes its own role: a child, for example a search form in a sidebar, is content. */
+export function kindOf(o: Outcome, ownRole = false): string {
   const colors = o.facts?.colors as { fg?: string; bg?: string } | undefined;
   if (o.rule === "color-contrast" && colors?.fg && colors?.bg) return `color|${colors.fg}|${colors.bg}`;
   // A hidden focused control has one cause: in a state, the open panel that stays open when the focus leaves it;
@@ -67,8 +69,19 @@ export function kindOf(o: Outcome): string {
   const ownClass = html.match(/^<[a-z0-9-]+[^>]*?\sclass="([^"]*)"/i);
   const firstClass = html.match(/\sclass="([^"]*)"/);
   const cls = ((ownClass || firstClass || [, ""])[1] as string).split(/\s+/).filter((c) => c && !/\d{3,}|^(is|has)-|active|open|focus|hover|^slick-(active|current)/.test(c)).slice(0, 3).join(".");
-  const role = (html.match(/\srole="([^"]*)"/) || [, ""])[1];
+  const role = ((ownRole ? html.match(/^<[^>]*>/)?.[0] || "" : html).match(/\srole="([^"]*)"/) || [, ""])[1];
   return `${tag}${cls ? "." + cls : ""}${role ? "[" + role + "]" : ""}`;
+}
+
+/** Rules of the layout: the question asks about the layout of a kind of element, not about its content. A template that reverses
+ *  the order of its columns gives one question and one issue for all its pages. The item of such an element has the first words of
+ *  its text, so before 1.3.5 each page with other words had its own question: on a large site, 2,332 questions from 17 kinds of
+ *  element. The old questions continue in the new one when their answers agree. */
+export const LAYOUT_RULES = new Set(["visual-order-differs"]);
+
+/** The fingerprint of an issue by its item, as all the rules that do not group by the kind of element give it. */
+function itemFingerprintOf(o: Outcome, item: string): string {
+  return sha(`${o.engine}|${o.rule}|${o.criterion}|${item}|${o.state.join(">")}`);
 }
 
 /** The fingerprint of an issue: the rule, the element without its position and its page, and the state.
@@ -76,16 +89,19 @@ export function kindOf(o: Outcome): string {
  *  A content item, with its source or address, gives one issue for each item and each state. */
 export function fingerprintOf(o: Outcome, _config: Config): string {
   if (STYLE_RULES.has(o.rule)) return sha(`${o.engine}|${o.rule}|${o.criterion}|${kindOf(o)}`);
-  return sha(`${o.engine}|${o.rule}|${o.criterion}|${o.item}|${o.state.join(">")}`);
+  if (LAYOUT_RULES.has(o.rule)) return sha(`${o.engine}|${o.rule}|${o.criterion}|${kindOf(o, true)}|${o.state.join(">")}`);
+  return itemFingerprintOf(o, o.item);
 }
 
-export function questionFingerprintOf(o: Outcome, config: Config): string {
+/** The fingerprint of a question. item gives the fingerprint with that item, as the versions before 1.3.5 gave it for all the rules
+ *  that do not group by the kind of element: the search for the old ID of a question uses it. */
+export function questionFingerprintOf(o: Outcome, config: Config, item?: string): string {
   const c = CRITERIA_BY_ID.get(o.criterion);
   const context = c?.context_dependent ? "|" + (o.context || "") : "";
   // A page-level rule gives one question for each page. The same-title and page-not-linked rules group their pages into one question.
   const place = o.rule.startsWith("page-") && o.rule !== "page-not-linked" ? "|" + pageKey(config.site.url, o.url) : "";
-  const item = STYLE_RULES.has(o.rule) ? kindOf(o) : o.item;
-  return sha(`${o.engine}|${o.rule}|${o.criterion}|${item}${context}${place}`);
+  const key = item ?? (STYLE_RULES.has(o.rule) ? kindOf(o) : LAYOUT_RULES.has(o.rule) ? kindOf(o, true) : o.item);
+  return sha(`${o.engine}|${o.rule}|${o.criterion}|${key}${context}${place}`);
 }
 
 export type IssueFile = Record<string, any>;
@@ -169,13 +185,19 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     groups.set(fp, [...(groups.get(fp) || []), o]);
   }
   const issues: IssueFile[] = [];
-  // The IDs that 1.3.1 and older versions gave to the elements with the classes of a lazy load, and the ID of each now.
+  // The IDs that 1.3.1 and older versions gave to the elements with the classes of a lazy load, and the ID of each now. Also the IDs
+  // that 1.3.4 and older versions gave to the issues of a layout rule, one for each item, and the ID of their kind of element now.
   const movedFrom = new Map<string, string>();
+  const regrouped = new Set<string>();
   for (const [fp, list] of groups) {
     const first = list[0];
     const c = CRITERIA_BY_ID.get(first.criterion)!;
     const id = "ISS-" + fp.slice(0, 8);
-    if (!STYLE_RULES.has(first.rule)) for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) movedFrom.set("ISS-" + fingerprintOf({ ...o, item }, config).slice(0, 8), id);
+    if (LAYOUT_RULES.has(first.rule)) for (const o of list) for (const item of [o.item, ...legacyItems(o.item, o.html || "")]) {
+      const before = "ISS-" + itemFingerprintOf(o, item).slice(0, 8);
+      movedFrom.set(before, id); regrouped.add(before);
+    }
+    else if (!STYLE_RULES.has(first.rule)) for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) movedFrom.set("ISS-" + fingerprintOf({ ...o, item }, config).slice(0, 8), id);
     const old = existing.get(id);
     // A rule or a person gives "fail". The AI alone gives "ai fail".
     const certainty = first.kind === "failed" ? "fail" : list.some((o) => o.answeredBy === "person") ? "fail" : "ai fail";
@@ -228,9 +250,20 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     if (issues.some((i) => i.id === id)) continue;
     // A new issue of this same run that the refresh does not find again came from an answer that changed since, for example
     // a first AI answer that the verifier did not confirm. It never existed in a finished run, so it goes, with no resolution.
-    if (old.status === "new" && old.status_by?.run === run) continue;
-    const by = { who: "engine", mode: "automatic", date, run };
+    // A new issue of a layout rule that the first refresh with 1.3.5 moves to the ID of its kind of element is the same new issue:
+    // the work of the skill goes with it, and the old ID goes, as it never existed in a finished run under the new identity.
     const same = sameUnderNewId(old);
+    if (old.status === "new" && old.status_by?.run === run) {
+      if (same && regrouped.has(id)) {
+        if (same.origin === "unknown" && old.origin) same.origin = old.origin;
+        if (!same.source?.length && old.source?.length) { same.source = old.source; same.source_warning = old.source_warning ?? null; }
+        if (same.solution?.type !== "specific" && old.solution?.type === "specific") same.solution = solutionFor(old.solution, same.id, old.id);
+        if (!same.decision && old.decision) same.decision = old.decision;
+        if (old.first_seen && old.first_seen < same.first_seen) same.first_seen = old.first_seen;
+      }
+      continue;
+    }
+    const by = { who: "engine", mode: "automatic", date, run };
     // An issue that a run resolved as fixed while the same issue under its new ID was open in that same run was not fixed: 1.3.0
     // did this when several old IDs gave one new ID. The reason becomes "rule changed". The run and the date of the resolution stay.
     if (same && old.status === "resolved" && old.status_by?.reason === "fixed") {
@@ -243,10 +276,13 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     // The same issue under a new ID. The old one is resolved with the reason "rule changed": it is not a fix. The first old ID gives
     // the new issue its status, origin, source, specific solution, and decision. Several old IDs can give one new ID, for example
     // one select whose random name was different on each page: each other old ID gives only what the new issue does not have yet.
-    if (same && old.status_by?.run !== run) {
+    // A refresh of the same run moves an issue of a layout rule to the ID of its kind of element too, with the status of the run: the
+    // first refresh with 1.3.5 of the results of an older version.
+    const sameRun = old.status_by?.run === run;
+    if (same && (!sameRun || regrouped.has(old.id))) {
       if (same.status === "new") {
         Object.assign(same, {
-          status: old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
+          status: sameRun ? old.status : old.status === "accepted" || old.status === "dismissed" ? old.status : old.status === "resolved" || old.status === "page removed" ? "reopened" : "open",
           replaces: old.id, first_seen: old.first_seen || same.first_seen, origin: old.origin || same.origin, source: old.source || same.source, source_warning: old.source_warning ?? same.source_warning,
           solution: old.solution?.type === "specific" ? solutionFor(old.solution, same.id, old.id) : same.solution, decision: old.decision || same.decision,
         });
@@ -354,17 +390,23 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
   for (const [fp, list] of groups) {
     const id = "Q-" + fp.slice(0, 8);
     let old = existing.get(id);
-    if (!old && !STYLE_RULES.has(list[0].rule)) {
+    const layout = LAYOUT_RULES.has(list[0].rule);
+    if (!old && (layout || !STYLE_RULES.has(list[0].rule))) {
       // All the old IDs of the group: items that differed only by a class of a lazy load are one item now. The question with an
       // answer continues, a person's answer first. The others go with it. Before 1.3.3 the first old ID that the search found
-      // continued, and an answer of another one could go.
+      // continued, and an answer of another one could go. A layout rule had one question for each item before 1.3.5: the search
+      // looks at all the items of the group.
       const found = new Map<string, QuestionFile>();
-      for (const o of list.slice(0, 20)) for (const item of legacyItems(o.item, o.html || "")) {
-        const before = existing.get("Q-" + questionFingerprintOf({ ...o, item }, config).slice(0, 8));
+      for (const o of layout ? list : list.slice(0, 20)) for (const item of [...(layout ? [o.item] : []), ...legacyItems(o.item, o.html || "")]) {
+        const before = existing.get("Q-" + questionFingerprintOf(o, config, item).slice(0, 8));
         if (before && !groups.has(before.fingerprint)) found.set(before.id, before);
       }
       const olds = [...found.values()].sort((a, b) => a.id.localeCompare(b.id));
-      old = olds.find((q) => q.person_answer) || olds.find((q) => q.ai_answer && q.verification) || olds.find((q) => q.ai_answer) || olds[0];
+      // The old questions of a layout rule were answered one by one. Their answer continues for the whole group only when all the
+      // answered ones agree. When they differ, the group waits for a new answer.
+      const answerOf = (q: QuestionFile) => { const e = effectiveAnswer(q); return e.value || (e.unresolved ? "unresolved" : ""); };
+      const agree = !layout || new Set(olds.filter((q) => q.person_answer || q.ai_answer).map(answerOf)).size <= 1;
+      old = !agree ? undefined : olds.find((q) => q.person_answer) || olds.find((q) => q.ai_answer && q.verification) || olds.find((q) => q.ai_answer) || olds[0];
       for (const q of olds) continued.add(q.id);
     }
     if (old) continued.add(old.id);
@@ -392,7 +434,9 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
       schema: "question/2", id, kind, issue: kept ? kept.issue : null, criterion: c.id, fingerprint: fp, item_hash: itemHash, item_hashes: itemHashes,
       context: first.context || null,
       question: first.question || first.summary,
-      evidence: { url: pageKey(config.site.url, first.url), selector: first.selector, html: first.html || "", facts: first.facts || {}, rule: first.rule, summary: first.summary, occurrences: list.length, pages: [...new Set(list.map((o) => pageKey(config.site.url, o.url)))].slice(0, 50), ...(list.find((o) => o.facts?.screenshot) ? { image: list.find((o) => o.facts?.screenshot)!.facts!.screenshot } : {}) },
+      evidence: { url: pageKey(config.site.url, first.url), selector: first.selector, html: first.html || "", facts: first.facts || {}, rule: first.rule, summary: first.summary, occurrences: list.length, pages: [...new Set(list.map((o) => pageKey(config.site.url, o.url)))].slice(0, 50), ...(list.find((o) => o.facts?.screenshot) ? { image: list.find((o) => o.facts?.screenshot)!.facts!.screenshot } : {}),
+        // All the items of the question are in a state, for example after a click: the states run on the sample pages only. Since 1.3.5.
+        ...(list.every((o) => o.state?.length) ? { in_state: true } : {}) },
       ai_answer: kept ? kept.ai_answer : null, sample: kept ? kept.sample : false, person_answer: kept ? kept.person_answer : null,
       // The verification and the facts check belong to the answer: they stay while the item is the same, and go with it when the item changes.
       ...(kept && kept.verification ? { verification: kept.verification } : {}),
@@ -408,7 +452,9 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     for (const [id, old] of existing) {
       if (now.has(id) || continued.has(id)) continue;
       const paths: string[] = old.evidence?.pages || [];
-      const checked = needsSample(old.evidence?.rule || "", old.criterion, false) && context.samplePaths ? context.samplePaths : context.testedPaths;
+      // A question whose items are all in a state is checked on the sample pages only, as an issue in a state. Before 1.3.5 such a
+      // question went when its page left the sample, with its answers.
+      const checked = needsSample(old.evidence?.rule || "", old.criterion, !!old.evidence?.in_state) && context.samplePaths ? context.samplePaths : context.testedPaths;
       // A page that did not load at a width checked the question only at its other widths: a question has no width, so the page does
       // not count as checked. The question stays one more run, with its answers.
       const partial = (p: string) => !!(context.widthsNotLoaded?.get(p) || context.widthsNotLoaded?.get(otherSlash(p)))?.length;

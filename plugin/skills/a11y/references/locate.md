@@ -6,6 +6,13 @@ An issue is one problem with one cause. The examples show where it appears; your
 
 Each example has the page, the width, the state, the selector, the HTML, and the facts. The HTML gives the classes, the ids, the data attributes, and the text. The template of the page, in `reach.templates`, says which page type renders it. A state like `click Menu` says that the element appears after that action.
 
+An issue of the own tests of the engine (`rule.engine` is `a11y`) with no `question` comes from one test, not from two AI passes, and a test can be wrong. For example, before 1.3.5 the focus test read the frame element of an embedded form, not the field inside the frame that showed a clear outline. So confirm the fault before you look for the source:
+
+- Open the example page read-only at its width, with a short Playwright script, and do the action of the state.
+- Check the fault as a person would. For a focus rule, press Tab to the control, also into a frame, and look at it. For a size rule, measure the target. For the other rules, look at the element.
+- Save the screenshot in `runs/tasks/work/` of the results folder. Do not click buttons that submit, do not fill forms, and do not log in.
+- When the page does not show the fault, do not write a fix. Write the solution of section 5, and say what you saw.
+
 ## 2. Decide the origin
 
 | Origin | The sign | Where to look |
@@ -38,7 +45,7 @@ Keep the general solution of the engine when you cannot do better. Do not guess 
 
 ## 5. When no change is needed
 
-Sometimes the examples show no real problem: a hidden copy of a control that is not a target, a part of a third-party map, or a finding that a person already accepted on another state. Then the issue needs a decision of a person, not a fix. Start the solution summary with "No change is needed." and say why in one or two sentences. Give the command of the decision as the example, `refact-a11y dismiss` or `refact-a11y accept`, with the reason, so that the report shows the issue as one that waits for a decision and not as a fix.
+Sometimes the examples show no real problem: a hidden copy of a control that is not a target, a part of a third-party map, a finding that a person already accepted on another state, or a fault that the live page does not show (section 1). Then the issue needs a decision of a person, not a fix. Start the solution summary with "No change is needed." and say why in one or two sentences. Give the command of the decision as the example, `refact-a11y dismiss` or `refact-a11y accept`, with the reason, so that the report shows the issue as one that waits for a decision and not as a fix.
 
 ## 6. The source warning
 

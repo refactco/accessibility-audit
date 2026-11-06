@@ -166,7 +166,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   // sample changes in each run, so that the deep tests reach more of the site: without this, such a question is "not checked" in the
   // next run. Since 1.3.3.
   const questionPages = only ? [] : [...new Set([...existingQuestions.values()]
-    .filter((q) => !effectiveAnswer(q).value && needsSample(q.evidence?.rule || "", q.criterion, false))
+    .filter((q) => !effectiveAnswer(q).value && needsSample(q.evidence?.rule || "", q.criterion, !!q.evidence?.in_state))
     .flatMap((q) => ((q.evidence?.pages || []) as string[]).map((u) => new URL(u, base).toString())))].filter((u) => !issuePages.includes(u)).sort().slice(0, sampleLimit);
   const seedStats = await seed(config, frontier, limiter, only, [...issuePages, ...questionPages]);
   // The count from each source, then what the rules left, so that a person can check the discovery.

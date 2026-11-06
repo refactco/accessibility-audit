@@ -41,7 +41,8 @@ function sel(el) {
 function item(el) {
   if (!el || el.nodeType !== 1) return "";
   const cls = Array.from(el.classList).filter((c) => !LAZY_CLASS.test(c)).slice(0, 3).join(".");
-  const key = el.getAttribute("src") || el.getAttribute("href") || (el.getAttribute("name") ? unrandom(el.getAttribute("name")) : "") || el.getAttribute("aria-label") || "";
+  // The address of a src with no fragment: the script of an embed can add one with the times of the load. Since 1.3.5.
+  const key = (el.getAttribute("src") || "").split("#")[0] || el.getAttribute("href") || (el.getAttribute("name") ? unrandom(el.getAttribute("name")) : "") || el.getAttribute("aria-label") || "";
   const text = (el.innerText || el.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40);
   return el.localName + (el.id ? "#" + unrandom(el.id) : "") + (cls ? "." + cls : "") + "|" + (key ? key.split("/").pop() : "") + "|" + text;
 }

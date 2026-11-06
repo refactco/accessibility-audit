@@ -2,6 +2,32 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.5, 2026-11-06
+
+Fixes from the seventh full audit of the large WordPress multisite, with 1.3.4, on 2026-11-06. Also fixes from its first review cycle, with 200 questions. All the fixes of 1.3.4 worked. One new issue was false.
+
+The tests:
+
+- The focus test reads the focus inside a frame. When the focus goes into a frame, the page sees only the frame element, and the style of that element does not change. So the test reads the control that has the focus in the document of the frame, also in a frame of another origin. It compares the styles of that control with and without the focus. Before, an embedded form whose fields show a clear outline gave a false issue "No visible focus". Sometimes the document of the frame has the focus, for example in a lazy frame that is still loading. Then the test waits for the load and presses Tab once more. When the test cannot read the frame, it asks a question. When the frame has no control, its document takes the focus and shows no change, and the issue stays. The detection of `focus-not-visible` is now 1.3.5: a frame issue of an older engine that goes away is "rule changed".
+- The item of an element leaves out the fragment of its `src`. The script of an embed can add a fragment with the times of the load, for example `#{"os":487.3}`. So the question of the frame had a new ID in each run. One time, the items of the elements whose `src` has a fragment change. A fragment that does not change, for example `#page=2`, gives the old item again, so its question and its issue continue.
+
+The results from run to run:
+
+- A question whose items are all in a state records `evidence.in_state`. The states run on the sample pages only. So such a question is "not checked" when its page is tested but not in the sample, and it keeps its answers. When it has no answer, its page joins the sample of the next audit. Before, the question went when its page left the sample. Run one refresh with 1.3.5 before the next audit, so that the questions of the last run record their state.
+- The questions and the issues of `visual-order-differs` group by the kind of element: the tag and the classes. Before, the item had the first words of the text of the element. So a template that reverses the order of its columns gave one question for each page. On the large site, 2,332 questions came from 17 kinds of element, and all 385 answers were "no issue". A refresh moves the old questions into the new ones. When the answers of the old questions of a group agree, the answer continues. When they differ, the group waits for a new answer. An issue moves to the ID of its kind with its status, its origin, and its solution, and the old ID is "rule changed". The detection of `visual-order-differs` is now 1.3.5. One time, the counts of the questions and of the AI answers go down.
+
+The cycle:
+
+- `refact-a11y tasks <step> --retry` lists only the items of the last batch files of the step that still wait. Before, a second call listed the next items by reach, and an item that an agent left was there only by chance. `cycle.md` tells the main agent to use it.
+- The report counts all the first AI answers and names the unsure ones, for example "The AI answered 587 questions (4 of them unsure)". Before, the count left out the unsure answers, but the count of the verifier kept them. So the verifier seemed to check more answers than the AI gave.
+- The prompts of `cycle.md` name the folder of the skill (`<skill>`) and the command of the engine in the project (`<command>`). Before, an agent in a site project did not know where the skill files were.
+- The agents save their files in `runs/tasks/work/` of the results folder. Before, the prompts named no folder, and an agent saved screenshots in a new folder at the root of a site repository.
+- The locate step confirms an issue of the own tests on the live page before it writes a fix. When the page does not show the fault, the solution starts with "No change is needed" and gives the command of the decision. Before, the false frame issue got a code fix with a "certain" source.
+- `page-not-linked` says which ways count: a link from another page, an HTML sitemap page, and the site search. The XML sitemap does not count. 2.4.5 needs two ways, so a page that only the site search finds is an issue. Before, the question asked for "a second way", and the two AI passes did not agree on 7 of 24 questions: one pass counted the site search as enough, and the other as one way of two. The text of the question changes. Its ID and its answers stay.
+- `player-found`: the AI cannot hear the media. It answers "issue" when an alternative is missing, and "unsure" when the decision needs the sound, for example for captions that a service makes automatically. A person decides those. Before, the two passes did not agree on 8 of 20 questions.
+
+The tests: a new test file, `frames-and-layout`, in `npm test`, with 23 checks. On 1.3.4, 17 of them fail, and 3 pass: a check of the setup, a check that a question at rest has no `in_state`, and the check of a frame that is still loading. The last 3 cannot run on 1.3.4, because it has no `--retry`. The time limit of the CI job is 45 minutes, not 30, because `npm test` takes about 25 minutes.
+
 ## 1.3.4, 2026-11-06
 
 Fixes from the sixth full audit of the large WordPress multisite, with 1.3.3 and the full budget, on 2026-11-05. All the fixes of 1.3.3 worked. The site had two short outages during the run, and the engine tested the error pages of its proxy as pages of the site.

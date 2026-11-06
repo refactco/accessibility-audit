@@ -143,7 +143,9 @@ export function runSiteTests(pages: PageRecord[], facts: Map<string, SiteFacts>,
     for (const u of urls) {
       found.push({ url: u, f: { criterion: "2.4.5", rule: "page-not-linked", kind: "cantTell", selector: "html", item: "page|not-linked|" + section, context: section, facts: { url: u, section, inSitemap: true, siteHasNavAndSearch: anyNavOrSearch },
         summary: `No tested page links to ${urls.length} pages of ${section}. The XML sitemaps list them.`, severity: "moderate",
-        question: `Can a person reach the ${urls.length} pages of ${section} that no tested page links to in a second way, for example from a list page that the crawl did not open, a sitemap page, or a search? ${why}`,
+        // Since 1.3.5 the question says which ways count. Before, "a second way" let one AI pass count the site search as enough and
+        // the other pass count it as one way of the two that 2.4.5 needs.
+        question: `Does a person have two ways to reach the ${urls.length} pages of ${section} that no tested page links to? The ways that count are a link from another page, for example a list page that the crawl did not open, an HTML sitemap page, and the site search. The XML sitemaps do not count. ${why}`,
         solution: { summary: "Link to each page from a list page, the navigation, or the sitemap page.", steps: ["Add a link to the page where it belongs."] } } });
     }
   }

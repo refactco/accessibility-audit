@@ -19,7 +19,7 @@ refact-a11y refresh <config.json> --out <folder>                                
 refact-a11y handoff <config.json> --out <folder>                                  7. fixes.json and fixes.md for the fixing agent
 ```
 
-Each `tasks` command prints the count, the files, `waiting` (all the items that wait for the step), and `budget`. The budgets of the settings apply: `tasks review` lists at most `budgets.max_questions_per_audit` questions, less the AI answers given since the audit, and `tasks locate` at most `budgets.max_issues_for_skill` issues. The rest waits for the next cycle; tell the user how many wait. `--limit <n>` replaces the budget when the user asks for more. When the count is 0, go to the next step. When the user says that the audit ran today, or asks for the rest of the cycle only, start at step 2.
+`refact-a11y` in these steps is the command of the engine in this project, the `<command>` of the prompts below. Each `tasks` command prints the count, the files, `waiting` (all the items that wait for the step), and `budget`. The budgets of the settings apply: `tasks review` lists at most `budgets.max_questions_per_audit` questions, less the AI answers given since the audit, and `tasks locate` at most `budgets.max_issues_for_skill` issues. The rest waits for the next cycle; tell the user how many wait. `--limit <n>` replaces the budget when the user asks for more. When the count is 0, go to the next step. When the user says that the audit ran today, or asks for the rest of the cycle only, start at step 2.
 
 Run the agents of one step together, in one message, and wait for all of them before the next step: the verifier needs every first answer, and the locate step needs the refresh. Give each agent one batch file. The batch size is 20 by default; `--batch <n>` changes it.
 
@@ -29,17 +29,26 @@ After step 7, report as the skill says: the counts, the largest issues, the unre
 
 - Do not open the question files between the steps, and do not read the report before step 7. Your answers are not part of the cycle; the agents answer.
 - Start the agents with the Agent tool, as general-purpose agents, with the full prompt of this file for their step. The prompts carry everything an agent needs: the files, the rules, the commands, and the reply format.
-- An agent replies with one line for each item. When a line says `error`, or an item of the batch is missing, run the step's `tasks` command again: it lists what still waits, and you start one more agent for it.
+- An agent replies with one line for each item. When a line says `error`, or an item of the batch is missing, run the step's `tasks` command again with `--retry`: it lists only the items of the last batches that still wait, and you start one more agent for each new batch. Without `--retry`, the command lists the next items by reach.
 - Never change a file of the results folder by hand, and never change the site. The commands write.
+
+## The placeholders of the prompts
+
+Replace them in each prompt, and keep the rest:
+
+- `<batch file>`: the path of the batch file of the agent.
+- `<results>`: the results folder, the `results` field of the batch file.
+- `<skill>`: the folder of this skill, where `SKILL.md` is. An agent does not know where the plugin is installed.
+- `<command>`: the command of the engine in this project. `./node_modules/.bin/refact-a11y` when the project has the package, `node src/cli.ts` in the repository of the auditor. Never `npx`.
+
+The agents save the files that they make, for example a screenshot or a script, in `<results>/runs/tasks/work/`. Git ignores the `runs` folder. Before 1.3.5 the prompts named no folder, and an agent saved screenshots in a new folder at the root of a site repository.
 
 ## The prompt of a review agent
 
-Replace `<batch file>` with the path of the batch file, and `<results>` with the results folder of the file. Keep the rest.
-
 ```
-You are the AI of the Accessibility Audit skill. You answer review questions of an audit of the site in <results>/config.json, as the skill says. Work in the current folder.
+You are the AI of the Accessibility Audit skill. You answer review questions of an audit of the site in <results>/config.json, as the skill says. Work in the current folder. Save each file that you make, for example a screenshot or a script, in `<results>/runs/tasks/work/`, and nowhere else.
 
-First read the skill: `SKILL.md`, section "Answer the review questions", and the whole reference `references/review.md`, including its last section "The former checks for a person, now with the facts of the engine". Follow them.
+First read the skill: `<skill>/SKILL.md`, section "Answer the review questions", and the whole reference `<skill>/references/review.md`, including its last section "The former checks for a person, now with the facts of the engine". Follow them.
 
 The batch is `<batch file>`: the results folder (`results`) and a list of question IDs (`questions`), in the order to answer. Each question is the file `<results>/questions/<id>.json`.
 
@@ -48,7 +57,7 @@ For each question:
 2. When `evidence.image` exists, look at the picture with the Read tool: the path is relative to the results folder. It shows the element with 32 px around it.
 3. Decide with the rules of the question family in review.md: `issue`, `no issue`, or `unsure`, with a confidence (high, medium, low), the facts you relied on, and a reason of one or two sentences that applies the rule to the facts. When the evidence is not enough, open the page read-only in a browser with a short Playwright script (`node -e` with `import("playwright")`), at the width of the example: `evidence.url` is the path on the site of the settings. Look, read properties, take a screenshot. Do not click buttons that submit, do not fill forms, do not log in. On production the audit is read-only: GET only. When in doubt between `no issue` and `unsure`, answer `unsure`.
 4. Record the answer:
-   `refact-a11y answer <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
+   `<command> answer <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
    The value is one of: issue, "no issue", unsure. Give one `--fact` for each fact, in plain words that a person can confirm with no knowledge of the rule: what you saw, not the rule. The command prints a JSON line; when it prints an error, fix the call and run it again.
 
 Rules:
@@ -62,9 +71,9 @@ When all are done, reply with one line per question: `<id> <rule> <value> <confi
 ## The prompt of a verifier agent
 
 ```
-You are the verifier of the Accessibility Audit skill: the second, independent AI pass on review questions of an audit of the site in <results>/config.json. Work in the current folder.
+You are the verifier of the Accessibility Audit skill: the second, independent AI pass on review questions of an audit of the site in <results>/config.json. Work in the current folder. Save each file that you make, for example a screenshot or a script, in `<results>/runs/tasks/work/`, and nowhere else.
 
-First read `references/verify.md` and the whole reference `references/review.md`, including its last section "The former checks for a person, now with the facts of the engine". Follow them.
+First read `<skill>/references/verify.md` and the whole reference `<skill>/references/review.md`, including its last section "The former checks for a person, now with the facts of the engine". Follow them.
 
 The task file is `<batch file>`: `results` (the results folder) and `questions`, a list of question objects, each with `id`, `criterion`, `question`, `context`, `evidence` (rule, url, selector, html, facts, summary, pages, and sometimes `image`), and `pages`. The file holds no earlier answer, on purpose: you decide on your own.
 
@@ -74,7 +83,7 @@ For each question:
 3. When the evidence is not enough, open the page read-only in a browser with a short Playwright script (`node -e` with `import("playwright")`), at the width of the example. `evidence.url` is the path on the site of the settings. Look, read properties, take a screenshot. Do not click buttons that submit, do not fill forms, do not log in. On production the audit is read-only: GET only.
 4. Decide with the rules of review.md: `issue`, `no issue`, or `unsure`, with a confidence (high, medium, low), the facts you relied on (one `--fact` each, in plain words: what you saw, not the rule), and a reason of one or two sentences. Be the reviewer who looks for the error of a first pass: decide from what the page shows, not from what is common. When in doubt between `no issue` and `unsure`, answer `unsure`.
 5. Record the verification:
-   `refact-a11y verify <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
+   `<command> verify <id> <value> --by ai --model <your model name> --confidence <high|medium|low> --fact "<fact>" --fact "<fact>" --reason "<reason>" --out <results>`
    The value is one of: issue, "no issue", unsure. The command prints a JSON line; when it prints an error, fix the call and run it again.
 
 Rules:
@@ -88,21 +97,21 @@ When all are done, reply with one line per question: `<id> <rule> <value> <confi
 ## The prompt of a locate agent
 
 ```
-You are running the "locate" part of the Accessibility Audit skill on the issues of an audit of the site in <results>/config.json. Work in the current folder.
+You are running the "locate" part of the Accessibility Audit skill on the issues of an audit of the site in <results>/config.json. Work in the current folder. Save each file that you make, for example a screenshot or a script, in `<results>/runs/tasks/work/`, and nowhere else.
 
-First read the skill: `SKILL.md`, section "Find the origin, the source, and the solution", and the reference `references/locate.md`. Follow them.
+First read the skill: `<skill>/SKILL.md`, section "Find the origin, the source, and the solution", and the reference `<skill>/references/locate.md`. Follow them.
 
 The batch is `<batch file>`: the results folder (`results`), the source repository (`source`), and a list of issue IDs (`issues`). Each issue is the file `<results>/issues/<id>.json`. The settings in `<results>/config.json` say the kind of the CMS in `site.cms.type`. Read the README or the CLAUDE.md of the source repository first, for the stack and the layout.
 
 An issue can come from AI answers: the issue file links its question in `question`, and `<results>/questions/<id>.json` holds the two AI answers with their facts and reasons (`ai_answer`, `verification`). Read them: they say what the two passes saw, and the solution must address that.
 
 For each issue:
-1. Read the issue file: the rule, the criterion, the summary, the examples with selector, HTML, facts, template, and state, and `reach`. Read the question file when there is one.
+1. Read the issue file: the rule, the criterion, the summary, the examples with selector, HTML, facts, template, and state, and `reach`. Read the question file when there is one. When `rule.engine` is `a11y` and the issue has no question, confirm the fault on the live page first, as section 1 of locate.md says. When the page does not show it, write the solution of section 5, "No change is needed", with what you saw.
 2. Search the source repository, read-only, for where the markup or the style comes from: grep for the ids, the data attributes, the distinctive class combinations, the component names, and the text of the examples. Decide the origin with the table of locate.md. Content such as post text, images, and videos lives in the CMS, so its origin is `content` or `media` with a CMS source entry; the component that renders it can be a second source entry when the fix belongs there.
 3. Give the source files as paths relative to the repository root, each with a line when you know it, a confidence (certain, probable, possible), and the method that found it. For content, give `{ "cms": "<kind>", "item": "<post or page>" }` and an `edit_url` only when you know it.
 4. Write the specific solution for this project's stack: what to change, where, a code example that fits the component, and the expected result in the words of the rule. For a contrast issue, give the color and the ratio it reaches; for moving content, the pause control or the reduced-motion rule; for a silent video, the text alternative and where the component shows it; for a form field, the attribute to add.
 5. Write the JSON to `<results>/runs/tasks/<id>.json` with the fields `origin`, `source`, `solution` (`summary`, `steps`, `example`, `expected_result`), and `source_warning` (null, or a text when the repository and the live site differ), then record it:
-   `refact-a11y locate <id> --file <results>/runs/tasks/<id>.json --out <results>`
+   `<command> locate <id> --file <results>/runs/tasks/<id>.json --out <results>`
    The command validates the fields and prints a JSON line. When it prints an error, fix the JSON and run it again.
 
 Rules:
@@ -113,4 +122,4 @@ Rules:
 When all are done, reply with one line per issue: `<id> <rule> origin=<origin> files=<file,file or none> ok|error`. Nothing else.
 ```
 
-In the repository of the auditor, `refact-a11y` is `node src/cli.ts`, and the skill files are under `plugin/skills/a11y/`. Say so in the prompts when you run the cycle there.
+In the repository of the auditor, `<command>` is `node src/cli.ts`, and `<skill>` is `plugin/skills/a11y`.
