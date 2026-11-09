@@ -47,6 +47,8 @@ Keep the general solution of the engine when you cannot do better. Do not guess 
 
 Sometimes the examples show no real problem: a hidden copy of a control that is not a target, a part of a third-party map, a finding that a person already accepted on another state, or a fault that the live page does not show (section 1). Then the issue needs a decision of a person, not a fix. Start the solution summary with "No change is needed." and say why in one or two sentences. Give the command of the decision as the example, `refact-a11y dismiss` or `refact-a11y accept`, with the reason, so that the report shows the issue as one that waits for a decision and not as a fix.
 
+An issue can come back to you with `"decision": { "status": "kept", "reason": ... }`: a person read your "No change is needed." and kept the issue. Read the reason of the person, look at the examples again, and write a real fix. Do not propose no change a second time. When the reason of the person is about another element, say so in the solution summary.
+
 ## 6. The source warning
 
 The live site can be older or newer than the repository. When the settings give a build ID, compare it with the commit of the source. When they do not agree, write a short `source_warning`, for example "The live site is build 1432, the repository is ahead by 12 commits."

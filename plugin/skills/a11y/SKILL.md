@@ -118,7 +118,11 @@ refact-a11y pass 1.2.1 --pages /about --by "Name" --note "The transcript is comp
 refact-a11y not-applicable 1.2.4 --templates post --by "Name" --out accessibility-audit
 refact-a11y accept ISS-7f3a9c21 --by "Name" --reason "accepted risk" --note "Fix planned for Q1." --out accessibility-audit
 refact-a11y dismiss ISS-7f3a9c21 --by "Name" --reason "false positive" --note "The text is decorative." --out accessibility-audit
+refact-a11y keep ISS-7f3a9c21 --by "Name" --reason "The link has no name for a screen reader." --out accessibility-audit
+refact-a11y reopen ISS-7f3a9c21 --by "Name" --out accessibility-audit
 ```
+
+`keep` is for an issue whose solution says "No change is needed." when the person says that it is a real issue: the next `refact-a11y tasks locate` lists it again, with the reason of the person in `decision.reason`. `reopen` takes back an accept, a dismiss, or a keep. The review page (`refact-a11y review`) records the same decisions, and its "Change" and "Undo" take them back.
 
 ## Report to the user
 

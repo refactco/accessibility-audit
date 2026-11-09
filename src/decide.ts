@@ -163,18 +163,52 @@ export function decisionFor(decisions: Decision[], criterion: string, url: strin
   return null;
 }
 
-/** Marks an issue as accepted or dismissed, with the reason and the name. */
-export function setIssueStatus(dir: string, id: string, status: "accepted" | "dismissed", by: string, reason: string, note?: string): Record<string, any> {
+/** Marks an issue as accepted or dismissed, with the reason and the name. "kept": a person keeps an issue for which the review proposed
+ *  no change; the status stays, and the next locate step writes a fix with the person's reason. Since 1.3.7. */
+export function setIssueStatus(dir: string, id: string, status: "accepted" | "dismissed" | "kept", by: string, reason: string, note?: string): Record<string, any> {
   const path = join(dir, "issues", id + ".json");
   if (!existsSync(path)) throw new Error(`No issue ${id} in ${dir}.`);
   const i = JSON.parse(readFileSync(path, "utf8"));
+  if (status !== "kept" && !String(reason || "").trim()) throw new Error("A decision to accept or dismiss needs a reason.");
   const date = today();
-  i.status = status;
-  i.status_by = { who: "person", mode: "manual", date, run: lastRun(dir)?.run || i.status_by?.run || "none" };
-  i.decision = { status, reason, ...(note ? { note } : {}), by, date };
+  if (status !== "kept") {
+    i.status = status;
+    i.status_by = { who: "person", mode: "manual", date, run: lastRun(dir)?.run || i.status_by?.run || "none" };
+  }
+  i.decision = { status, reason: String(reason || ""), ...(note ? { note } : {}), by, date };
   validate("issue/2", i);
   writeFileSync(path, JSON.stringify(i, null, 1) + "\n");
   return i;
+}
+
+/** Takes back the decision of a person on an issue: an accepted or dismissed issue is open again, and a kept issue loses the mark.
+ *  The undo of the review page and `refact-a11y reopen`. Since 1.3.7. */
+export function reopenIssue(dir: string, id: string, by: string): Record<string, any> {
+  const path = join(dir, "issues", id + ".json");
+  if (!existsSync(path)) throw new Error(`No issue ${id} in ${dir}.`);
+  const i = JSON.parse(readFileSync(path, "utf8"));
+  if (!i.decision && !["accepted", "dismissed"].includes(i.status)) throw new Error(`The issue ${id} has no decision of a person to take back.`);
+  if (["accepted", "dismissed"].includes(i.status)) {
+    i.status = "open";
+    i.status_by = { who: "person", mode: "manual", date: today(), run: lastRun(dir)?.run || i.status_by?.run || "none" };
+  }
+  i.decision = null;
+  validate("issue/2", i);
+  writeFileSync(path, JSON.stringify(i, null, 1) + "\n");
+  return i;
+}
+
+/** Takes back the answer of a person on a question, and a check of its facts: the question waits again. The "Change" of the review
+ *  page. The AI answers stay. Since 1.3.7. */
+export function clearPersonAnswer(dir: string, id: string): Record<string, any> {
+  const path = join(dir, "questions", id + ".json");
+  if (!existsSync(path)) throw new Error(`No question ${id} in ${dir}.`);
+  const q = JSON.parse(readFileSync(path, "utf8"));
+  q.person_answer = null;
+  q.facts_check = null;
+  validate("question/2", q);
+  writeFileSync(path, JSON.stringify(q, null, 1) + "\n");
+  return q;
 }
 
 /** Writes the origin, the source, and the specific solution that the skill found into an issue file. The fields come from a JSON file. */

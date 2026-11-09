@@ -43,7 +43,10 @@ function item(el) {
   const cls = Array.from(el.classList).filter((c) => !LAZY_CLASS.test(c)).slice(0, 3).join(".");
   // The address of a src with no fragment: the script of an embed can add one with the times of the load. Since 1.3.5.
   const key = (el.getAttribute("src") || "").split("#")[0] || el.getAttribute("href") || (el.getAttribute("name") ? unrandom(el.getAttribute("name")) : "") || el.getAttribute("aria-label") || "";
-  const text = (el.innerText || el.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40);
+  // A select with a placeholder, a first option with no value, gets the text of the placeholder, not the text of all its options: the
+  // site can add an option, for example a new week in an archive, and the item stays. Since 1.3.7.
+  const first = el.localName === "select" && el.options && el.options[0];
+  const text = (first && first === el.firstElementChild && first.getAttribute("value") === "" ? first.textContent || "" : el.innerText || el.textContent || "").trim().replace(/\\s+/g, " ").slice(0, 40);
   return el.localName + (el.id ? "#" + unrandom(el.id) : "") + (cls ? "." + cls : "") + "|" + (key ? key.split("/").pop() : "") + "|" + text;
 }
 function visible(el) {

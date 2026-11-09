@@ -776,7 +776,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
           dryRuns.push(r);
           renders += r.renders;
           statesTested += r.states; formStates += r.states;
-          log(`  dry submit ${pathOf(job.record.url)} '${job.form.name}': ${r.submissions.map((s) => `${s.variant} ${s.kind}${s.blocked.length ? ` (${s.blocked.length} blocked)` : ""}`).join(", ")}${r.error ? " - " + r.error : ""}`);
+          log(`  dry submit ${pathOf(job.record.url)} '${job.form.name}': ${r.submissions.map((s) => `${s.variant} ${s.kind}${s.pressed ? " by the keyboard" : ""}${s.blocked.length ? ` (${s.blocked.length} blocked)` : ""}`).join(", ")}${r.error ? " - " + r.error : ""}`);
         } catch (e) {
           log(`  dry submit error at ${job.record.url}: ${(e as Error).message.split("\n")[0]}`);
         }

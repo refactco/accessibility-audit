@@ -65,11 +65,43 @@ export function addressTail(attr: string, value: string): string {
   return (attr === "src" ? value.split("#")[0] : value).split("/").pop() || "";
 }
 
+/** The text of an HTML as the browser shows it, with the 4 entities of a serialized text node and the numbered ones. */
+function textOf(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/&(amp|lt|gt|nbsp|quot|#39|#(\d+)|#x([0-9a-f]+));/gi, (_m, name: string, dec?: string, hex?: string) =>
+    dec ? String.fromCodePoint(Number(dec)) : hex ? String.fromCodePoint(parseInt(hex, 16)) : ({ amp: "&", lt: "<", gt: ">", nbsp: " ", quot: '"', "#39": "'" } as Record<string, string>)[name.toLowerCase()]);
+}
+
+/** The placeholder of a select: the text of its first option when that option has no value, for example "Select Week". Null for
+ *  another element, or for a select whose first option has a value. Since 1.3.7. */
+export function placeholderOf(html: string): string | null {
+  const m = html.match(/^<select\b[^>]*>\s*<option\b([^>]*)>([^<]*)/i);
+  if (!m || !/\svalue=(""|'')/.test(m[1])) return null;
+  return textOf(m[2]).replace(/\s+/g, " ").trim().slice(0, 40);
+}
+
+/** The HTML of a select for the hash of a question: its tag and its placeholder, without the other options. The options are content
+ *  of the site, for example the weeks of an archive, and the answer to a question about the select does not depend on them. Since 1.3.7. */
+export function selectHtml(html: string): string {
+  const open = html.match(/^<select\b[^>]*>/i)?.[0];
+  if (!open) return html;
+  const first = placeholderOf(html) === null ? "" : html.slice(open.length).match(/^\s*<option\b[^>]*>[^<]*(<\/option>)?/i)?.[0].trim() || "";
+  return open + first;
+}
+
 /** The items that older versions gave for the same element. 1.3.1 and older, for an element with the classes of a lazy load: the first
  *  three classes as they were, the same without ls-is-cached, the class that changes with the cache, and the same with ls-is-cached
  *  before lazyloaded. 1.3.4 and older, for an element whose src has a fragment: the item with the fragment. Empty for other elements. */
 export function legacyItems(item: string, html: string): string[] {
   const out = new Set<string>();
+  // The items of 1.3.6 and older versions gave a select the text of all its options. Since 1.3.7 a select with a placeholder has the
+  // text of the placeholder, so that a new option, for example a new week in an archive, does not give a new item. The old text comes
+  // from the HTML, as the browser showed it.
+  const placeholder = placeholderOf(html);
+  const parts = item.split("|");
+  if (placeholder !== null && parts.length >= 3 && parts[2] === placeholder) {
+    const before = textOf(html).replace(/\s+/g, " ").trim().slice(0, 40);
+    if (before !== placeholder) out.add([parts[0], parts[1], before, ...parts.slice(3)].join("|"));
+  }
   // The items of 1.3.4 and older versions kept the fragment of the address of a src. A fragment that does not change, for example
   // #page=2 of a document, gives the old item again, so its question and its issue continue.
   const src = (html.match(/^<[^>]*?\ssrc="([^"]*)"/) || [])[1];

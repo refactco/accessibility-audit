@@ -16,13 +16,16 @@ export const OWN_DETECTION_VERSION = "1.3.0";
  *  visual-order-differs group by the kind of element, not by its item.
  *  1.3.6: the image of text reads the pixels of the image itself, not a screenshot, and counts the ink of small letters. The list
  *  without list code reports the innermost container, with the lines of the list. A label that only a screen reader reads is not a
- *  visible label. */
+ *  visible label.
+ *  1.3.7: the item of a select with a placeholder has the text of the placeholder, not the text of all its options. An issue of a
+ *  weekly archive select that 1.3.6 found with the options of an older week is "rule changed", not "fixed". */
 export const RULE_VERSIONS: Record<string, string> = {
   "focus-entirely-hidden": "1.3.3",
   "content-updates-by-itself": "1.3.3",
   "image-of-text": "1.3.6",
   "list-without-list-code": "1.3.6",
   "field-no-visible-label": "1.3.6",
+  "change-of-context-on-input": "1.3.7",
   "focus-not-visible": "1.3.5",
   "visual-order-differs": "1.3.5",
 };

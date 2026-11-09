@@ -7,7 +7,7 @@ import { CRITERIA_BY_ID } from "./criteria.ts";
 import { pageKey, templateOf } from "./crawl.ts";
 import type { Config } from "./config.ts";
 import { effectiveAnswer } from "./decide.ts";
-import { legacyItems, stableHtml, stableIdsHtml, withoutClass } from "./stable.ts";
+import { legacyItems, selectHtml, stableHtml, stableIdsHtml, withoutClass } from "./stable.ts";
 import { compareVersions, detectionVersion } from "./own/versions.ts";
 import { FOCUS_RULES } from "./own/focus.ts";
 import { LISTENER_RULES } from "./own/listeners.ts";
@@ -79,6 +79,15 @@ export function kindOf(o: Outcome, ownRole = false): string {
  *  element. The old questions continue in the new one when their answers agree. */
 export const LAYOUT_RULES = new Set(["visual-order-differs"]);
 
+/** The facts that a rule measures, or that change with the content of the site, and that the answer to its question does not depend
+ *  on: the hash of a question leaves them out, so the answer stays. image-of-text measures the colors and the size of the image, and
+ *  1.3.6 measured them in a new way; the answer depends on the image file and its alt text. change-of-context-on-input records the
+ *  address that the select loads, which can change each week. Since 1.3.7. */
+const MEASURED_FACTS: Record<string, string[]> = {
+  "image-of-text": ["colors", "flatShare", "ink", "width", "height"],
+  "change-of-context-on-input": ["navigation"],
+};
+
 /** The fingerprint of an issue by its item, as all the rules that do not group by the kind of element give it. */
 function itemFingerprintOf(o: Outcome, item: string): string {
   return sha(`${o.engine}|${o.rule}|${o.criterion}|${item}|${o.state.join(">")}`);
@@ -105,6 +114,13 @@ export function questionFingerprintOf(o: Outcome, config: Config, item?: string)
 }
 
 export type IssueFile = Record<string, any>;
+
+const NO_CHANGE = /^no (change|role|code change)\b[^.]*\bneeded|\bnot a (target|control)\b|project cannot|accepted risk|false positive|not a real problem/i;
+/** True when the locate step found no change to make: its solution proposes a decision of a person, dismiss or accept, instead of a
+ *  fix. The review page asks a person for that decision. A person who keeps the issue sends it back to the locate step. */
+export function proposesNoChange(i: Record<string, any>): boolean {
+  return /\ba11y (dismiss|accept)\b/.test(String(i.solution?.example || "")) || NO_CHANGE.test(String(i.solution?.summary || ""));
+}
 
 /** The solution of an issue, with its own ID in the commands of a decision: `refact-a11y dismiss`, `accept`, and `locate`. A solution
  *  that an issue takes from the older ID that it continues names that ID: from gives it, and each time it is in the text it becomes
@@ -384,12 +400,16 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
   const hashes = (o: Outcome) => {
     const { screenshot: _shot, ...factsOfRun } = (o.facts || {}) as Record<string, unknown>;
     const { measured: _m, changes: _c, texts: _t, seconds: _s, hiddenWidth: _w, hiddenHeight: _h, ...stableFacts } = factsOfRun;
+    // The facts that a rule measures, or that change with the content of the site, are not part of it either. Since 1.3.7.
+    const leave = MEASURED_FACTS[o.rule] || [];
+    const own = Object.fromEntries(Object.entries(stableFacts).filter(([k]) => !leave.includes(k)));
     // The files before 2026-10-15 hashed the measurements too, and the files before 1.3.0 hashed the HTML as it was. Their answers
     // stay when the item of this run gives one of those hashes.
     // The files of 1.3.0 and 1.3.1 kept the classes of a lazy load in the HTML: their hash, as it was and without ls-is-cached.
+    // The files of 1.3.6 and older hashed the measured facts and all the options of a select.
     const html = o.html || "";
     const facts = JSON.stringify(stableFacts);
-    return { item: sha(stableHtml(html) + facts), legacy: [sha(html + facts), sha(html + JSON.stringify(factsOfRun)), sha(stableIdsHtml(html) + facts), sha(stableIdsHtml(withoutClass(html, "ls-is-cached")) + facts)] };
+    return { item: sha(stableHtml(selectHtml(html)) + JSON.stringify(own)), legacy: [sha(stableHtml(html) + facts), sha(html + facts), sha(html + JSON.stringify(factsOfRun)), sha(stableIdsHtml(html) + facts), sha(stableIdsHtml(withoutClass(html, "ls-is-cached")) + facts)] };
   };
   // The old questions that a question of this run continues: the same ID, or the ID that 1.3.1 and older versions gave to an item
   // with the classes of a lazy load.
@@ -422,7 +442,7 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
     const short = (h: string) => h.slice(0, 16);
     // The example of the old question, hashed as this version hashes: an item hash of an older version can differ only by a part
     // that this version leaves out, for example the class ls-is-cached.
-    const now = old?.evidence ? short(hashes({ html: old.evidence.html || "", facts: old.evidence.facts || {} } as Outcome).item) : "";
+    const now = old?.evidence ? short(hashes({ rule: old.evidence.rule, html: old.evidence.html || "", facts: old.evidence.facts || {} } as Outcome).item) : "";
     const known = new Set<string>([...(old?.item_hash ? [short(old.item_hash)] : []), ...(old?.item_hashes || []), ...(now ? [now] : [])]);
     const all = list.map((o) => ({ o, h: hashes(o) }));
     // The example that the answer saw comes first, so that the example stays when it is still in the group. Then any item that the answer saw.
