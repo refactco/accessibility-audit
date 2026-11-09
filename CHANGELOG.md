@@ -2,6 +2,29 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.6, 2026-11-09
+
+Fixes from the sample check of a person. The check was on the seventh full audit of the large WordPress multisite, with 1.3.4, and on its first review cycle. The person answered 50 questions and checked 20 issues. On the 37 questions where the two AI passes agreed and the person gave a clear answer, the AI was right on 36. All 14 issues in scope had the right origin, source, and solution.
+
+The tests:
+
+- The image-of-text test reads the pixels of the image itself, at its size on the page, over the background color of its container. Before, it read a screenshot of the element. During an element screenshot, the browser window changes its size. On the large site, a script of the page moved the page at that time. So the screenshot showed another part of the page, for example the heading of the article, and a heading is text on a flat ground. A cookie banner over the image was also part of the screenshot. On the large site, 2,223 of the 3,711 questions that waited for the AI were images of text. 53 of their 58 answers were "no issue". On 30 pages of the site, the new test finds the 5 images that the AI confirmed, and 23 of the other 25 questions go. The browser does not give the pixels of an image from another site, so the engine reads the file of such an image one time.
+- The image-of-text test also counts the ink: the pixels that are far from the main color. Small letters on a large ground spread over many colors at their soft edges, so no second color has 2% of the pixels. Before, such an image was not a candidate.
+- The test waits until a lazy image shows its file. Before, a placeholder from a data address counted as the image.
+- The list question reports the innermost container. Its evidence gives the line before the list and the lines that start with a number or a bullet, at most 8. Before, it gave the first 5 lines of the container. So the AI did not see a list of five points low in an article, and it answered "no issue". The question says how many lines start with a number or a bullet. Its screenshot shows these lines, not the top of the container.
+- A label that only a screen reader reads is not a visible label. Such a label is 1 or 2 px, clipped, or off the screen, for example with the class `visually-hidden`. Before, it counted as a visible label, so the field got no question. The question names the hidden label and says that it does not count.
+- The player question names the alternatives: captions that a person wrote, and a transcript or an audio description. It says that the title of the frame does not count. Before, it asked for "the alternatives of 1.2.1 to 1.2.5", and the person answered from the title of the frame.
+
+The detection of `image-of-text`, `list-without-list-code`, and `field-no-visible-label` is now 1.3.6. When an issue of an older engine goes away, it is "rule changed". The questions of `list-without-list-code` get new IDs, because their container changes. So the answers that the AI gave from the first 5 lines go.
+
+The results from run to run:
+
+- A page that the settings leave out now ends its earlier results. A skip pattern or a host that is not permitted leaves out a page. Its issues are "page removed" with the new reason "out of scope", and its questions go. The audit sends no request to it. Before, its results stayed "not checked" with no end, and the audit sent a request to each such page. The report gives the counts. A refresh does not apply new skip patterns. The next audit applies them.
+
+The cycle: `review.md` gives these rules to the AI: the hidden label, the title of the frame, and the lines of a list.
+
+The tests: a new test file, `images-lists-scope`, in `npm test`, with 21 checks. On 1.3.5, 14 of them fail.
+
 ## 1.3.5, 2026-11-06
 
 Fixes from the seventh full audit of the large WordPress multisite, with 1.3.4, on 2026-11-06. Also fixes from its first review cycle, with 200 questions. All the fixes of 1.3.4 worked. One new issue was false.
