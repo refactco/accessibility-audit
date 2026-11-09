@@ -18,11 +18,13 @@ export const OWN_DETECTION_VERSION = "1.3.0";
  *  without list code reports the innermost container, with the lines of the list. A label that only a screen reader reads is not a
  *  visible label.
  *  1.3.7: the item of a select with a placeholder has the text of the placeholder, not the text of all its options. An issue of a
- *  weekly archive select that 1.3.6 found with the options of an older week is "rule changed", not "fixed". */
+ *  weekly archive select that 1.3.6 found with the options of an older week is "rule changed", not "fixed".
+ *  1.3.8: the item of an image of text, and of the text contrast of an image, has the path of the file, not only its name. */
 export const RULE_VERSIONS: Record<string, string> = {
   "focus-entirely-hidden": "1.3.3",
   "content-updates-by-itself": "1.3.3",
-  "image-of-text": "1.3.6",
+  "image-of-text": "1.3.8",
+  "image-text-contrast": "1.3.8",
   "list-without-list-code": "1.3.6",
   "field-no-visible-label": "1.3.6",
   "change-of-context-on-input": "1.3.7",

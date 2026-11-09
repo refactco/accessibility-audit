@@ -29,7 +29,7 @@ export interface ReportData {
 }
 
 export interface ReportInput extends ReportData {
-  config: Config; run: string; date: string; versions: { engine: string; axe_core: string; browser: string };
+  config: Config; run: string; date: string; versions: { engine: string; axe_core: string; browser: string; refreshed_with?: string; refreshed_on?: string };
   criteria: Record<string, CriterionSummary>; issues: IssueFile[]; questions: QuestionFile[]; pages: PageRecord[];
   processes: ProcessRun[]; statesTested: number; decisions: Decision[];
   durationSeconds: number; renders: number; budgetReached: string[];
@@ -68,6 +68,8 @@ export function renderReport(r: ReportInput): string {
   const resolved = r.issues.filter((i) => i.status === "resolved" && i.status_by.run === r.run && !replacedIds.has(i.id));
   lines.push(`# Accessibility audit of ${r.config.site.url}\n`);
   lines.push(`Run ${r.run}, ${r.config.site.environment}, WCAG 2.2 AA. Engine ${r.versions.engine}, axe-core ${r.versions.axe_core}, ${r.versions.browser}. ${Math.round(r.durationSeconds)} seconds, ${r.renders} renders.\n`);
+  // The line of the run stays as the audit wrote it. A refresh adds its own line. Since 1.3.8.
+  if (r.versions.refreshed_with) lines.push(`Refreshed on ${r.versions.refreshed_on} with engine ${r.versions.refreshed_with}.\n`);
   lines.push(`## Summary\n`);
   const results = Object.values(r.criteria).map((c) => c.result);
   const count = (x: string) => results.filter((v) => v === x).length;

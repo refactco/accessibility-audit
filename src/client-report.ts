@@ -12,6 +12,27 @@ const SEVERITY: Record<string, string> = { critical: "Critical", serious: "Serio
 const TEAMS: [string, string][] = [["Content", "Content editors"], ["Development", "Developers"], ["Design", "Designers"], ["Vendor", "The vendors of third-party parts"], ["Not known yet", "Not assigned yet"]];
 const OPEN = new Set(["new", "open", "reopened"]);
 
+/** The sentences on the findings that need judgment, from the counts of the answers: who answered how many, and how many still wait.
+ *  A sentence names a person only when a person answered. Before 1.3.8 a fixed sentence said that two AI reviews and a person checked
+ *  the questions, also when no person had answered and most questions waited. */
+export function judgmentText(a: Record<string, number> | undefined): string {
+  if (!a || !a.questions) return "No finding needed judgment.";
+  const done: string[] = [];
+  if (a.agreed) done.push(`${num(a.agreed)} ${a.agreed === 1 ? "has" : "have"} two independent AI answers that agree`);
+  if (a.aiOnly) done.push(`${num(a.aiOnly)} ${a.aiOnly === 1 ? "has" : "have"} one AI answer that a second review did not check yet`);
+  if (a.person) done.push(`a person answered ${num(a.person)}`);
+  const open: string[] = [];
+  if (a.unresolved) open.push(`${num(a.unresolved)} ${a.unresolved === 1 ? "has" : "have"} two AI answers that do not agree`);
+  if (a.waitingAi) open.push(`${num(a.waitingAi)} ${a.waitingAi === 1 ? "waits" : "wait"} for a first review`);
+  if (a.personChecks) open.push(`${num(a.personChecks)} ${a.personChecks === 1 ? "is a check" : "are checks"} that only a person can do, for example the captions of a video`);
+  const list = (parts: string[]) => parts.length > 1 ? parts.slice(0, -1).join(", ") + ", and " + parts[parts.length - 1] : parts[0];
+  const out = [`The findings that need judgment became ${plural(a.questions, "question")}.`];
+  if (done.length) out.push(`Of them, ${list(done)}.`);
+  if (open.length) out.push(`${list(open).replace(/^./, (c) => c.toUpperCase())}. The report does not count these open questions as issues.`);
+  if (!a.person) out.push("No person has answered a question of this audit yet.");
+  return out.join(" ");
+}
+
 function sevMark(s: string): string {
   const shape = s === "critical" ? '<path d="M5 0 L10 5 L5 10 L0 5 Z" fill="currentColor"/>' : s === "serious" ? '<path d="M5 0.5 L9.7 9.5 L0.3 9.5 Z" fill="currentColor"/>' : s === "moderate" ? '<rect x="1" y="1" width="8" height="8" fill="currentColor"/>' : '<circle cx="5" cy="5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.6"/>';
   return `<span class="sev ${s === "critical" || s === "serious" ? "high" : "low"}"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">${shape}</svg>${esc(SEVERITY[s] || s)}</span>`;
@@ -85,7 +106,7 @@ ${bar}
   </section>` : ""}
   <section aria-labelledby="method-h">
     <h2 id="method-h">How we tested, and the limits</h2>
-    <p>We tested ${plural(o.coverage.pages, "page")} at ${esc(o.coverage.widths.length)} screen widths (${esc(o.coverage.widths.join(", "))} px) against WCAG 2.2 level AA.${o.coverage.sample ? ` On ${plural(o.coverage.sample, "sample page")} we also opened the menus, the dialogs, and the tabs.` : ""} Automatic tests found part of the issues. Two independent AI reviews and a person checked the questions that need judgment.</p>
+    <p>We tested ${plural(o.coverage.pages, "page")} at ${esc(o.coverage.widths.length)} screen widths (${esc(o.coverage.widths.join(", "))} px) against WCAG 2.2 level AA.${o.coverage.sample ? ` On ${plural(o.coverage.sample, "sample page")} we also opened the menus, the dialogs, and the tabs.` : ""} Automatic tests found part of the issues. ${esc(judgmentText(data.answers))}</p>
     <p>This report measures this audit. It is not a statement of conformance: WCAG has no score, and a page conforms to a level or it does not. Automatic testing cannot find every problem, so some issues need a person with assistive technology to confirm.</p>
   </section>
   <footer class="cfoot"><span>${by ? `Prepared by ${esc(by)} · ` : ""}${esc(longDate(data.run))}</span>${data.contact ? `<span>Questions: ${esc(data.contact)}</span>` : ""}</footer>

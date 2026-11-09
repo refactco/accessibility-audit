@@ -2,6 +2,22 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.8, 2026-11-10
+
+Fixes from the refresh of the large WordPress multisite with 1.3.7. All the fixes of 1.3.7 worked: the 15 answers and the 4 confirmed issues came back.
+
+The client report and the review page:
+
+- The method text comes from the counts of the answers. It says how many questions two AI answers agree on, how many have one AI answer, and how many a person answered. It also says how many have AI answers that do not agree, and how many still wait. It names a person only when a person answered. Before, a fixed sentence said "Two independent AI reviews and a person checked the questions that need judgment". On the large site, no person answered a question, and 1,729 of 1,888 questions waited for the AI.
+- The overview of the review page gives the questions that wait for a first AI review, and the questions whose AI answers do not agree.
+
+The results from run to run:
+
+- When a newer engine refreshes the results of a run, `summary.json` records it in `versions.refreshed_with`, with the date in `versions.refreshed_on`. A refresh with the engine of the run still writes the same files. The report has a new line after the line of the run: "Refreshed on <date> with engine <version>". Before, the results named only the engine of the run, also when a newer engine changed the hashes and the statuses.
+- The item of an image of text has the path of the file after `/wp-content/`, or the whole path on another site. The item of the text contrast of an image also has it. Before, it had only the file name. So two uploads with the same name in two folders, for example "Image-1.jpg" of two months, shared one question and one issue. An answer for one image then applied to the other image. One file that two subsites show is still one item. One time, these items change: the old item comes back from the new item, so the questions keep their answers. An issue moves to a new ID with its status, its origin, and its solution, and the old ID is "rule changed". The detection of `image-of-text` and `image-text-contrast` is now 1.3.8.
+
+The tests: a new test file, `counts-images`, in `npm test`, with 15 checks. `review-page` has 3 more checks.
+
 ## 1.3.7, 2026-11-09
 
 Fixes from the eighth full audit of the large WordPress multisite, with 1.3.6, and a new review page. All the fixes of 1.3.6 worked. Two results were wrong.

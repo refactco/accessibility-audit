@@ -99,8 +99,9 @@ try {
   // 2: the lazy images of text, before their load.
   const images1 = outcomesOf(first, "/lazy/").filter((o) => o.rule === "image-of-text");
   const items1 = images1.map((o) => o.item).sort();
-  check(items1.filter((i) => i.includes("banner")).join(",") === "image|banner-one.svg,image|banner-two.svg", `2: each lazy image of text has the file name of its address in its item, never "image|" (${items1.join(", ") || "no outcome"})`);
-  check(items1.filter((i) => i.includes("photo")).join(",") === "image|photo.ashx?id=1,image|photo.ashx?id=2", `2: the images of one script keep the query in their items (${items1.filter((i) => i.includes("photo")).join(", ") || "no outcome"})`);
+  // Since 1.3.8 the item has the path of the file, not only its name.
+  check(items1.filter((i) => i.includes("banner")).join(",") === "image|img/banner-one.svg,image|img/banner-two.svg", `2: each lazy image of text has the path of its address in its item, never "image|" (${items1.join(", ") || "no outcome"})`);
+  check(items1.filter((i) => i.includes("photo")).join(",") === "image|img/photo.ashx?id=1,image|img/photo.ashx?id=2", `2: the images of one script keep the query in their items (${items1.filter((i) => i.includes("photo")).join(", ") || "no outcome"})`);
   check(images1.length === 4 && images1.every((o) => /\/img\/(banner-(one|two)\.svg|photo\.ashx\?id=[12])$/.test(o.facts.src)), `2: the facts give the address of the loaded image (${images1.map((o) => o.facts.src || "empty").join(", ")})`);
   const lazyQuestions1 = first.questions.filter((q) => q.evidence.rule === "image-of-text").map((q) => q.id).sort();
   check(lazyQuestions1.length === 4, `2: the four images have four questions, not one for several (${lazyQuestions1.join(", ") || "none"})`);
