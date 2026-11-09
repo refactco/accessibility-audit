@@ -87,6 +87,34 @@ function newOnly(record: PageRecord, width: number, outcomes: Outcome[]): Outcom
 }
 
 /** Takes a screenshot of the element of each review question of a render, as evidence, into runs/<run>/screenshots. */
+/** The box of the lines of an element, from the first line to the last, in the viewport. It scrolls the first line near the top.
+ *  A line matches by its text after the number or the bullet, so that a number in its own element does not stop the match. Null
+ *  when a line is not found. */
+function LINES_BOX(arg: { selector: string; lines: string[] }): { x: number; y: number; width: number; height: number } | null {
+  const root = document.querySelector(arg.selector);
+  if (!root) return null;
+  const find = (line: string): Range | null => {
+    const text = line.replace(/^(\d+[.)]|[-*•])\s*/, "").slice(0, 30).trim();
+    if (!text) return null;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      const at = (n.textContent || "").indexOf(text);
+      if (at < 0) continue;
+      const range = document.createRange();
+      range.setStart(n, at); range.setEnd(n, at + text.length);
+      return range;
+    }
+    return null;
+  };
+  const first = find(arg.lines[0]);
+  if (!first) return null;
+  const last = find(arg.lines[arg.lines.length - 1]) || first;
+  window.scrollBy(0, first.getBoundingClientRect().top - 80);
+  const a = first.getBoundingClientRect(), b = last.getBoundingClientRect(), r = root.getBoundingClientRect();
+  const top = Math.min(a.top, b.top), bottom = Math.max(a.bottom, b.bottom);
+  return { x: r.left, y: top, width: r.width, height: Math.max(1, bottom - top) };
+}
+
 async function shootQuestions(page: import("playwright").Page, outcomes: Outcome[], outDir: string, shotDir: string): Promise<void> {
   let n = 0;
   const seen = new Set<string>();
@@ -104,7 +132,11 @@ async function shootQuestions(page: import("playwright").Page, outcomes: Outcome
         // The element with 32 px around it, so that the picture shows the background and the neighbors.
         const loc = page.locator(o.selector).first();
         await loc.scrollIntoViewIfNeeded({ timeout: 1500 });
-        const box = await loc.boundingBox({ timeout: 1500 });
+        let box = await loc.boundingBox({ timeout: 1500 });
+        // The lines that the question is about, from the first to the last: the picture shows them, not the top of their container,
+        // for example the items of a list low in an article. Since 1.3.6.
+        const lines = o.facts?.shot_lines as string[] | undefined;
+        if (Array.isArray(lines) && lines.length) box = await page.evaluate(LINES_BOX, { selector: o.selector, lines }).catch(() => null) || box;
         const size = page.viewportSize() || { width: 1280, height: 900 };
         if (!box || box.width === 0 || box.height === 0) continue;
         // The box and the clip of a viewport screenshot are both relative to the viewport.
@@ -226,6 +258,10 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const bannerTested = new Set<string>();
   const siteOrigin = new URL(base).origin;
   const key = (u: string) => pageKey(config.site.url, u);
+  // A page of earlier results that the settings leave out now: a skip pattern, or a host that the settings do not permit. The audit
+  // sends it no request, its issues are "page removed" with the reason "out of scope", and its questions go. Since 1.3.6: before,
+  // its results stayed "not checked" with no end.
+  const outOfScopeNow = (p: string) => { try { const u = new URL(p, base).toString(); return !isPermitted(config, u) || isSkipped(config, u); } catch { return false; } };
   // The addresses that a worker opened or that a redirect reached: each page is tested once, whatever the address that led to it.
   const claimed = new Set<string>();
   // A page that the canonical check removed, with its canonical address. When the canonical address redirects back to it, the page is tested.
@@ -647,7 +683,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
       const earlier = new Set<string>();
       for (const i of existingIssues.values()) if (["new", "open", "reopened", "not checked", "accepted"].includes(i.status)) for (const e of i.examples || []) earlier.add(e.url);
       for (const q of existingQuestions.values()) for (const p of (q.evidence?.pages || []) as string[]) earlier.add(p);
-      const unseen = [...earlier].filter((p) => !hasPath(met, p)).sort().slice(0, 500);
+      const unseen = [...earlier].filter((p) => !hasPath(met, p) && !outOfScopeNow(p)).sort().slice(0, 500);
       if (unseen.length) {
         let nextOld = 0;
         let unknown = 0;
@@ -780,8 +816,14 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   // A page of the last audit is gone when it gives 404 or 410 now, or when its address redirects now.
   const wasPage = (u: string) => previousStatus.has(key(u)) && (previousStatus.get(key(u)) || 0) < 400;
   const gone = new Set([...pages.filter((p) => (p.http_status === 404 || p.http_status === 410) && wasPage(p.url)).map((p) => key(p.url)), ...[...redirected.keys()].filter(wasPage).map(key), ...earlierGone]);
+  const testedNow = new Set(all.filter((p) => p.tested).map((p) => key(p.url)));
+  const outside = new Set<string>();
+  const addOutside = (p: string) => { if (outOfScopeNow(p) && !hasPath(testedNow, key(p))) outside.add(p); };
+  for (const i of existingIssues.values()) for (const e of i.examples || []) addOutside(e.url);
+  for (const q of existingQuestions.values()) for (const p of (q.evidence?.pages || []) as string[]) addOutside(p);
   const context: CompareContext = {
-    testedPaths: new Set(all.filter((p) => p.tested).map((p) => key(p.url))),
+    testedPaths: testedNow,
+    ...(outside.size ? { outOfScopePaths: outside } : {}),
     samplePaths: new Set(all.filter((p) => p.tested && p.sample).map((p) => key(p.url))),
     gonePaths: gone,
     widthsNotLoaded: new Map(all.filter((p) => p.tested && p.widths_not_loaded?.length).map((p) => [key(p.url), p.widths_not_loaded!])),
@@ -792,6 +834,11 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
   const questions = allQuestions.filter((q) => !q.not_checked);
   applyAnswers(all, config, questions);
   const issues = buildIssues(all, config, run, date, existingIssues, context);
+  const outOfScope = outside.size ? {
+    pages: outside.size,
+    issues: issues.filter((i) => i.status === "page removed" && i.status_by?.reason === "out of scope" && i.status_by?.run === run).length,
+    questions: [...existingQuestions.values()].filter((q) => !allQuestions.some((n) => n.id === q.id) && (q.evidence?.pages || []).length && (q.evidence.pages as string[]).every((p) => hasPath(outside, p))).length,
+  } : null;
   for (const i of issues) if (i.question) { const q = questions.find((x) => x.id === i.question); if (q) q.issue = i.id; }
   const decisions = loadDecisions(outDir, config.site.url);
   const aiOnly = new Map<string, number>();
@@ -859,7 +906,7 @@ export async function runAudit(options: AuditOptions): Promise<AuditResult> {
     budgetLeft.bySection[section] = (budgetLeft.bySection[section] || 0) + 1;
   }
   // The parts of the report that come from the crawl, in the run folder, so that a refresh writes the same report.
-  const reportData: ReportData = { notOpenedBySource, budgetLeft, groupChoices: frontier.groupChoices, differences, skipped: frontier.skipped, ...(earlierGone.size || earlierFound.length ? { earlierPages: { gone: earlierGone.size, found: earlierFound } } : {}) };
+  const reportData: ReportData = { notOpenedBySource, budgetLeft, groupChoices: frontier.groupChoices, differences, skipped: frontier.skipped, ...(earlierGone.size || earlierFound.length ? { earlierPages: { gone: earlierGone.size, found: earlierFound } } : {}), ...(outOfScope ? { outOfScope } : {}) };
   writeFileSync(join(runDir, "report-data.json"), JSON.stringify(reportData) + "\n");
   const report = renderReport({ config, run, date, versions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested, coverage, ...reportData, decisions, durationSeconds, renders, budgetReached, overview, history: [...readHistory(outDir).filter((h) => h.run !== run), { run, date, kind: history.kind, counts, overview: history.overview }] });
   writeResults(outDir, { config, summary, pages: pageFiles, issues, questions: allQuestions, history, report, run, outcomes: all.flatMap((p) => p.outcomes) });

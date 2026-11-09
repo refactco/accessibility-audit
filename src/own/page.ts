@@ -87,10 +87,24 @@ const COLLECT = `(() => {
     const rows = t.rows.length, cols = t.rows[0] ? t.rows[0].cells.length : 0;
     if (rows >= 2 && cols >= 2 && !t.querySelector("th")) out.tables.push({ selector: sel(t), html: html(t), item: item(t), rows, cols });
   }
+  // A container with 3 lines or more that start with a number or a bullet, and no list code. The innermost one: the containers around
+  // it hold the same lines. The evidence gives the line before the first item and the items, at most 8: before 1.3.6 it gave the
+  // first 5 lines of the container, and a list lower in an article did not show in them.
+  const itemLine = /^(\\d+[.)]|[-*•])\\s/;
+  const fake = [];
   for (const p of document.querySelectorAll("p, div")) {
     if (!visible(p) || p.children.length === 0) continue;
     const lines = (p.innerText || "").split(/\\n+/).map((l) => l.trim()).filter(Boolean);
-    if (lines.length >= 3 && lines.filter((l) => /^(\\d+[.)]|[-*•])\\s/.test(l)).length >= 3 && !p.querySelector("ol, ul")) out.fakeLists.push({ selector: sel(p), html: html(p), item: item(p), lines: lines.slice(0, 5) });
+    const items = lines.filter((l) => itemLine.test(l));
+    if (lines.length >= 3 && items.length >= 3 && !p.querySelector("ol, ul")) {
+      const first = lines.findIndex((l) => itemLine.test(l));
+      const shown = (first > 0 ? [lines[first - 1]] : []).concat(items.slice(0, first > 0 ? 7 : 8)).map((l) => l.slice(0, 200));
+      fake.push({ el: p, lines: shown, items: items.length, first: items[0].slice(0, 60), last: items[items.length - 1].slice(0, 60) });
+    }
+  }
+  for (const f of fake) {
+    if (fake.some((g) => g !== f && f.el.contains(g.el))) continue;
+    out.fakeLists.push({ selector: sel(f.el), html: html(f.el), item: item(f.el), lines: f.lines, items: f.items, first: f.first, last: f.last });
   }
   for (const c of document.querySelectorAll("ol, ul, nav, section, main, div")) {
     if (!visible(c) || c.children.length < 2) continue;
@@ -107,11 +121,22 @@ const COLLECT = `(() => {
     const m = t.match(sensory);
     if (m) out.sensory.push({ selector: sel(b), html: html(b), item: item(b), text: t.slice(0, 300), match: m[0] });
   }
+  const seen = (el) => {
+    if (!visible(el)) return false;
+    const r = el.getBoundingClientRect(), cs = getComputedStyle(el);
+    if (r.width <= 2 || r.height <= 2 || r.right + scrollX <= 0 || r.bottom + scrollY <= 0) return false;
+    if (/rect\\(0(px)?[, ]+0(px)?[, ]+0(px)?[, ]+0(px)?\\)/.test(cs.clip) || /inset\\((50|100)%\\)/.test(cs.clipPath)) return false;
+    return (el.innerText || "").trim() !== "";
+  };
   const personal = /name|email|e-mail|phone|tel|address|street|postal|zip|city|country|birthday|card|cc-/i;
   for (const f of document.querySelectorAll("input, select, textarea")) {
     if (!visible(f) || ["hidden", "submit", "button", "checkbox", "radio", "search", "file", "image", "reset"].includes(f.type)) continue;
-    const labelled = (f.labels && f.labels.length > 0 && Array.from(f.labels).some(visible)) || (f.getAttribute("aria-labelledby") || "").split(/\\s+/).some((i) => i && visible(document.getElementById(i)));
-    out.fields.push({ selector: sel(f), html: html(f), item: item(f), type: f.type, name: f.name || "", id: f.id || "", autocomplete: f.getAttribute("autocomplete"), placeholder: f.getAttribute("placeholder"), ariaLabel: f.getAttribute("aria-label"), visibleLabel: labelled, personal: personal.test((f.name || "") + " " + (f.id || "") + " " + nameOf(f) + " " + (f.type || "")), onpaste: f.hasAttribute("onpaste"), form: f.form ? sel(f.form) : null });
+    // A label counts when a person sees it. A label that only a screen reader reads is not visible: 1 or 2 px, clipped, or moved
+    // off the screen, for example with the class visually-hidden or screen-reader-text. Before 1.3.6 such a label counted.
+    const labels = [...Array.from(f.labels || []), ...(f.getAttribute("aria-labelledby") || "").split(/\\s+/).map((i) => i && document.getElementById(i)).filter(Boolean)];
+    const labelled = labels.some(seen);
+    const hiddenLabel = labelled ? null : labels.map((l) => (l.textContent || "").replace(/\\s+/g, " ").trim()).filter(Boolean).join(" ").slice(0, 120) || null;
+    out.fields.push({ selector: sel(f), html: html(f), item: item(f), type: f.type, name: f.name || "", id: f.id || "", autocomplete: f.getAttribute("autocomplete"), placeholder: f.getAttribute("placeholder"), ariaLabel: f.getAttribute("aria-label"), visibleLabel: labelled, hiddenLabel, personal: personal.test((f.name || "") + " " + (f.id || "") + " " + nameOf(f) + " " + (f.type || "")), onpaste: f.hasAttribute("onpaste"), form: f.form ? sel(f.form) : null });
   }
   const generic = /^(read more|more|click here|here|learn more|link|details|continue|go)\\s*[.›>→]*$/i;
   for (const a of document.querySelectorAll("a[href]")) {
@@ -279,8 +304,8 @@ export async function runPageTests(page: Page, url: string, width: number, state
         solution: { summary: "Add the alternative that the criterion asks for.", steps: ["Add a transcript, captions, or an audio description."] } });
     } else {
       found.push({ criterion: "1.2.1", rule: "player-found", kind: "candidate", selector: m.selector, html: m.html, item: m.item, facts: { title: m.title },
-        summary: "An embedded player is on the page.", severity: "serious", question: "Does the media in this player have the alternatives of 1.2.1 to 1.2.5?",
-        steps: ["Play the media in the player.", "Look for a transcript, captions, and an audio description."],
+        summary: "An embedded player is on the page.", severity: "serious", question: "Does the media in this player have its alternatives: captions that a person wrote for the speech, and a transcript or an audio description when the picture shows information that the sound does not say? The title of the frame does not count: it only names the frame, and another test checks it.",
+        steps: ["Play the media in the player with the sound on.", "Turn on the captions. Check that a person wrote them, not the service (for example \"auto-generated\"), and that they match the speech.", "Look for a transcript or a text version near the player, and for an audio description when the picture shows information that the sound does not say.", "The title of the frame does not count."],
         solution: { summary: "Add the alternatives that the media needs.", steps: ["Add a transcript, captions, or an audio description."] } });
     }
   }
@@ -354,8 +379,8 @@ export async function runPageTests(page: Page, url: string, width: number, state
   for (const t of d.tables) found.push({ criterion: "1.3.1", rule: "table-no-headers", kind: "cantTell", selector: t.selector, html: t.html, item: t.item, facts: { rows: t.rows, cols: t.cols },
     summary: "A table has no header cells.", severity: "serious", question: "Is this a data table whose first row or first column are headers?",
     solution: { summary: "Mark the header cells with th and scope.", steps: ["Use th elements for the header row and the header column."] } });
-  for (const l of d.fakeLists) found.push({ criterion: "1.3.1", rule: "list-without-list-code", kind: "cantTell", selector: l.selector, html: l.html, item: l.item, facts: { lines: l.lines },
-    summary: "Text looks like a list but is not in a list element.", severity: "moderate", question: "Are these lines a list that needs ol or ul code?",
+  for (const l of d.fakeLists) found.push({ criterion: "1.3.1", rule: "list-without-list-code", kind: "cantTell", selector: l.selector, html: l.html, item: l.item, facts: { lines: l.lines, itemLines: l.items, shot_lines: [l.first, l.last] },
+    summary: "Text looks like a list but is not in a list element.", severity: "moderate", question: `Are these lines a list that needs ol or ul code? ${l.items} lines start with a number or a bullet, from "${l.first}" to "${l.last}".`,
     solution: { summary: "Use a list element.", steps: ["Use ol or ul with one li for each item."] } });
   // 1.3.2: a visual order that differs from the code order.
   for (const o of d.order) found.push({ criterion: "1.3.2", rule: "visual-order-differs", kind: "cantTell", selector: o.selector, html: o.html, item: o.item, facts: { flexDirection: o.flexDirection, ordered: o.ordered },
@@ -370,8 +395,8 @@ export async function runPageTests(page: Page, url: string, width: number, state
     if (f.personal && !f.autocomplete && ["text", "email", "tel", "password", ""].includes(f.type)) found.push({ criterion: "1.3.5", rule: "personal-field-no-autocomplete", kind: "cantTell", selector: f.selector, html: f.html, item: f.item, facts: { name: f.name, type: f.type },
       summary: "A field seems to collect personal data and has no autocomplete attribute.", severity: "moderate", question: "Does this field collect data about the user that an autocomplete token covers?",
       solution: { summary: "Add the autocomplete attribute.", steps: ["Add autocomplete with the token of the data, for example name or email."] } });
-    if (!f.visibleLabel) found.push({ criterion: "3.3.2", rule: "field-no-visible-label", kind: "cantTell", selector: f.selector, html: f.html, item: f.item, facts: { placeholder: f.placeholder, ariaLabel: f.ariaLabel },
-      summary: "A field has no visible label.", severity: "serious", question: "Does the field have a visible label or instruction that stays while the user types?",
+    if (!f.visibleLabel) found.push({ criterion: "3.3.2", rule: "field-no-visible-label", kind: "cantTell", selector: f.selector, html: f.html, item: f.item, facts: { placeholder: f.placeholder, ariaLabel: f.ariaLabel, ...(f.hiddenLabel ? { hiddenLabel: f.hiddenLabel } : {}) },
+      summary: "A field has no visible label.", severity: "serious", question: `Does the field have a visible label or instruction that stays while the user types? A label that only a screen reader reads does not count${f.hiddenLabel ? `, for example its hidden label "${f.hiddenLabel}"` : ""}.`,
       solution: { summary: "Add a visible label to the field.", steps: ["Add a label element with a for attribute."] } });
   }
   // 2.4.4 and 2.4.6: generic link texts and headings.

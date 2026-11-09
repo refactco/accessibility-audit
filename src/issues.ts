@@ -139,6 +139,9 @@ export interface CompareContext {
   samplePaths?: Set<string>;
   /** The keys of the pages of the last audit that are gone: they give 404 or 410 now, or their address redirects now. */
   gonePaths: Set<string>;
+  /** The paths of the pages of earlier results that the settings leave out now: a skip pattern, or a host that is not permitted.
+   *  Since 1.3.6. */
+  outOfScopePaths?: Set<string>;
   /** The widths at which a tested page did not load, by the key of the page, for example during a short outage of the server. */
   widthsNotLoaded?: Map<string, number[]>;
   versions: { engine: string; axe_core: string };
@@ -309,6 +312,10 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
       issues.push(old); continue;
     }
     const paths: string[] = (old.examples || []).map((e: { url: string }) => e.url);
+    // A page that the settings leave out now cannot have the issue in the audit: the issue ends as "page removed", with the reason
+    // "out of scope". A page that is gone counts the same. Since 1.3.6.
+    const outside = (p: string) => !!context?.outOfScopePaths && hasPath(context.outOfScopePaths, p);
+    if (context && paths.length && paths.some(outside) && paths.every((p) => outside(p) || hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "out of scope" } }); continue; }
     if (context && paths.length && paths.every((p) => hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "page removed", status_by: { ...by, reason: "page removed" } }); continue; }
     // An issue from a template test, a sample test, or a state needs its pages in the sample of this run, because those tests run
     // only there. The rule decides, not the criterion: 4.1.2 has page tests, but its listener test runs on the sample only.
@@ -317,7 +324,7 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     const checked = templateIssue && context?.samplePaths ? context.samplePaths : context?.testedPaths;
     // A page that is gone cannot have the issue any more: it counts as checked. A path of an older version can differ from the
     // tested page by the trailing slash.
-    if (context && checked && !paths.every((p) => hasPath(checked, p) || hasPath(context.gonePaths, p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
+    if (context && checked && !paths.every((p) => hasPath(checked, p) || hasPath(context.gonePaths, p) || outside(p))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
     // A page that did not load at the width of an example did not check the issue there: the page is tested at its other widths only.
     const notAt = (u: string) => context?.widthsNotLoaded?.get(u) || context?.widthsNotLoaded?.get(otherSlash(u)) || [];
     if ((old.examples || []).some((e: { url: string; width?: number }) => e.width !== undefined && notAt(e.url).includes(e.width))) { issues.push({ ...old, status: "not checked", status_by: by }); continue; }
@@ -458,7 +465,9 @@ export function buildQuestions(pages: PageRecord[], config: Config, existing: Ma
       // A page that did not load at a width checked the question only at its other widths: a question has no width, so the page does
       // not count as checked. The question stays one more run, with its answers.
       const partial = (p: string) => !!(context.widthsNotLoaded?.get(p) || context.widthsNotLoaded?.get(otherSlash(p)))?.length;
-      if (!paths.length || paths.some((p) => (hasPath(checked, p) && !partial(p)) || hasPath(context.gonePaths, p))) continue;
+      // A page that the settings leave out now ends the question, as a page that is gone does. Since 1.3.6.
+      const outside = (p: string) => !!context.outOfScopePaths && hasPath(context.outOfScopePaths, p);
+      if (!paths.length || paths.some((p) => (hasPath(checked, p) && !partial(p)) || hasPath(context.gonePaths, p)) || paths.every(outside)) continue;
       questions.push({ ...old, not_checked: true });
     }
   }

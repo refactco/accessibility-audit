@@ -45,20 +45,33 @@ const FIND_IMAGES = `(() => {
   return out;
 })()`;
 
-/** The share of the pixels in the three largest color bins, and those colors. Text on a flat ground gives a high share. */
-const FLATNESS = (png: string) => `(async () => {
-  const img = new Image();
-  img.src = "data:image/png;base64," + ${JSON.stringify(png)};
-  await img.decode();
+/** The share of the pixels in the three largest color bins, and those colors. Text on a flat ground gives a high share. The pixels
+ *  come from the image itself, drawn at its size on the page over the background color of its container, so that a transparent part
+ *  shows the color that the page shows there. `dataUrl` is the file of an image from another site: the browser does not give the
+ *  pixels of such an image on the page. Null when the browser does not give the pixels.
+ *  Before 1.3.6 the test read a screenshot of the element. During an element screenshot the browser window changes its size, and a
+ *  script of the page that reacts to it can move the page: the screenshot then showed another part of the page, for example the
+ *  heading of the article, which is text on a flat ground. A cookie banner over the image was in the screenshot too. */
+async function flatness(arg: { selector: string; dataUrl: string | null; width: number; height: number }) {
+  const el = document.querySelector(arg.selector) as HTMLImageElement | null;
+  if (!el) return null;
+  let source: HTMLImageElement = el;
+  if (arg.dataUrl) { source = new Image(); source.src = arg.dataUrl; await source.decode(); }
+  let ground = "rgb(255, 255, 255)";
+  for (let e = el.parentElement; e; e = e.parentElement) {
+    const c = getComputedStyle(e).backgroundColor;
+    if (c && c !== "transparent" && !/rgba\([^)]*,\s*0\)$/.test(c)) { ground = c; break; }
+  }
   const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  const bins = new Map();
+  canvas.width = arg.width; canvas.height = arg.height;
+  const ctx = canvas.getContext("2d")!;
+  ctx.fillStyle = ground; ctx.fillRect(0, 0, arg.width, arg.height);
+  ctx.drawImage(source, 0, 0, arg.width, arg.height);
+  let data: Uint8ClampedArray;
+  try { data = ctx.getImageData(0, 0, arg.width, arg.height).data; } catch { return null; }
+  const bins = new Map<number, { n: number; r: number; g: number; b: number }>();
   let total = 0;
   for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 128) continue;
     const r = data[i], g = data[i + 1], b = data[i + 2];
     total++;
     const key = ((r >> 5) << 6) | ((g >> 5) << 3) | (b >> 5);
@@ -67,9 +80,34 @@ const FLATNESS = (png: string) => `(async () => {
     bins.set(key, bin);
   }
   const list = Array.from(bins.values()).sort((a, b) => b.n - a.n).slice(0, 3);
-  const c = (bin, v) => Math.round(v / bin.n).toString(16).padStart(2, "0");
-  return { total, bins: bins.size, top: list.map((bin) => ({ color: "#" + c(bin, bin.r) + c(bin, bin.g) + c(bin, bin.b), share: Math.round((bin.n / Math.max(1, total)) * 1000) / 1000 })) };
-})()`;
+  const c = (bin: { n: number }, v: number) => Math.round(v / bin.n).toString(16).padStart(2, "0");
+  // The ink: the pixels far from the main color. Small letters on a large ground spread over many bins by their soft edges, so no
+  // second bin has a large share, but the letters are far from the ground.
+  let ink = 0;
+  if (list.length) {
+    const m = list[0], mr = m.r / m.n, mg = m.g / m.n, mb = m.b / m.n;
+    for (let i = 0; i < data.length; i += 4) if ((data[i] - mr) ** 2 + (data[i + 1] - mg) ** 2 + (data[i + 2] - mb) ** 2 > 120 * 120) ink++;
+  }
+  return { total, bins: bins.size, ink: Math.round((ink / Math.max(1, total)) * 1000) / 1000, top: list.map((bin) => ({ color: "#" + c(bin, bin.r) + c(bin, bin.g) + c(bin, bin.b), share: Math.round((bin.n / Math.max(1, total)) * 1000) / 1000 })) };
+}
+
+/** The files of the images from other sites, as data addresses, by their address. Null when the file did not load. */
+const files = new Map<string, string | null>();
+
+/** The file of an image from another site, as a data address. The engine reads each file once per process. */
+async function fileOf(page: Page, src: string): Promise<string | null> {
+  if (files.has(src)) return files.get(src)!;
+  let out: string | null = null;
+  try {
+    const res = await page.context().request.get(src, { timeout: 5000, maxRedirects: 3 });
+    const type = (res.headers()["content-type"] || "").split(";")[0].trim();
+    const body = res.ok() && /^image\//.test(type) ? await res.body() : null;
+    if (body && body.length <= 8_000_000) out = `data:${type};base64,${body.toString("base64")}`;
+  } catch { /* the file did not load: the image is not measured */ }
+  if (files.size >= 300) files.delete(files.keys().next().value!);
+  files.set(src, out);
+  return out;
+}
 
 /** A review question for each image in the content whose pixels look like text on a flat ground. */
 export async function runImageOfTextTest(page: Page, url: string, width: number, state: string[]): Promise<Outcome[]> {
@@ -77,30 +115,48 @@ export async function runImageOfTextTest(page: Page, url: string, width: number,
   try { candidates = await page.evaluate(FIND_IMAGES) as ImageCandidate[]; } catch { return []; }
   const found: Found[] = [];
   for (const c of candidates) {
-    let flat: { total: number; bins: number; top: { color: string; share: number }[] };
+    let flat: { total: number; bins: number; ink: number; top: { color: string; share: number }[] } | null;
     let src = "";
+    let size = { width: c.width, height: c.height };
     try {
-      // A lazy image is a flat placeholder until it loads: scroll it into view, and wait for its pixels.
+      // A lazy image is a flat placeholder until it loads: scroll it into view, and wait for its pixels. A lazy image keeps the
+      // address of its file in a data attribute, and shows a placeholder from a data address until then.
       const el = page.locator(c.selector).first();
       await el.scrollIntoViewIfNeeded({ timeout: 2000 });
-      await page.waitForFunction((sel: string) => { const img = document.querySelector(sel) as HTMLImageElement | null; return !!img && img.complete && img.naturalWidth > 0; }, c.selector, { timeout: 4000 });
+      await page.waitForFunction((sel: string) => {
+        const img = document.querySelector(sel) as HTMLImageElement | null;
+        if (!img || !img.complete || img.naturalWidth === 0) return false;
+        const lazy = img.hasAttribute("data-src") || img.hasAttribute("data-srcset") || img.hasAttribute("data-lazy-src");
+        const now = img.currentSrc || img.src || "";
+        return !lazy || (now !== "" && !now.startsWith("data:"));
+      }, c.selector, { timeout: 4000 });
       // The address of the image after its load. Before its load a lazy image has no address, or the address of a placeholder, and
       // an image with a srcset has the address of its src. Before 1.3.4 the item used the address before the load: the images that
       // had not loaded yet shared the item "image|" and one question, and the item of an image changed with the timing of the load.
       const loaded = await el.evaluate((img) => (img as HTMLImageElement).currentSrc || (img as HTMLImageElement).src || "").catch(() => "");
       src = loaded || (c.src.startsWith("data:") ? "" : c.src);
-      const png = (await el.screenshot({ timeout: 3000, animations: "disabled" })).toString("base64");
-      flat = await page.evaluate(FLATNESS(png)) as typeof flat;
+      // The size of the image after its load: a placeholder can have another size. At most 1200 px on its long side.
+      const box = await el.boundingBox({ timeout: 1500 });
+      if (!box || box.width < 120 || box.height < 24) continue;
+      const scale = Math.min(1, 1200 / Math.max(box.width, box.height));
+      size = { width: Math.max(1, Math.round(box.width * scale)), height: Math.max(1, Math.round(box.height * scale)) };
+      flat = await page.evaluate(flatness, { selector: c.selector, dataUrl: null, ...size });
+      if (!flat && src && !src.startsWith("data:")) {
+        const file = await fileOf(page, src);
+        if (file) flat = await page.evaluate(flatness, { selector: c.selector, dataUrl: file, ...size });
+      }
     } catch { continue; }
+    if (!flat) continue;
     if (!flat.total || flat.top.length < 2) continue;
     const topShare = flat.top.reduce((n, b) => n + b.share, 0);
-    // Text on a flat ground: three colors cover most of the pixels, and the second color is more than a trace. A photo spreads over many colors.
-    if (topShare < 0.85 || flat.top[1].share < 0.02) continue;
+    // Text on a flat ground: three colors cover most of the pixels, and the second color, or the ink, is more than a trace. A photo
+    // spreads over many colors. The ink is new in 1.3.6: small letters on a large ground have no second color of 2%.
+    if (topShare < 0.85 || (flat.top[1].share < 0.02 && flat.ink < 0.01)) continue;
     const name = fileName(src);
     if (!name) continue;
     found.push({
       criterion: "1.4.5", rule: "image-of-text", kind: "candidate", selector: c.selector, html: c.html, item: "image|" + name,
-      facts: { src, alt: c.alt, width: c.width, height: c.height, inLink: c.inLink, colors: flat.top, flatShare: Math.round(topShare * 1000) / 1000, nearText: c.nearText },
+      facts: { src, alt: c.alt, width: size.width, height: size.height, inLink: c.inLink, colors: flat.top, flatShare: Math.round(topShare * 1000) / 1000, ink: flat.ink, nearText: c.nearText },
       summary: "An image in the content looks like text on a flat ground.", severity: "moderate", context: c.nearText || undefined,
       question: `Does this image show text that real text could present? Its text alternative is "${c.alt || ""}".`,
       solution: { summary: "Replace the image of text with real text and styles.", steps: ["Put the text in the page as HTML text.", "Give it the font, the color, and the layout of the image with CSS.", "Keep the image only when it is a logo, or when the look cannot be made with styles."] },

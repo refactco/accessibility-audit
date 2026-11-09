@@ -24,6 +24,8 @@ export interface ReportData {
   /** The pages of earlier issues and questions that the crawl did not find: the count of the gone pages, and the pages that still
    *  answer. Since 1.3.3. */
   earlierPages?: { gone: number; found: string[] };
+  /** The pages of earlier results that the settings leave out now, and the issues and the questions that ended with them. Since 1.3.6. */
+  outOfScope?: { pages: number; issues: number; questions: number };
 }
 
 export interface ReportInput extends ReportData {
@@ -80,6 +82,8 @@ export function renderReport(r: ReportInput): string {
   }
   const ep = r.earlierPages;
   if (ep && (ep.gone || ep.found.length)) lines.push(`${ep.gone + ep.found.length} pages of earlier issues and questions were not found by the crawl: no sitemap, API, or link gives them now.${ep.gone ? ` ${ep.gone} are gone (404, 410, or a redirect), so their issues are "page removed" and their questions go.` : ""}${ep.found.length ? ` ${ep.found.length} still answer, so their issues and questions stay "not checked": ${ep.found.slice(0, 10).join(", ")}${ep.found.length > 10 ? ", and more" : ""}. Add them to crawl.sample_pages to test them, or remove their results.` : ""}\n`);
+  const os = r.outOfScope;
+  if (os) lines.push(`${os.pages} pages of earlier results are out of scope now: the settings skip them, or do not permit their host. ${os.issues} of their issues are "page removed" with the reason "out of scope", and ${os.questions} of their questions went.\n`);
   if (r.questionsNotChecked) lines.push(`${r.questionsNotChecked} questions of earlier runs are not checked: this run did not test their pages, or their test runs on the sample only and their pages were not in it. They keep their answers, and they do not count here.\n`);
   if (unopened.length) {
     const by = (reason: string) => unopened.filter((p) => p.not_tested_reason === reason).length;

@@ -13,11 +13,16 @@ export const OWN_DETECTION_VERSION = "1.3.0";
  *  The watch of the content that changes by itself leaves out the body and the elements that hold the main content.
  *  1.3.4: the item of an image of text uses the address of the image after its load.
  *  1.3.5: the focus test reads the control that has the focus inside a frame, not the frame element. The questions and the issues of
- *  visual-order-differs group by the kind of element, not by its item. */
+ *  visual-order-differs group by the kind of element, not by its item.
+ *  1.3.6: the image of text reads the pixels of the image itself, not a screenshot, and counts the ink of small letters. The list
+ *  without list code reports the innermost container, with the lines of the list. A label that only a screen reader reads is not a
+ *  visible label. */
 export const RULE_VERSIONS: Record<string, string> = {
   "focus-entirely-hidden": "1.3.3",
   "content-updates-by-itself": "1.3.3",
-  "image-of-text": "1.3.4",
+  "image-of-text": "1.3.6",
+  "list-without-list-code": "1.3.6",
+  "field-no-visible-label": "1.3.6",
   "focus-not-visible": "1.3.5",
   "visual-order-differs": "1.3.5",
 };
