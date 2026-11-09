@@ -140,7 +140,7 @@
           "additionalProperties": false,
           "required": ["status", "reason", "by", "date"],
           "properties": {
-            "status": { "enum": ["accepted", "dismissed"] },
+            "status": { "enum": ["accepted", "dismissed", "kept"] },
             "reason": { "type": "string", "description": "Why, in a few words, for example: false positive, confirmed accessible, accepted risk." },
             "note": { "type": "string", "description": "An optional free note of the person, next to the reason." },
             "by": { "type": "string" },

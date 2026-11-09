@@ -46,17 +46,17 @@ The package builds itself at install. The plugin loads from the project settings
 
 Run the command as `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`. The old name `a11y` still works in a project that has the package, but never run `npx a11y`: `a11y` is also an unrelated package on the npm registry. When the local package is missing, `npx a11y` downloads and runs that package, and after one such run `npx` keeps a copy in its cache, so even `npx --no a11y` can run it. For the same reason, do not use `npx` with the new name either: the forms above run only the copy in the project.
 
-To update the package to a release tag, for example `v1.3.6`:
+To update the package to a release tag, for example `v1.3.7`:
 
 ```
-pnpm add -Dw github:refactco/accessibility-audit#v1.3.6
+pnpm add -Dw github:refactco/accessibility-audit#v1.3.7
 ```
 
 With npm 12 and `allow-git=root`, an install of a new tag over an old one stops with `EALLOWGIT` ("Fetching non-root packages of type "git" have been disabled"): `package-lock.json` still names the old tag, so npm does not count the package as a dependency of the project. Remove the package first, then install the new tag:
 
 ```
 npm uninstall @refact/a11y
-npm install -D github:refactco/accessibility-audit#v1.3.6
+npm install -D github:refactco/accessibility-audit#v1.3.7
 npm install-scripts approve @refact/a11y --no-allow-scripts-pin
 ```
 
@@ -100,10 +100,26 @@ refact-a11y check <config.json> --out accessibility-audit         the short chec
 refact-a11y tasks review|verify|locate                            the batch files of one step, for the agents; --retry lists only what the last batches left
 refact-a11y refresh                                               the results with the answers of today, no crawl
 refact-a11y handoff                                               fixes.json and fixes.md for the fixing agent
-refact-a11y review                                                the report page, on your machine
+refact-a11y review                                                the review page, on your machine
+refact-a11y accept|dismiss|keep|reopen <ISS-id> --by <name>        a decision of a person on an issue, and its undo
 ```
 
 The commands find `accessibility-audit/config.json` by themselves in the repository of the site.
+
+## The review page
+
+`refact-a11y review` opens a page on your machine with four views:
+
+- **Overview**: the open issues, the decisions that wait for a person, the trend of the last audits, and the issues to fix first.
+- **Decisions**: the items that need a person, one at a time beside a short list. There are four groups. The two AI reviews differ. A sample question checks the AI. Only a person can do the check. The review proposes no change to an issue. The answer saves at once, and "Change" takes it back. The keys 1 to 3 answer. A button in the menu turns them off. The AI answers of a sample question open after your answer.
+- **Issues**: the open issues with filters for who fixes them, the severity, the level, and the status. The details of one issue show beside the list. "Accept as a known risk" and "Dismiss" need a reason, and "Undo" takes them back.
+- **Method**: the coverage and the limits of the audit.
+
+The **Client report** link in the menu opens a read-only page for the client: the numbers, the issues to fix first, the issues by the team that fixes them, and the method. It has no question and no AI answer. Its buttons print it, save it as a PDF, or save it as one HTML file to send. Two optional settings put your name and contact on it:
+
+```json
+"report": { "prepared_by": "Your team", "contact": "accessibility@example.com" }
+```
 
 ## What leaves the machine, and what it costs
 

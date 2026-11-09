@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { join, resolve } from "node:path";
 import type { Config } from "./config.ts";
 import { loadQuestions } from "./decide.ts";
-import { loadExisting } from "./issues.ts";
+import { loadExisting, proposesNoChange } from "./issues.ts";
 
 export type Step = "review" | "verify" | "locate";
 /** count: the items in the batch files. waiting: all the items that wait for this step. budget: the most items for this call.
@@ -49,7 +49,8 @@ export function writeTasks(config: Config, outDir: string, step: Step, tasksDir:
   } else {
     const source = resolve(outDir, String(config.site.cms?.source_path || ".."));
     items = [...loadExisting(outDir, "issues").values()]
-      .filter((i: any) => OPEN.has(i.status) && i.origin === "unknown")
+      // An issue that a person kept after the review proposed no change goes back to the locate step, with the reason of the person. Since 1.3.7.
+      .filter((i: any) => OPEN.has(i.status) && (i.origin === "unknown" || (i.decision?.status === "kept" && proposesNoChange(i))))
       .sort((a: any, b: any) => (b.reach?.pages || 0) - (a.reach?.pages || 0)).map((i: any) => i.id);
     body = (part) => ({ results: outDir, step, source, issues: part });
   }

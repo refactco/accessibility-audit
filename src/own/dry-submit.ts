@@ -169,7 +169,16 @@ export async function guardedContext(browser: Browser, config: Config, width: nu
  *  shows only after an action or a delay, for example in a popup. error: the engine could not do the submission. */
 export type SubmissionKind = "browser" | "native" | "server" | "none" | "hidden" | "error";
 
-export interface Submission { variant: "empty" | "incorrect"; kind: SubmissionKind; state: string[]; blocked: string[]; rules: string[]; reason?: string }
+/** pressed: "keyboard" when a mouse click could not reach the submit control and the keyboard pressed it. Since 1.3.7. */
+export interface Submission { variant: "empty" | "incorrect"; kind: SubmissionKind; state: string[]; blocked: string[]; rules: string[]; reason?: string; pressed?: "keyboard" }
+
+/** Why a click did not reach a control, from the log of Playwright: the first line and the line that gives the cause, for example
+ *  "<div class=..."> intercepts pointer events" or "element is not visible". Before 1.3.7 the log kept only the first line. */
+export function clickFailure(e: unknown): string {
+  const lines = String((e as Error)?.message || e).split("\n").map((l) => l.trim().replace(/^-\s*/, ""));
+  const cause = lines.find((l) => /intercepts pointer events|does not receive pointer events|not visible|not stable|not enabled|outside of the viewport|detached/i.test(l));
+  return lines[0] + (cause && cause !== lines[0] ? ` (${cause.slice(0, 160)})` : "");
+}
 
 export interface DryRun { form: FormCandidate; url: string; submissions: Submission[]; renders: number; states: number; tested: boolean; serverOnly: boolean; unchanged: boolean; hidden: boolean; error?: string }
 
@@ -223,10 +232,22 @@ async function submitOnce(browser: Browser, config: Config, record: PageRecord, 
     // The form just before the click, after the typing: only what the click changes counts.
     const before = await page.evaluate(FORM_STATE) as FormState;
     const blockedBefore = guard.blocked.length;
+    let pressed: Submission["pressed"];
     try {
       await page.locator(form.submit).first().click({ timeout: 3000 });
     } catch (e) {
-      return { variant, kind: "error", state, blocked: guard.blocked.slice(blockedBefore), rules: [], reason: "the submit control did not respond: " + (e as Error).message.split("\n")[0] };
+      // A control that a click cannot reach, for example a button with pointer-events: none, still takes the keyboard: the focus and
+      // Enter, as a keyboard user submits. The guard stays on. Since 1.3.7.
+      const why = clickFailure(e);
+      try {
+        await page.locator(form.submit).first().focus({ timeout: 1500 });
+        const focused = await page.evaluate(`(() => { const b = document.querySelector(${JSON.stringify(form.submit)}); return !!b && document.activeElement === b; })()`) as boolean;
+        if (!focused) throw new Error("the control did not take the focus");
+        await page.keyboard.press("Enter");
+        pressed = "keyboard";
+      } catch (k) {
+        return { variant, kind: "error", state, blocked: guard.blocked.slice(blockedBefore), rules: [], reason: `the submit control did not respond: ${why}; the keyboard: ${(k as Error).message.split("\n")[0]}` };
+      }
     }
     await page.waitForLoadState("load", { timeout: 5000 }).catch(() => {});
     await page.waitForTimeout(800);
@@ -239,7 +260,7 @@ async function submitOnce(browser: Browser, config: Config, record: PageRecord, 
     const reacted = after.fields.some((f) => f.invalid && (!was(f)?.invalid || f.texts.some((t) => !(was(f)?.texts || []).includes(t))))
       || after.alerts.some((a) => !before.alerts.includes(a));
     const kind: SubmissionKind = reacted ? "browser" : extra.nativeInvalid ? "native" : blocked.length ? "server" : "none";
-    if (kind !== "browser") return { variant, kind, state, blocked, rules: [] };
+    if (kind !== "browser") return { variant, kind, state, blocked, rules: [], ...(pressed ? { pressed } : {}) };
 
     // The error state: the form tests, the announcement, then the tests of a state.
     const outcomes: Outcome[] = formErrors(before, after).map((f) => toOutcome(f, record.url, width, state));
@@ -255,7 +276,7 @@ async function submitOnce(browser: Browser, config: Config, record: PageRecord, 
     if (options.shoot) await options.shoot(page, add).catch(() => {});
     record.outcomes.push(...add);
     record.states.push({ id: `S${record.states.length + 1}`, actions: state });
-    return { variant, kind, state, blocked, rules: add.map((o) => o.rule) };
+    return { variant, kind, state, blocked, rules: add.map((o) => o.rule), ...(pressed ? { pressed } : {}) };
   } finally {
     await context.close().catch(() => {});
   }

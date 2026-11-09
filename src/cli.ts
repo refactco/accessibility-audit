@@ -4,7 +4,7 @@ import { join, resolve } from "node:path";
 import { runAudit } from "./audit.ts";
 import { loadConfig } from "./config.ts";
 import { existsSync, readFileSync } from "node:fs";
-import { answerQuestion, checkFacts, exportVerifyTasks, locateIssue, recordDecision, setIssueStatus, verifyQuestion, type AnswerValue } from "./decide.ts";
+import { answerQuestion, checkFacts, exportVerifyTasks, locateIssue, recordDecision, reopenIssue, setIssueStatus, verifyQuestion, type AnswerValue } from "./decide.ts";
 import { pagesWithOpenIssues } from "./issues.ts";
 import { refresh } from "./refresh.ts";
 import { writeHandoff } from "./handoff.ts";
@@ -24,6 +24,8 @@ function usage(): never {
   refact-a11y not-applicable <criterion> --pages <path,path> | --templates <name,name> --by <name> [--note <text>] [--out <folder>]
   refact-a11y accept <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
   refact-a11y dismiss <ISS-id> --by <name> --reason <text> [--note <text>] [--out <folder>]
+  refact-a11y keep <ISS-id> --by <name> [--reason <text>] [--out <folder>]     keeps an issue for which the review proposed no change: the next locate step writes a fix
+  refact-a11y reopen <ISS-id> --by <name> [--out <folder>]     takes back an accept, a dismiss, or a keep
   refact-a11y locate <ISS-id> --file <found.json> [--out <folder>]      the skill writes the origin, the source, and the specific solution
   refact-a11y refresh <url or config.json> [--out <folder>]              rebuilds the summary, the page results, and the report from the last run, with the answers and the decisions of today
   refact-a11y review [config.json] [--out <folder>] [--port <n>] [--all] [--no-open]   opens the review page for a person in the browser; without the settings file, it uses <folder>/config.json
@@ -40,7 +42,7 @@ An answer or a decision changes the question or issue file at once. Run refresh 
 
 const args = process.argv.slice(2);
 const command = args.shift();
-const COMMANDS = ["audit", "check", "answer", "facts", "verify", "verify-tasks", "tasks", "pass", "not-applicable", "accept", "dismiss", "locate", "refresh", "review", "handoff"];
+const COMMANDS = ["audit", "check", "answer", "facts", "verify", "verify-tasks", "tasks", "pass", "not-applicable", "accept", "dismiss", "keep", "reopen", "locate", "refresh", "review", "handoff"];
 if (!command || !COMMANDS.includes(command) || (!args.length && !["verify-tasks", "review", "refresh", "handoff", "check", "audit"].includes(command))) usage();
 // The commands that take the settings file find it in the results folder when the call gives none: `refact-a11y review` works in the repository of a site.
 const NEEDS_SETTINGS = ["audit", "check", "refresh", "review", "handoff"];
@@ -146,6 +148,12 @@ if (command !== "audit" && command !== "check") {
     } else if (command === "pass" || command === "not-applicable") {
       const d = recordDecision(outDir, target, command === "pass" ? "passed" : "not applicable", { pages: str("pages")?.split(",").map((p) => p.trim()).filter(Boolean), templates: str("templates")?.split(",").map((p) => p.trim()).filter(Boolean) }, by, str("note"));
       console.log(JSON.stringify({ criterion: d.criterion, result: d.result, pages: Object.keys(d.scope.pages || {}).length, by }));
+    } else if (command === "keep") {
+      const i = setIssueStatus(outDir, target, "kept", by, str("reason") || "", str("note"));
+      console.log(JSON.stringify({ issue: i.id, status: i.status, decision: "kept", by }));
+    } else if (command === "reopen") {
+      const i = reopenIssue(outDir, target, by);
+      console.log(JSON.stringify({ issue: i.id, status: i.status, by }));
     } else {
       const reason = str("reason");
       if (!reason) { console.error("--reason <text> is needed."); process.exit(2); }

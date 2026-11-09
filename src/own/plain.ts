@@ -109,6 +109,9 @@ export function plainOf(rule: string, criterion: string): Plain {
   return { title: c ? `${c.name}: the page does not meet it` : rule, experience: c?.review_or_person_check || "The page does not meet this criterion." };
 }
 
+/** True when the rule has its own plain words, not the fallback of its criterion. */
+export function hasPlain(rule: string): boolean { return !!PLAIN[rule]; }
+
 /** Who a criterion affects, in plain words. */
 export function whoOf(criterion: string): string {
   const c = CRITERIA_BY_ID.get(criterion);

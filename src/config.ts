@@ -23,6 +23,8 @@ export interface Config {
   budgets: { concurrency: number; time_budget_minutes: number; max_pages: number; max_questions_per_audit: number; max_issues_for_skill: number; sample_share: number };
   baseline: { assistive_technologies?: string[] };
   schedule: { interval: string };
+  /** The client report of the review page: who prepared it and how to reach them. Since 1.3.7. */
+  report?: { prepared_by?: string; contact?: string };
 }
 
 const DEFAULT_DENY = ["delete", "remove", "pay", "buy", "order", "send", "submit", "subscribe", "unsubscribe", "log out", "sign out", "cancel"];

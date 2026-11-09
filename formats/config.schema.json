@@ -198,6 +198,15 @@
       "properties": {
         "interval": { "enum": ["weekly", "monthly", "daily", "manual"], "default": "weekly" }
       }
+    },
+    "report": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The client report of the review page. Since 1.3.7.",
+      "properties": {
+        "prepared_by": { "type": "string", "description": "The name of the team or company that prepared the audit, shown on the client report." },
+        "contact": { "type": "string", "description": "How the client reaches that team, for example an email address, shown at the end of the client report." }
+      }
     }
   }
 }

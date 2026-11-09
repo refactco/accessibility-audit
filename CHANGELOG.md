@@ -2,6 +2,41 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.7, 2026-11-09
+
+Fixes from the eighth full audit of the large WordPress multisite, with 1.3.6, and a new review page. All the fixes of 1.3.6 worked. Two results were wrong.
+
+The results from run to run:
+
+- An answer stays when the image file and the alt text of an image of text stay. The hash of a question leaves out the measured facts of `image-of-text`: the colors, the share of the main color, the ink, and the size. 1.3.6 measured them in a new way, so the hash of each such question changed one time. On the large site, all 58 answers went, and the 4 issues that two AI passes confirmed were "resolved", "rule changed". A refresh with 1.3.7 brings back such an answer when the question file has it. The image and its alt text must be the same.
+- A select with a placeholder keeps its item when the site adds an option. A placeholder is a first option with no value, for example "Select Week". The item has the text of the placeholder, not the text of all the options. The hash leaves out the options after the placeholder, and the address that the select loads. Before, a weekly archive select got a new question each week, its answer went, and its issue was "fixed". One time, the items of the selects with a placeholder change. The engine finds the old item from the HTML, so the questions and the issues continue. The detection of `change-of-context-on-input` is now 1.3.7, so an old issue of a select that goes away is "rule changed", not "fixed".
+
+The tests:
+
+- The dry submit presses a submit control with the keyboard when a click cannot reach it, for example a button with `pointer-events: none`. The audit log says "by the keyboard". When the keyboard cannot press it either, the log gives the cause from Playwright, for example "intercepts pointer events". Before, the log gave only "Timeout 3000ms exceeded", and the form had no dry submit.
+
+The review page:
+
+- The page has four views: Overview, Decisions, Issues, and Method. Each view has its own address, for example `#issues/ISS-7f3a9c21?who=Content`.
+- Decisions is a queue. The list shows the items in four groups. The two AI reviews differ. A sample question checks the AI. Only a person can do the check. The review proposes no change to an issue. The chosen item shows beside the list, with the question, the steps, the screenshot, what counts as an issue, and the answer buttons. The keys 1 to 3 answer. They do nothing in a text field, and a button in the menu turns them off. The first answer asks for the name of the person.
+- The AI answers show on request. The AI answers of a sample question open only after the answer of the person, so that the check of the AI stays independent.
+- Each answer saves at once. "Change" takes back an answer, and "Undo" takes back a decision on an issue. The decisions of this audit stay in the list as done after a reload.
+- Issues is a list with filters: who fixes it, the severity, the level, and the status. Who fixes it comes from the origin of the issue. The chosen issue shows beside the list: what is wrong, an example, where it comes from, and the fix. The code, the element, and the pages are in disclosures.
+- The client report is a read-only page for the client, at `/client`. It has the numbers, the issues to fix first, and the open issues by the team that fixes them. It also has the changes since the last audit and the method. It has no question and no AI answer. Its buttons print it, save it as a PDF, or save it as one HTML file. The new optional settings `report.prepared_by` and `report.contact` put a name and a contact on it.
+- A write to the local server needs a header that only the script of the page sends. Another site in the same browser cannot send an answer to it.
+- On a narrow window, the list and the chosen item show one at a time. At 320 px, no view scrolls sideways. axe-core finds no violation on each view.
+- A rule with no plain words of its own gets the summary of the rule as its title. Before, many rules had the same title, for example "Info and Relationships: the page does not meet it".
+
+The decisions of a person:
+
+- The new command `refact-a11y keep <ISS-id>` keeps an issue for which the review proposed no change. The issue stays open, and the next `refact-a11y tasks locate` lists it again, with the reason of the person. The issue format accepts the decision "kept".
+- The new command `refact-a11y reopen <ISS-id>` takes back an accept, a dismiss, or a keep.
+- An accept or a dismiss needs a reason, also from the code.
+
+A correction: the notes of 1.3.6 said that the questions of `list-without-list-code` get new IDs. They kept their IDs. Their answers went because their facts changed.
+
+The tests: a new test file, `review-page`, in `npm test`, with 49 checks.
+
 ## 1.3.6, 2026-11-09
 
 Fixes from the sample check of a person. The check was on the seventh full audit of the large WordPress multisite, with 1.3.4, and on its first review cycle. The person answered 50 questions and checked 20 issues. On the 37 questions where the two AI passes agreed and the person gave a clear answer, the AI was right on 36. All 14 issues in scope had the right origin, source, and solution.
@@ -15,7 +50,7 @@ The tests:
 - A label that only a screen reader reads is not a visible label. Such a label is 1 or 2 px, clipped, or off the screen, for example with the class `visually-hidden`. Before, it counted as a visible label, so the field got no question. The question names the hidden label and says that it does not count.
 - The player question names the alternatives: captions that a person wrote, and a transcript or an audio description. It says that the title of the frame does not count. Before, it asked for "the alternatives of 1.2.1 to 1.2.5", and the person answered from the title of the frame.
 
-The detection of `image-of-text`, `list-without-list-code`, and `field-no-visible-label` is now 1.3.6. When an issue of an older engine goes away, it is "rule changed". The questions of `list-without-list-code` get new IDs, because their container changes. So the answers that the AI gave from the first 5 lines go.
+The detection of `image-of-text`, `list-without-list-code`, and `field-no-visible-label` is now 1.3.6. When an issue of an older engine goes away, it is "rule changed". The facts of the questions of `list-without-list-code` change, because their container changes. So the answers that the AI gave from the first 5 lines go. (Corrected in 1.3.7: an earlier text said that these questions get new IDs.)
 
 The results from run to run:
 
