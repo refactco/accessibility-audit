@@ -136,6 +136,9 @@ tr.done .rowbtn .t { color: var(--ink-3); }
 .tag.k-differ { background: var(--wait-tint); color: var(--wait-ink); }
 .tag.k-person { background: var(--info-tint); color: var(--info-ink); }
 .tag.k-sample { background: var(--accent-soft); color: var(--accent); }
+.tag.k-unsure { background: var(--info-tint); color: var(--info-ink); }
+.fixnote { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin: 0; padding: 10px 14px; border-bottom: 1px solid var(--divider); font-size: 13px; }
+.tbl td.title .h { display: block; margin: -8px 0 10px; font-size: 12px; line-height: 16px; color: var(--ink-3); overflow-wrap: anywhere; }
 .tag.sev-high { background: var(--bad-tint); color: var(--bad-ink); }
 .ptitle { font-size: 20px; line-height: 26px; letter-spacing: -0.4px; font-weight: 700; overflow-wrap: anywhere; }
 .ptitle:focus { outline: none; }

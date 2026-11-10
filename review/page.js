@@ -7,8 +7,9 @@
   var VIEWS = ["overview", "decisions", "issues", "method"];
   var VIEW_TITLES = { overview: "Overview", decisions: "Decisions", issues: "Issues", method: "Method" };
   var GROUPS = [
-    { key: "differ", label: "The AI reviews differ", tag: "k-differ", hint: "The two AI reviews did not agree, or one is unsure. Look at the page first, then open their answers if they help." },
-    { key: "sample", label: "Sample: check the AI", tag: "k-sample", hint: "A sample question checks the AI. Its answers open after your answer." },
+    { key: "differ", label: "The AI reviews differ", tag: "k-differ", hint: "The two AI reviews did not agree. Look at the page first, then open their answers if they help." },
+    { key: "unsure", label: "The AI could not decide", tag: "k-unsure", hint: "The AI reviews say that only a person can decide, for example by playing a video. Look at the page, then answer." },
+    { key: "sample", label: "Sample: check the AI", tag: "k-sample", hint: "A random answer, or one with a low confidence, checks the AI. The AI answers open after your answer." },
     { key: "person", label: "Checks for a person", tag: "k-person", hint: "Only a person can check this. Follow the steps." },
     { key: "proposal", label: "Proposed: no change", tag: "", hint: "The review found no change to make. Keep the issue, or close it with a reason." },
     { key: "other", label: "Other open questions", tag: "", hint: "" }
@@ -18,13 +19,14 @@
   var P_ANSWERS = [{ value: "dismissed", label: "Dismiss: not a real problem", needs: true }, { value: "accepted", label: "Accept as a known risk", needs: true }, { value: "kept", label: "Keep as an issue", needs: false }];
   var SEVERITY_LABEL = { critical: "Critical", serious: "Serious", moderate: "Moderate", minor: "Minor" };
   var STATUS_LABEL = { "new": "New", open: "Open", reopened: "Reopened", accepted: "Accepted", dismissed: "Dismissed", resolved: "Resolved" };
+  var REASON_LABEL = { fixed: "fixed", "rule changed": "a test of the audit changed", replaced: "a new issue replaces it", "page removed": "page removed", "out of scope": "out of scope" };
   var OPEN = { "new": 1, open: 1, reopened: 1 };
   var PAGE = 100;
 
   var state = {
     view: "overview",
     d: { sel: null, search: "", kind: "", wcag: "", status: "", shown: PAGE },
-    i: { sel: null, search: "", who: "", sev: "", level: "", status: "open", shown: PAGE },
+    i: { sel: null, search: "", who: "", sev: "", level: "", status: "open", fix: "", shown: PAGE },
     decisionsMade: 0,
     aiOpen: false, rawOpen: false, open: {}
   };
@@ -84,6 +86,7 @@
       if (state.i.sev) p.set("severity", state.i.sev);
       if (state.i.level) p.set("level", state.i.level);
       if (state.i.status !== "open") p.set("status", state.i.status);
+      if (state.i.fix) p.set("fix", state.i.fix);
       if (p.toString()) h += "?" + p.toString();
     }
     return h;
@@ -126,7 +129,13 @@
     var n = left();
     var diff = o.prevOpen == null ? null : o.open - o.prevOpen;
     var groups = GROUPS.map(function (g) { return { g: g, n: DATA.decisions.filter(function (d) { return d.group === g.key && !d.done; }).length }; }).filter(function (x) { return x.n; });
-    var first = DATA.issues.filter(function (i) { return OPEN[i.status] && !i.proposal; }).slice(0, 5);
+    var first = (DATA.fixes || []).filter(function (f) { return !f.proposal; }).slice(0, 5);
+    // The share with no failure goes up when answers settle unknown checks, also when the failures go up. The change shows only when
+    // the last audit kept its unknown checks, and then it says how many the answers settled. Since 1.3.9.
+    var settled = o.prevUnknownUnits == null || o.unknownUnits == null ? null : o.prevUnknownUnits - o.unknownUnits;
+    var shareText = o.prevShare == null || o.prevUnknownUnits == null ? "levels A and AA"
+      : (o.share === o.prevShare ? "the same as the last audit" : (o.share > o.prevShare ? "up " : "down ") + (Math.round(Math.abs(o.share - o.prevShare) * 10) / 10) + " points since the last audit") +
+        (settled > 0 ? "; answers settled " + plural(settled, "unknown check") : "");
     var trend = o.trend || [];
     var max = Math.max.apply(null, [1].concat(trend.map(function (t) { return t.open; })));
     var html = '<header class="vhead"><h1 tabindex="-1">Overview</h1><p class="vsum">' + plural(o.open, "issue") + " open" +
@@ -137,7 +146,7 @@
       '<div class="stat"><span class="v tnum">' + num(o.open) + '</span><span class="d">' + (diff == null ? "first audit" : diff === 0 ? "the same as " + esc(shortDate(o.prevRun)) : (diff > 0 ? "up " : "down ") + num(Math.abs(diff)) + " since " + esc(shortDate(o.prevRun))) + '</span><span class="l">Open issues</span></div>' +
       '<div class="stat"><span class="v tnum">' + num(o.newCount) + '</span><span class="d">' + num(o.resolved) + ' resolved</span><span class="l">New in this audit</span></div>' +
       '<a class="stat" href="#decisions"><span class="v tnum' + (n ? " wait" : "") + '">' + num(n) + '</span><span class="d">for a person</span><span class="l">Decisions waiting</span></a>' +
-      (o.share == null ? "" : '<div class="stat"><span class="v tnum">' + esc(o.share) + '%</span><span class="d">' + (o.prevShare == null ? "levels A and AA" : (o.share === o.prevShare ? "the same as the last audit" : (o.share > o.prevShare ? "up " : "down ") + (Math.round(Math.abs(o.share - o.prevShare) * 10) / 10) + " points since the last audit")) + '</span><span class="l">Checks with no failure</span></div>') +
+      (o.share == null ? "" : '<div class="stat"><span class="v tnum">' + esc(o.share) + '%</span><span class="d">' + esc(shareText) + '</span><span class="l">Checks with no failure</span></div>') +
       "</div>" +
       '<div class="row2">' +
       (trend.length >= 2 ? '<section class="wide" aria-labelledby="trend-h"><div class="sechead"><h2 id="trend-h">Open issues, last ' + trend.length + ' audits</h2><span class="aside">Lower is better</span></div>' +
@@ -149,19 +158,22 @@
       '<div class="cardfoot"><span class="small muted">Each answer saves at once.</span>' + (n ? '<a class="btn primary" href="#decisions" id="start">Start reviewing</a>' : '<a class="btn" href="#issues">Open the issues</a>') + "</div></div></section>" +
       "</div>" +
       (first.length ? '<section aria-labelledby="first-h"><div class="sechead"><h2 id="first-h">Fix first</h2><span class="aside">The highest severity, then the most pages</span><a href="#issues">All ' + num(o.open) + ' issues</a></div><div class="card">' +
-        '<table class="tbl"><caption class="sr-only">The five issues to fix first</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-who">Who fixes it</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>' +
-        first.map(function (i) { return '<tr class="item"><td class="title"><a href="#issues/' + esc(i.id) + '">' + esc(i.title) + "</a></td><td>" + sevMark(i.severity) + '</td><td class="num tnum c-pages">' + num(i.pages) + '</td><td class="c-who"><span class="who-chip">' + esc(i.who) + '</span></td><td class="tnum c-wcag">' + esc(i.criterion) + "</td></tr>"; }).join("") +
+        '<table class="tbl"><caption class="sr-only">The five items to fix first. One item can be a change that fixes many issues.</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-who">Who fixes it</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>' +
+        first.map(function (i) { return '<tr class="item"><td class="title"><a href="' + (i.fix ? "#issues?fix=" + esc(i.fix) : "#issues/" + esc(i.id)) + '">' + esc(i.title) + "</a>" + (i.fix ? '<span class="h">' + esc(i.hint) + "</span>" : "") + "</td><td>" + sevMark(i.severity) + '</td><td class="num tnum c-pages">' + (i.pagesExact === false ? "at least " : "") + num(i.pages) + '</td><td class="c-who"><span class="who-chip">' + esc(i.who) + '</span></td><td class="tnum c-wcag">' + esc(i.criterion) + "</td></tr>"; }).join("") +
         "</tbody></table></div></section>" : "") +
       '<div class="row2">' +
       '<section aria-labelledby="changed-h"><div class="sechead"><h2 id="changed-h">' + (o.prevRun ? "Since the last audit, " + esc(longDate(o.prevRun)) : "This audit") + '</h2></div><div class="card"><dl class="dl">' +
-      "<div><dt>New</dt><dd class=\"tnum\">" + num(o.newCount) + "</dd></div>" +
+      "<div><dt>New" + (o.newFromAnswers ? ' <span class="small">(' + num(o.newFromTests) + " from the tests, " + num(o.newFromAnswers) + " from answers to questions)</span>" : "") + "</dt><dd class=\"tnum\">" + num(o.newCount) + "</dd></div>" +
       "<div><dt>Resolved" + (o.resolvedRule ? ' <span class="small">(' + num(o.resolvedFixed) + " fixed, " + num(o.resolvedRule) + " because a test changed)</span>" : "") + '</dt><dd class="tnum">' + num(o.resolved) + "</dd></div>" +
       '<div><dt>Reopened</dt><dd class="tnum">' + num(o.reopened) + "</dd></div>" +
       (o.outOfScope ? '<div><dt>Out of scope now <span class="small">(pages that the settings leave out)</span></dt><dd class="tnum">' + num(o.outOfScope) + "</dd></div>" : "") +
+      (o.failedUnits != null && o.prevFailedUnits != null ? '<div><dt>Failed checks <span class="small">(' + (o.failedUnits === o.prevFailedUnits ? "the same" : (o.failedUnits > o.prevFailedUnits ? "up " : "down ") + num(Math.abs(o.failedUnits - o.prevFailedUnits))) + ')</span></dt><dd class="tnum">' + num(o.failedUnits) + "</dd></div>" : "") +
+      (o.unknownUnits != null && o.prevUnknownUnits != null ? '<div><dt>Unknown checks <span class="small">(' + (o.unknownUnits === o.prevUnknownUnits ? "the same" : (o.unknownUnits > o.prevUnknownUnits ? "up " : "down ") + num(Math.abs(o.unknownUnits - o.prevUnknownUnits))) + ')</span></dt><dd class="tnum">' + num(o.unknownUnits) + "</dd></div>" : "") +
       "</dl></div></section>" +
       '<section aria-labelledby="covered-h"><div class="sechead"><h2 id="covered-h">What the audit covered</h2><a href="#method">Method and limits</a></div><div class="card prose">' +
       "<p>" + plural(o.coverage.pages, "page") + " at " + esc(o.coverage.widths.join(", ")) + " px, against WCAG 2.2 level AA." + (o.coverage.sample ? " On " + plural(o.coverage.sample, "sample page") + " the audit also opened " + plural(o.coverage.states, "menu, dialog, or tab", "menus, dialogs, and tabs") + "." : "") + (o.coverage.processes ? " It ran " + plural(o.coverage.processes, "process", "processes") + "." : "") + "</p>" +
-      "<p>Automatic tests find only part of the problems. The rest are questions for the AI and checks for a person." + (DATA.answers && (DATA.answers.waitingAi || DATA.answers.unresolved) ? " " + plural(DATA.answers.waitingAi, "question") + (DATA.answers.waitingAi === 1 ? " waits" : " wait") + " for a first AI review, and " + plural(DATA.answers.unresolved, "question") + (DATA.answers.unresolved === 1 ? " has" : " have") + " AI answers that do not agree." : "") + "</p></div></section>" +
+      "<p>Automatic tests find only part of the problems. The rest are questions for the AI and checks for a person." + (DATA.answers && (DATA.answers.waitingAi || DATA.answers.unresolved) ? " " + plural(DATA.answers.waitingAi, "question") + (DATA.answers.waitingAi === 1 ? " waits" : " wait") + " for a first AI review, and " + plural(DATA.answers.unresolved, "question") + (DATA.answers.unresolved === 1 ? " needs" : " need") + " a person, because the AI answers do not agree or could not decide." : "") + "</p>" +
+      (o.fixGroups && o.fixGroups.groups ? "<p>" + plural(o.fixGroups.issues, "open issue") + " come from only " + plural(o.fixGroups.groups, "place") + " in the code: one change at each place fixes all its issues.</p>" : "") + "</div></section>" +
       "</div></div>";
     $("view-overview").innerHTML = html;
     document.querySelectorAll('#view-overview a[data-kind]').forEach(function (a) { a.addEventListener("click", function () { state.d.kind = a.dataset.kind; state.d.status = "waiting"; state.d.sel = null; }); });
@@ -171,7 +183,7 @@
     var o = DATA.overview, c = o.coverage, lv = o.levels;
     var rows = lv ? [["Level A", lv.A], ["Levels A and AA", lv.AA]].map(function (r) { var l = r[1]; return '<tr><th scope="row">' + r[0] + '</th><td class="num tnum">' + l.criteria.all + '</td><td class="num tnum">' + l.criteria.met + '</td><td class="num tnum">' + l.criteria.failed + '</td><td class="num tnum">' + l.criteria.unknown + '</td><td class="num tnum">' + l.criteria.no_content + '</td><td class="num tnum">' + l.criteria.not_tested + '</td><td class="num tnum">' + num(l.pages.no_failure) + " of " + num(l.pages.all) + "</td></tr>"; }).join("") : "";
     var v = DATA.versions;
-    $("view-method").innerHTML = '<header class="vhead"><h1 tabindex="-1">Method and limits</h1><p class="vsum">Audit of ' + esc(longDate(DATA.run)) + " · " + esc(DATA.environment) + "</p></header>" +
+    $("view-method").innerHTML = '<header class="vhead"><h1 tabindex="-1">Method and limits</h1><p class="vsum">Audit of ' + esc(longDate(DATA.run)) + (DATA.updated && DATA.updated > DATA.runDate ? " · results of " + esc(longDate(DATA.updated)) : "") + " · " + esc(DATA.environment) + "</p></header>" +
       '<div class="method">' +
       '<section aria-labelledby="m-how"><div class="sechead"><h2 id="m-how">How the audit works</h2></div><div class="card prose">' +
       "<p>An engine opened " + plural(c.pages, "page") + " in a real browser at " + esc(c.widths.join(", ")) + " px and ran the rules of axe-core and its own tests for the 55 criteria of WCAG 2.2 at levels A and AA." + (c.sample ? " On " + plural(c.sample, "sample page") + " it also opened " + plural(c.states, "menu, dialog, or tab", "menus, dialogs, and tabs") + "." : "") + (c.forms ? " It submitted " + plural(c.forms, "form") + " empty and with incorrect values, with a guard that kept the data in the browser." : "") + "</p>" +
@@ -181,7 +193,7 @@
       (o.definition ? '<p class="small">' + esc(o.definition) + "</p>" : "") + "</div></section>" +
       (rows ? '<section aria-labelledby="m-crit"><div class="sechead"><h2 id="m-crit">The 55 criteria by level</h2></div><div class="card" style="overflow-x:auto"><table class="tbl"><caption class="sr-only">The criteria of each level: met, failed, waiting, no content, and not tested</caption><thead><tr><th scope="col">Level</th><th scope="col" class="num">Criteria</th><th scope="col" class="num">Met</th><th scope="col" class="num">Failed</th><th scope="col" class="num">Waiting</th><th scope="col" class="num">No content</th><th scope="col" class="num">Not tested</th><th scope="col" class="num">Pages with no failure</th></tr></thead><tbody>' + rows + '</tbody></table></div><p class="small muted">"Met" means that the tests found nothing, or that a person passed it. "No content" means that the site has no content of that kind, for example no video.</p></section>' : "") +
       (c.notRun.length ? '<section aria-labelledby="m-not"><div class="sechead"><h2 id="m-not">Tests that did not run, ' + c.notRun.length + '</h2></div><div class="card prose"><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">' + c.notRun.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul></div></section>" : "") +
-      (v ? '<p class="small muted">Engine ' + esc(v.engine) + ", axe-core " + esc(v.axe_core) + ", " + esc(v.browser) + ". This page runs on your machine and reads " + esc(DATA.outDir) + ".</p>" : "") +
+      (v ? '<p class="small muted">Engine ' + esc(v.engine) + ", axe-core " + esc(v.axe_core) + ", " + esc(v.browser) + "." + (v.refreshed_with ? " Refreshed with engine " + esc(v.refreshed_with) + " on " + esc(longDate(v.refreshed_on)) + "." : "") + " This page runs on your machine and reads " + esc(DATA.outDir) + ".</p>" : "") +
       "</div>";
   }
 
@@ -323,7 +335,7 @@
     if (!isIssue && d.counts) body += '<section aria-labelledby="d-counts-h"><h3 class="h3" id="d-counts-h">What counts as an issue</h3><p class="muted">' + esc(d.counts) + "</p></section>";
     if (isIssue) body += '<section aria-labelledby="d-wrong-h"><h3 class="h3" id="d-wrong-h">What the rule found</h3><p class="muted">' + esc(d.experience) + " It affects " + esc(d.affects) + ".</p></section>";
     if (!isIssue && d.ai.length) {
-      var hint = locked ? "A sample question checks the AI. Its answers open after your answer." : d.unresolved ? "The two AI reviews did not agree, or one is unsure. Look at the page first, then open their answers if they help." : "Shown on request.";
+      var hint = locked ? "A sample question checks the AI. Its answers open after your answer." : d.unresolved ? "The two AI reviews did not agree, or could not decide. Look at the page first, then open their answers if they help." : "Shown on request.";
       body += '<section class="disc"><h3><button type="button" class="disc-btn" id="d-ai-btn" aria-expanded="' + (state.aiOpen && !locked) + '" aria-controls="d-ai"' + (locked ? ' aria-disabled="true"' : "") + ">" + ICON.chevron + 'AI answers <span class="n tnum">' + d.ai.length + '</span></button></h3><p class="small muted" id="d-ai-hint">' + esc(hint) + "</p>" +
         '<div id="d-ai"' + (state.aiOpen && !locked ? "" : " hidden") + ' style="display:flex;flex-direction:column;gap:8px">' + opinionsHtml(d) +
         (d.factsButtons ? '<div class="factsrow"><span class="small muted">The facts of the first review:</span><button type="button" class="btn small" id="d-facts-ok">They are right</button><button type="button" class="btn small" id="d-facts-wrong">One is wrong: send back to the AI</button></div><p class="small muted">"One is wrong" needs a note that says which fact, and what you see.</p>' : "") + "</div></section>";
@@ -444,6 +456,7 @@
       if (s.who && i.who !== s.who) return false;
       if (s.sev && i.severity !== s.sev) return false;
       if (s.level && i.level !== s.level) return false;
+      if (s.fix && i.fix !== s.fix) return false;
       if (term && (i.title + " " + i.hint + " " + i.id + " " + i.criterion).toLowerCase().indexOf(term) < 0) return false;
       return true;
     });
@@ -475,10 +488,15 @@
     $("i-sum").textContent = plural(openCount, "issue") + " open · " + num(DATA.issues.filter(function (i) { return i.status === "new"; }).length) + " new in this audit";
     if (!narrow.matches && (!s.sel || !DATA.issues.some(function (i) { return i.id === s.sel; }))) s.sel = rows[0] ? rows[0].id : null;
     $("i-count").textContent = num(rows.length) + (rows.length === 1 ? " issue" : " issues");
-    var shown = rows.slice(0, s.shown), html;
-    if (!rows.length) html = '<p class="empty">No issue matches the filters.</p>';
+    var shown = rows.slice(0, s.shown), html = "";
+    // The filter of one fix group comes from a link, so it has its own line with a button that removes it. Since 1.3.9.
+    if (s.fix) {
+      var g = (DATA.fixes || []).filter(function (f) { return f.fix === s.fix; })[0];
+      html += '<p class="fixnote"><span>' + (g ? esc(g.hint) + "." : "The issues of one change.") + '</span> <button type="button" class="linkish" id="i-fix-clear">Show all the issues</button></p>';
+    }
+    if (!rows.length) html += '<p class="empty">No issue matches the filters.</p>';
     else {
-      html = '<table class="tbl"><caption class="sr-only">Issues, by severity, then by pages. Choose one to see it beside the list.</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-who">Who fixes it</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>' +
+      html += '<table class="tbl"><caption class="sr-only">Issues, by severity, then by pages. Choose one to see it beside the list.</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-who">Who fixes it</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>' +
         shown.map(function (i) {
           var sel = i.id === s.sel;
           var sub = [STATUS_LABEL[i.status] || i.status, i.decision && !OPEN[i.status] ? "" : i.decision, i.hint].filter(Boolean).join(" · ");
@@ -489,6 +507,7 @@
     $("i-list").innerHTML = html;
     $("i-list").querySelectorAll("button.rowbtn").forEach(function (b) { b.addEventListener("click", function () { pickIssue(b.dataset.id, narrow.matches ? "panel" : "row"); }); });
     var more = $("i-more"); if (more) more.addEventListener("click", function () { s.shown += PAGE; drawIssueList(); var btns = $("i-list").querySelectorAll("button.rowbtn"); if (btns[s.shown - PAGE]) btns[s.shown - PAGE].focus(); });
+    var clear = $("i-fix-clear"); if (clear) clear.addEventListener("click", function () { s.fix = ""; s.shown = PAGE; replaceHash(); drawIssueList(); $("i-search").focus(); announce("All the issues are shown."); });
     $("i-split").classList.toggle("has-sel", !!s.sel && narrow.matches && !!parseHash().id);
     drawIssuePanel();
   }
@@ -529,7 +548,7 @@
   function fillIssue(r, d, focus) {
     var sevHigh = d.severity === "critical" || d.severity === "serious";
     var statusText = d.decision ? (d.decision.status === "kept" ? (STATUS_LABEL[d.status] || d.status) + " · " : "") + d.decisionText + " by " + d.decision.by + " on " + d.decision.date
-      : (STATUS_LABEL[d.status] || d.status) + (d.status === "resolved" && d.reason ? " (" + d.reason + ")" : "");
+      : (STATUS_LABEL[d.status] || d.status) + (d.status === "resolved" && d.reason ? " (" + (REASON_LABEL[d.reason] || d.reason) + ")" : "");
     var body = '<div><div class="tags"><span class="tag' + (sevHigh ? " sev-high" : "") + '">' + sevMark(d.severity) + '</span><span class="tag">' + esc(d.criterion + " " + d.criterionName) + '</span><span class="tag tnum">' + plural(d.pages, "page") + '</span><span class="tag">' + esc(d.who) + "</span></div>" +
       '<h2 class="ptitle" id="i-title" tabindex="-1">' + esc(d.title) + '</h2><p class="small muted">' + esc(d.certainty + " · " + statusText) + "</p></div>" +
       '<section aria-labelledby="i-wrong-h"><h3 class="h3" id="i-wrong-h">What is wrong</h3><p>' + esc(d.experience) + '</p><p class="muted">It affects ' + esc(d.affects) + ".</p>" + (d.rule ? '<p class="small muted">The rule: ' + esc(d.rule) + "</p>" : "") +
@@ -539,7 +558,8 @@
       (d.example.image ? '<figure class="shot"><img src="' + esc(d.example.image) + '" alt="A screenshot of the element on the page."></figure>' : '<p class="small muted">No screenshot for this issue.</p>') + "</section>" +
       '<section aria-labelledby="i-src-h"><h3 class="h3" id="i-src-h">Where it comes from</h3><p class="muted">' + esc(originText(d.origin)) + "</p>" +
       (d.source.length ? '<ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px">' + d.source.map(function (s) { return '<li class="mono" style="overflow-wrap:anywhere">' + esc(s.text) + (s.edit ? ' <a href="' + esc(safeUrl(s.edit)) + '" target="_blank" rel="noopener" style="font-family:inherit">Edit<span class="sr-only"> in the CMS (opens a new tab)</span> ↗</a>' : "") + "</li>"; }).join("") + "</ul>" : "") +
-      (d.sourceWarning ? '<p class="small muted">' + esc(d.sourceWarning) + "</p>" : "") + "</section>" +
+      (d.sourceWarning ? '<p class="small muted">' + esc(d.sourceWarning) + "</p>" : "") +
+      (d.fixGroup ? '<p class="box">One change at this place fixes ' + plural(d.fixGroup.count, "issue") + " of this kind, on " + (d.fixGroup.pagesExact ? "" : "at least ") + plural(d.fixGroup.pages, "page") + '. <a href="#issues?fix=' + esc(d.fixGroup.id) + '">Show the ' + num(d.fixGroup.count) + " issues</a></p>" : "") + "</section>" +
       '<section aria-labelledby="i-fix-h"><h3 class="h3" id="i-fix-h">' + (d.proposal ? "The review" : "The fix" + (d.fix.specific ? "" : ", general")) + '</h3><div class="box" style="display:flex;flex-direction:column;gap:8px"><p style="font-weight:500">' + esc(d.fix.summary) + "</p>" +
       (d.fix.steps.length ? "<ol>" + d.fix.steps.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ol>" : "") + "</div></section>" +
       "<div>" + (d.fix.example ? disclosure("code", "Code example", "<pre>" + esc(d.fix.example) + "</pre>") : "") +
@@ -634,6 +654,7 @@
       if (h.params.has("severity")) state.i.sev = h.params.get("severity");
       if (h.params.has("level")) state.i.level = h.params.get("level");
       if (h.params.has("status")) state.i.status = h.params.get("status");
+      state.i.fix = h.params.get("fix") || "";
     }
     show(view, focus);
     if (h.id && narrow.matches) { var t = $(view === "issues" ? "i-title" : "d-title"); if (t && focus) t.focus(); }

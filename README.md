@@ -46,17 +46,17 @@ The package builds itself at install. The plugin loads from the project settings
 
 Run the command as `pnpm exec refact-a11y` or `./node_modules/.bin/refact-a11y`. The old name `a11y` still works in a project that has the package, but never run `npx a11y`: `a11y` is also an unrelated package on the npm registry. When the local package is missing, `npx a11y` downloads and runs that package, and after one such run `npx` keeps a copy in its cache, so even `npx --no a11y` can run it. For the same reason, do not use `npx` with the new name either: the forms above run only the copy in the project.
 
-To update the package to a release tag, for example `v1.3.8`:
+To update the package to a release tag, for example `v1.3.9`:
 
 ```
-pnpm add -Dw github:refactco/accessibility-audit#v1.3.8
+pnpm add -Dw github:refactco/accessibility-audit#v1.3.9
 ```
 
 With npm 12 and `allow-git=root`, an install of a new tag over an old one stops with `EALLOWGIT` ("Fetching non-root packages of type "git" have been disabled"): `package-lock.json` still names the old tag, so npm does not count the package as a dependency of the project. Remove the package first, then install the new tag:
 
 ```
 npm uninstall @refact/a11y
-npm install -D github:refactco/accessibility-audit#v1.3.8
+npm install -D github:refactco/accessibility-audit#v1.3.9
 npm install-scripts approve @refact/a11y --no-allow-scripts-pin
 ```
 
@@ -110,12 +110,12 @@ The commands find `accessibility-audit/config.json` by themselves in the reposit
 
 `refact-a11y review` opens a page on your machine with four views:
 
-- **Overview**: the open issues, the decisions that wait for a person, the trend of the last audits, and the issues to fix first.
-- **Decisions**: the items that need a person, one at a time beside a short list. There are four groups. The two AI reviews differ. A sample question checks the AI. Only a person can do the check. The review proposes no change to an issue. The answer saves at once, and "Change" takes it back. The keys 1 to 3 answer. A button in the menu turns them off. The AI answers of a sample question open after your answer.
-- **Issues**: the open issues with filters for who fixes them, the severity, the level, and the status. The details of one issue show beside the list. "Accept as a known risk" and "Dismiss" need a reason, and "Undo" takes them back.
-- **Method**: the coverage and the limits of the audit.
+- **Overview**: the open issues, the decisions that wait for a person, the trend of the last audits, and the issues to fix first. When one change fixes many issues, they have one line. The new issues show how many came from the tests and how many from the answers to questions.
+- **Decisions**: the items that need a person, one at a time beside a short list. There are five groups. The two AI reviews differ. The AI reviews could not decide, for example on the captions of a video. A sample question checks the AI: one answer in ten at random, and each answer with a low confidence, also when the two AI reviews agree. Only a person can do the check. The review proposes no change to an issue. The answer saves at once, and "Change" takes it back. The keys 1 to 3 answer. A button in the menu turns them off. The AI answers of a sample question open after your answer.
+- **Issues**: the open issues with filters for who fixes them, the severity, the level, and the status. The details of one issue show beside the list. When the same change fixes other issues, a link shows them all. "Accept as a known risk" and "Dismiss" need a reason, and "Undo" takes them back.
+- **Method**: the coverage and the limits of the audit, the engine, and the engine of the last refresh.
 
-The **Client report** link in the menu opens a read-only page for the client: the numbers, the issues to fix first, the issues by the team that fixes them, and the method. It has no question and no AI answer. Its buttons print it, save it as a PDF, or save it as one HTML file to send. Two optional settings put your name and contact on it:
+The **Client report** link in the menu opens a read-only page for the client: the numbers, the issues to fix first, the issues by the team that fixes them, and the method. It has the date of the audit and the date of the last answer or refresh. It has no question and no AI answer. Its buttons print it, save it as a PDF, or save it as one HTML file to send. Two optional settings put your name and contact on it:
 
 ```json
 "report": { "prepared_by": "Your team", "contact": "accessibility@example.com" }
@@ -137,7 +137,7 @@ The **Client report** link in the menu opens a read-only page for the client: th
 | `pages.jsonl` | One line for each page, with the result of each criterion at each width |
 | `issues/ISS-*.json` | One file for each issue: the rule, the examples, the status, the origin, the source, the solution |
 | `questions/Q-*.json` | One file for each question, with the two AI answers |
-| `fixes.json`, `fixes.md` | The work order: one task for each open issue, in the order to apply |
+| `fixes.json`, `fixes.md` | The work order: one task for each open issue, in the order to apply, and the fix groups: the tasks that one change at one line of one file fixes |
 | `report.md` | The report for people, as text |
 | `history.jsonl` | One line for each run |
 | `runs/` | The raw outcomes and the screenshots, not in Git |

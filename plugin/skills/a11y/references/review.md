@@ -39,7 +39,13 @@ The engine raises a question when a rule cannot decide. Each question names its 
 - `visual-order-differs`: the reading order of the code differs from the visual order. `issue` when the difference changes the meaning or the sequence of a task.
 - `sensory-instruction`: an instruction uses only shape, size, position, or sound, for example "the button on the right". `issue` unless the text also names the control.
 - `personal-field-no-autocomplete`: a field for a name, an email, a phone, or an address with no autocomplete attribute: `issue`. A field for a search or a comment: `no issue`.
-- `field-no-visible-label`: a field with a label only in the code. `issue` unless a visible text next to the field names it. A label that only a screen reader reads (`facts.hiddenLabel`, for example with the class visually-hidden) does not count, and neither does a placeholder that goes when the user types.
+- `field-no-visible-label`: a field with a label only in the code. The question is whether something visible tells a person what the field is for (WCAG Understanding 3.3.2, technique G167). `no issue` when one of these is next to the field and stays visible:
+  - a visible text that names the field;
+  - a button next to the field with a text, or with a well-known icon, for example a magnifier next to a search field, or a paper plane next to a message field;
+  - for a select, the visible choice or the options, when they show what the field is for, for example a list of ranks or of years under a heading that names them;
+  - a heading, when the field is the only field after it.
+
+  `issue` when nothing visible tells the purpose. A label that only a screen reader reads (`facts.hiddenLabel`, for example with the class visually-hidden) does not count. A placeholder alone in a text field does not count either, because it goes when the person types (WAI forms tutorial). A first option of a select, for example "Filter by Rank", counts only together with the options that stay. Since 1.3.9: before, the two passes disagreed on more than half of these questions, because the first pass accepted an icon or the options and the verifier did not.
 - `message-not-in-live-region`: new text after a button that a screen reader does not announce. `issue` when the text is a status message, for example "Added to the cart". `no issue` when it is content the user opened, for example a panel or a dialog.
 - `duplicate-id-aria`, `aria-valid-attr-value`, and the other axe-core questions on ARIA: read the HTML. Decide as the axe-core message says.
 

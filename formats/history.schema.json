@@ -120,7 +120,7 @@
     },
     "overview": {
       "type": "object",
-      "description": "The part of the accessibility overview that the history keeps: the share of the tested units with no failure, for level A and for level AA, and the open issues.",
+      "description": "The part of the accessibility overview that the history keeps: the share of the tested units with no failure, for level A and for level AA, the open issues, and since 1.3.9 the failed and the unknown units of level AA.",
       "additionalProperties": false,
       "required": [
         "share_no_failure_A",
@@ -136,6 +136,14 @@
         },
         "open_issues": {
           "type": "integer"
+        },
+        "failed_units_AA": {
+          "type": "integer",
+          "description": "The failed units of level AA, with level A. Since 1.3.9."
+        },
+        "unknown_units_AA": {
+          "type": "integer",
+          "description": "The units of level AA, with level A, that wait for an answer or for a person. Since 1.3.9."
         }
       }
     }
