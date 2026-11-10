@@ -23,7 +23,7 @@
         "mode": { "enum": ["automatic", "semi-automatic", "manual"] },
         "date": { "type": "string", "format": "date" },
         "run": { "type": "string", "description": "The run ID, see history.schema.json." },
-        "reason": { "enum": ["fixed", "rule changed", "replaced", "page removed", "out of scope"], "description": "Only for the status resolved or page removed. A resolved issue with the reason 'rule changed' does not count as a fix. A resolved issue with the reason 'replaced' has a new issue that replaces it after a change of the markup (the field replaces of the new issue): it does not count as a fix. Since 1.3.9. A page removed issue with the reason 'out of scope' had all its pages left out by the settings, for example by a skip pattern. Since 1.3.6." }
+        "reason": { "enum": ["fixed", "rule changed", "replaced", "not an issue", "page removed", "out of scope"], "description": "Only for the status resolved or page removed. A resolved issue with the reason 'rule changed' does not count as a fix. A resolved issue with the reason 'not an issue' has a question that a person answered with no issue or not applicable: it does not count as a fix, and its who is person. Since 1.3.10. A resolved issue with the reason 'replaced' has a new issue that replaces it after a change of the markup (the field replaces of the new issue): it does not count as a fix. Since 1.3.9. A page removed issue with the reason 'out of scope' had all its pages left out by the settings, for example by a skip pattern. Since 1.3.6." }
       }
     },
     "certainty": { "enum": ["fail", "ai fail", "needs review"] },

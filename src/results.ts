@@ -98,6 +98,8 @@ export function countIssues(issues: Record<string, any>[], run: string) {
   return {
     new: issues.filter((i) => i.status === "new" && !i.replaces).length, open: count("open"),
     resolved: fixed.filter((i) => !replacedIds.has(i.id)).length, resolved_rule_changed: thisRun("rule changed").length,
+    // A person found that the issue is not an issue: not a fix. Since 1.3.10.
+    resolved_not_an_issue: thisRun("not an issue").length,
     replaced: issues.filter((i) => i.status === "new" && i.replaces).length,
     reopened: count("reopened"), not_checked: count("not checked"), page_removed: count("page removed"), accepted: count("accepted"), dismissed: count("dismissed"),
   };

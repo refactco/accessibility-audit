@@ -2,6 +2,29 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.10, 2026-11-10
+
+Fixes from the first check of the sample by a person on the large WordPress multisite, with 1.3.9. A person checked 161 AI answers on the review page and agreed with all of them. All the fixes of 1.3.9 worked.
+
+The sample for a person:
+
+- A low confidence answer puts the question in the sample also when an older version recorded it. Before, only the stored flag counted, and 1.3.9 set it only when the verifier answered. On the large site, one question with a low confidence verification and 56 pages was not in the sample.
+- An answer that reaches 10 pages or more is in the sample. A random sample picks nearly only the questions of one page. On the large site, the 151 random questions reached 167 pages. None of the 41 questions with 10 pages or more was in the sample. A wrong answer on such a question changes many pages of the report.
+
+The review page:
+
+- A question on text spacing (1.4.12), zoom (1.4.4), or reflow (1.4.10) has the section "How to see it". It gives the width and the settings of the test, and the CSS of the text spacing. These findings do not show in a normal window. On the large site, a person first answered "no issue" to a real issue of text spacing. At 768 px with no text spacing, the person did not see the cut text.
+- The button "Show it with the test" opens the page in a local browser with the settings of the test. It shows a screenshot of the element before and after the test, with a red outline, and says how many pixels the element hides. It loads one page for each width, one after the other, and writes no file.
+
+The issues and the counts:
+
+- A person can answer "no issue" or "not applicable" to the question of an open issue. Then the refresh resolves the issue with the reason "not an issue", by a person. The counts in `summary.json` give it in `resolved_not_an_issue`, and not in `resolved`. Before, the issue was resolved as "fixed", and the client report said that the site fixed it. A refresh with 1.3.10 corrects an issue that 1.3.9 resolved as "fixed" in this way.
+
+The client report:
+
+- The method text says how many AI answers a person checked, how many of them were random, and how many the person agreed with. When the person and the AI differ, the text says that the answer of the person counts.
+- "Since the last audit" gives the issues that a person closed as "not an issue" apart from the fixes. The review page shows the reason "a person found that it is not an issue".
+
 ## 1.3.9, 2026-11-10
 
 Fixes from the second review cycle on the large WordPress multisite, with 1.3.7 and 1.3.8. The cycle answered 1,728 questions and found 519 new issues. All the fixes of 1.3.8 worked.

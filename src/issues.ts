@@ -203,6 +203,15 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     const fp = fingerprintOf(o, config);
     groups.set(fp, [...(groups.get(fp) || []), o]);
   }
+  // The issues that a person's answer closes: the question of the issue has the answer "no issue" or "not applicable" of a person.
+  // The site did not change, so the issue is not fixed. Before 1.3.10 such an issue was resolved as "fixed", and the client report
+  // counted it as a fix. By the ID that the outcome gives an issue, and by the question.
+  const personNoIds = new Set<string>(), personNoQuestions = new Set<string>();
+  for (const p of pages) for (const o of p.outcomes) {
+    if (o.answeredBy !== "person" || (o.answer !== "no issue" && o.answer !== "not applicable")) continue;
+    personNoIds.add("ISS-" + fingerprintOf(o, config).slice(0, 8));
+    if (o.questionId) personNoQuestions.add(o.questionId);
+  }
   const issues: IssueFile[] = [];
   // The IDs that 1.3.1 and older versions gave to the elements with the classes of a lazy load, and the ID of each now. Also the IDs
   // that 1.3.4 and older versions gave to the issues of a layout rule, one for each item, and the ID of their kind of element now.
@@ -313,6 +322,13 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
         if (!same.decision && old.decision) same.decision = old.decision;
       }
       issues.push(["resolved", "page removed", "dismissed"].includes(old.status) ? old : { ...old, status: "resolved", status_by: { ...by, reason: "rule changed" } });
+      continue;
+    }
+    // A person answered that the finding is not an issue: the issue is resolved with the reason "not an issue", and it is not a fix.
+    // A refresh of the same run also corrects an issue that 1.3.9 or older resolved as "fixed" for this reason. Since 1.3.10.
+    const personSaysNo = personNoIds.has(old.id) || (!!old.question && personNoQuestions.has(old.question));
+    if (personSaysNo && (["new", "open", "reopened", "not checked"].includes(old.status) || (old.status === "resolved" && old.status_by?.reason === "fixed" && sameRun))) {
+      issues.push({ ...old, status: "resolved", status_by: { who: "person", mode: "manual", date: sameRun && old.status === "resolved" ? old.status_by.date : date, run, reason: "not an issue" } });
       continue;
     }
     // A refresh of the same run corrects a resolution of 1.3.0: it checked the issues of the sample tests against all the tested pages,

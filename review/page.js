@@ -9,7 +9,7 @@
   var GROUPS = [
     { key: "differ", label: "The AI reviews differ", tag: "k-differ", hint: "The two AI reviews did not agree. Look at the page first, then open their answers if they help." },
     { key: "unsure", label: "The AI could not decide", tag: "k-unsure", hint: "The AI reviews say that only a person can decide, for example by playing a video. Look at the page, then answer." },
-    { key: "sample", label: "Sample: check the AI", tag: "k-sample", hint: "A random answer, or one with a low confidence, checks the AI. The AI answers open after your answer." },
+    { key: "sample", label: "Sample: check the AI", tag: "k-sample", hint: "A random answer, an answer with a low confidence, or an answer that reaches many pages checks the AI. The AI answers open after your answer." },
     { key: "person", label: "Checks for a person", tag: "k-person", hint: "Only a person can check this. Follow the steps." },
     { key: "proposal", label: "Proposed: no change", tag: "", hint: "The review found no change to make. Keep the issue, or close it with a reason." },
     { key: "other", label: "Other open questions", tag: "", hint: "" }
@@ -19,7 +19,7 @@
   var P_ANSWERS = [{ value: "dismissed", label: "Dismiss: not a real problem", needs: true }, { value: "accepted", label: "Accept as a known risk", needs: true }, { value: "kept", label: "Keep as an issue", needs: false }];
   var SEVERITY_LABEL = { critical: "Critical", serious: "Serious", moderate: "Moderate", minor: "Minor" };
   var STATUS_LABEL = { "new": "New", open: "Open", reopened: "Reopened", accepted: "Accepted", dismissed: "Dismissed", resolved: "Resolved" };
-  var REASON_LABEL = { fixed: "fixed", "rule changed": "a test of the audit changed", replaced: "a new issue replaces it", "page removed": "page removed", "out of scope": "out of scope" };
+  var REASON_LABEL = { fixed: "fixed", "rule changed": "a test of the audit changed", replaced: "a new issue replaces it", "not an issue": "a person found that it is not an issue", "page removed": "page removed", "out of scope": "out of scope" };
   var OPEN = { "new": 1, open: 1, reopened: 1 };
   var PAGE = 100;
 
@@ -164,7 +164,7 @@
       '<div class="row2">' +
       '<section aria-labelledby="changed-h"><div class="sechead"><h2 id="changed-h">' + (o.prevRun ? "Since the last audit, " + esc(longDate(o.prevRun)) : "This audit") + '</h2></div><div class="card"><dl class="dl">' +
       "<div><dt>New" + (o.newFromAnswers ? ' <span class="small">(' + num(o.newFromTests) + " from the tests, " + num(o.newFromAnswers) + " from answers to questions)</span>" : "") + "</dt><dd class=\"tnum\">" + num(o.newCount) + "</dd></div>" +
-      "<div><dt>Resolved" + (o.resolvedRule ? ' <span class="small">(' + num(o.resolvedFixed) + " fixed, " + num(o.resolvedRule) + " because a test changed)</span>" : "") + '</dt><dd class="tnum">' + num(o.resolved) + "</dd></div>" +
+      "<div><dt>Resolved" + (o.resolvedRule || o.resolvedNotIssue ? ' <span class="small">(' + [num(o.resolvedFixed) + " fixed"].concat(o.resolvedRule ? [num(o.resolvedRule) + " because a test changed"] : [], o.resolvedNotIssue ? [num(o.resolvedNotIssue) + " not an issue, by a person"] : []).join(", ") + ")</span>" : "") + '</dt><dd class="tnum">' + num(o.resolved) + "</dd></div>" +
       '<div><dt>Reopened</dt><dd class="tnum">' + num(o.reopened) + "</dd></div>" +
       (o.outOfScope ? '<div><dt>Out of scope now <span class="small">(pages that the settings leave out)</span></dt><dd class="tnum">' + num(o.outOfScope) + "</dd></div>" : "") +
       (o.failedUnits != null && o.prevFailedUnits != null ? '<div><dt>Failed checks <span class="small">(' + (o.failedUnits === o.prevFailedUnits ? "the same" : (o.failedUnits > o.prevFailedUnits ? "up " : "down ") + num(Math.abs(o.failedUnits - o.prevFailedUnits))) + ')</span></dt><dd class="tnum">' + num(o.failedUnits) + "</dd></div>" : "") +
@@ -319,6 +319,23 @@
         (a.reason ? '<span class="muted">' + esc(a.reason) + "</span>" : "") + (a.facts.length ? "<ul>" + a.facts.map(function (f) { return "<li>" + esc(f) + "</li>"; }).join("") + "</ul>" : "") + "</div>";
     }).join("");
   }
+  // The results of "Show it with the test", by question, for this visit of the page.
+  var SHOWN = {};
+  function shotFigure(b64, caption, alt) {
+    return '<figure class="shot"><figcaption class="small muted">' + esc(caption) + '</figcaption><img src="data:image/png;base64,' + esc(b64) + '" alt="' + esc(alt) + '"></figure>';
+  }
+  function showHtml(res) {
+    var out = "";
+    res.views.forEach(function (v) {
+      if (!v.found) return;
+      var a = res.rule === "text-cut-at-zoom" ? ["at 100% zoom", "at 200% zoom"] : res.rule === "no-reflow" ? ["", "at 320 px"] : ["with normal spacing", "with the text spacing of 1.4.12"];
+      var where = res.rule === "text-cut-at-zoom" ? v.width + " px" : v.label;
+      var figs = (v.before ? shotFigure(v.before, where + ", " + a[0], "The element at " + where + " " + a[0] + ", with a red outline.") : "") +
+        (v.after ? shotFigure(v.after, (res.rule === "no-reflow" ? "The page " : where + ", ") + a[1], "The element at " + where + " " + a[1] + ", with a red outline.") : "");
+      out += '<div class="showgrid">' + figs + "</div>";
+    });
+    return '<p class="small">' + esc(res.summary) + "</p>" + out;
+  }
   function fillDecision(r, d, focus) {
     var isIssue = d.type === "issue";
     var answered = isIssue ? !!d.decision : !!(d.person || d.factsCheck);
@@ -332,6 +349,10 @@
     var img = isIssue ? d.example.image : d.image, url = isIssue ? d.example.url : d.url;
     body += '<section aria-labelledby="d-shot-h"><div class="shead"><h3 class="h3" id="d-shot-h">The element on the page</h3><a href="' + esc(safeUrl(url)) + '" target="_blank" rel="noopener">Open the page<span class="sr-only"> (opens a new tab)</span> ↗</a></div>' +
       (img ? '<figure class="shot"><img src="' + esc(img) + '" alt="A screenshot of the element on the page, with the area around it."></figure>' : '<p class="small muted">No screenshot for this item.</p>') + "</section>";
+    // A layout finding shows only under the conditions of its test: the steps, and a button that opens the page with them. Since 1.3.10.
+    if (!isIssue && d.howTo) body += '<section aria-labelledby="d-how-h"><h3 class="h3" id="d-how-h">How to see it</h3><ol class="box">' + d.howTo.steps.map(function (s) { return "<li>" + esc(s) + "</li>"; }).join("") + "</ol>" +
+      (d.howTo.code ? '<pre class="howcode" aria-label="The CSS of the test">' + esc(d.howTo.code) + "</pre>" : "") +
+      (d.showable ? '<div class="factsrow showrow"><button type="button" class="btn small" id="d-show">Show it with the test</button><span class="small muted" id="d-show-msg" role="status" aria-live="polite">Opens the page with these settings and takes the screenshots for you.</span></div><div id="d-show-out">' + (SHOWN[d.id] ? showHtml(SHOWN[d.id]) : "") + "</div>" : "") + "</section>";
     if (!isIssue && d.counts) body += '<section aria-labelledby="d-counts-h"><h3 class="h3" id="d-counts-h">What counts as an issue</h3><p class="muted">' + esc(d.counts) + "</p></section>";
     if (isIssue) body += '<section aria-labelledby="d-wrong-h"><h3 class="h3" id="d-wrong-h">What the rule found</h3><p class="muted">' + esc(d.experience) + " It affects " + esc(d.affects) + ".</p></section>";
     if (!isIssue && d.ai.length) {
@@ -360,6 +381,25 @@
       state.aiOpen = !state.aiOpen; aiBtn.setAttribute("aria-expanded", String(state.aiOpen)); $("d-ai").hidden = !state.aiOpen;
     });
     $("d-raw-btn").addEventListener("click", function () { state.rawOpen = !state.rawOpen; $("d-raw-btn").setAttribute("aria-expanded", String(state.rawOpen)); $("d-raw").hidden = !state.rawOpen; });
+    var showBtn = $("d-show");
+    if (showBtn) showBtn.addEventListener("click", function () {
+      if (showBtn.getAttribute("aria-disabled") === "true") return;
+      showBtn.setAttribute("aria-disabled", "true"); $("d-show-out").setAttribute("aria-busy", "true");
+      $("d-show-msg").textContent = "The page opens with the test. This can take a minute.";
+      post("/show", { id: d.id }).then(function (res) {
+        SHOWN[d.id] = res;
+        if (state.d.sel !== r.id || !$("d-show-out")) return;
+        $("d-show-out").innerHTML = showHtml(res);
+        $("d-show-msg").textContent = "Done. The screenshots are below.";
+      }).catch(function (e) {
+        if (state.d.sel === r.id && $("d-show-msg")) $("d-show-msg").textContent = "The test did not run: " + e.message;
+      }).then(function () {
+        if (state.d.sel !== r.id) return;
+        var b = $("d-show"), o = $("d-show-out");
+        if (b) b.removeAttribute("aria-disabled");
+        if (o) o.removeAttribute("aria-busy");
+      });
+    });
     $("d-foot").querySelectorAll("button.ans").forEach(function (b) { b.addEventListener("click", function () { answer(r, d, b.dataset.value); }); });
     var ok = $("d-facts-ok"), wrong = $("d-facts-wrong");
     if (ok) ok.addEventListener("click", function () { facts(r, d, "confirmed"); });

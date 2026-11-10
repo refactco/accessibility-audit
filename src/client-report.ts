@@ -33,8 +33,25 @@ export function judgmentText(a: Record<string, number> | undefined): string {
   const out = [`The findings that need judgment became ${plural(a.questions, "question")}.`];
   if (done.length) out.push(`Of them, ${list(done)}.`);
   if (open.length) out.push(`${list(open).replace(/^./, (c) => c.toUpperCase())}. The report does not count these open questions as issues.`);
+  // How often a person agreed with the AI, on the answers that a person checked. The random sample is given apart: it measures the AI
+  // with no choice of the questions. Since 1.3.10.
+  if (a.checkedByPerson) {
+    const random = a.checkedRandom ? `, ${num(a.checkedRandom)} of them chosen at random` : "";
+    out.push(`A person checked ${plural(a.checkedByPerson, "answer")} of the AI${random}, and agreed with ${a.personAgreed === a.checkedByPerson ? (a.checkedByPerson === 1 ? "it" : "all of them") : num(a.personAgreed)}.`);
+    if (a.checkedRandom && a.randomAgreed !== a.checkedRandom) out.push(`On the random answers, the person agreed with ${num(a.randomAgreed)} of ${num(a.checkedRandom)}.`);
+    if (a.personAgreed < a.checkedByPerson) out.push("Where the person and the AI differ, the answer of the person counts.");
+  }
   if (!a.person) out.push("No person has answered a question of this audit yet.");
   return out.join(" ");
+}
+
+/** The issues that this audit closed with no fix: a test of the audit improved, or a person found that the finding is not an issue.
+ *  Before 1.3.10 a person's "no issue" counted as a fix. */
+export function resolvedOther(o: Record<string, any>): string {
+  const parts: string[] = [], more = o.resolvedFixed ? " more" : "";
+  if (o.resolvedRule) parts.push(`${num(o.resolvedRule)}${more} closed because a test of the audit improved`);
+  if (o.resolvedNotIssue) parts.push(`${num(o.resolvedNotIssue)}${more} closed because a person found that ${o.resolvedNotIssue === 1 ? "it is" : "they are"} not an issue`);
+  return parts.length ? ", and " + parts.join(", and ") : "";
 }
 
 function sevMark(s: string): string {
@@ -113,7 +130,7 @@ ${bar}
   ${o.prevRun ? `<section aria-labelledby="changed-h">
     <h2 id="changed-h">Since the last audit</h2>
     <ul>
-      <li>${plural(o.resolvedFixed, "issue")} ${o.resolvedFixed === 1 ? "is" : "are"} fixed${o.resolvedRule ? `, and ${num(o.resolvedRule)} more closed because a test of the audit improved` : ""}.</li>
+      <li>${plural(o.resolvedFixed, "issue")} ${o.resolvedFixed === 1 ? "is" : "are"} fixed${resolvedOther(o)}.</li>
       <li>${plural(o.newCount, "issue")} ${o.newCount === 1 ? "is" : "are"} new.${fromAnswers ? ` ${num(o.newFromTests || 0)} came from the automatic tests. ${num(fromAnswers)} came from the review of the findings that need judgment: the review answered questions, and the answers showed issues. These issues can be older than the last audit.` : ""}</li>
       ${o.reopened ? `<li>${plural(o.reopened, "issue")} came back after a fix.</li>` : ""}
       ${o.outOfScope ? `<li>${plural(o.outOfScope, "issue")} closed because ${o.outOfScope === 1 ? "its pages are" : "their pages are"} no longer part of the audit, by agreement.</li>` : ""}

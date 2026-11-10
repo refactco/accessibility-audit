@@ -2,7 +2,7 @@
 import { CRITERIA } from "./criteria.ts";
 import { pageKey } from "./crawl.ts";
 import type { Config } from "./config.ts";
-import { effectiveAnswer, personGroup, waitsForPerson, type Decision } from "./decide.ts";
+import { effectiveAnswer, LARGE_REACH_PAGES, personChecks, personGroup, waitsForPerson, type Decision } from "./decide.ts";
 import type { IssueFile, QuestionFile } from "./issues.ts";
 import type { ProcessRun } from "./process.ts";
 import { countIssues, type CriterionSummary } from "./results.ts";
@@ -78,7 +78,7 @@ export function renderReport(r: ReportInput): string {
   // also counted a question that only a person answered, and the second column counted only the checks for a person.
   const forAi = r.questions.filter((q) => q.kind === "review" && !q.person_answer && (!q.ai_answer || q.facts_check?.result === "wrong")).length;
   lines.push(`| Pages found | Pages tested | In the sample | States | Processes | Issues new | Issues open | Resolved | Questions for the AI | Questions for a person |\n|---|---|---|---|---|---|---|---|---|---|`);
-  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${n.new} | ${n.open + n.reopened} | ${n.resolved + n.resolved_rule_changed} | ${forAi} | ${r.questions.filter(waitsForPerson).length} |\n`);
+  lines.push(`| ${found.length} | ${tested.length} | ${tested.filter((p) => p.sample).length} | ${r.statesTested} | ${r.processes.filter((p) => p.tested).length} of ${r.processes.length} | ${n.new} | ${n.open + n.reopened} | ${n.resolved + n.resolved_rule_changed + n.resolved_not_an_issue} | ${forAi} | ${r.questions.filter(waitsForPerson).length} |\n`);
   lines.push(`Criteria: ${count("failed")} failed, ${count("needs review")} need a review, ${count("needs a person")} need a person, ${count("no issue found")} with no issue found, ${count("no content found")} with no content found, ${count("not tested")} not tested, ${count("passed")} passed, ${count("not applicable")} not applicable.\n`);
   if (r.budgetReached.length) lines.push(`The audit reached a budget: ${r.budgetReached.join(", ")}. The pages that it did not test are in the page list.\n`);
   const left = r.budgetLeft;
@@ -140,7 +140,7 @@ export function renderReport(r: ReportInput): string {
     lines.push(`- Solution: ${i.solution.summary} ${i.solution.steps.join(" ")}`);
     lines.push(`- Origin: ${i.origin}. ${i.source.length ? "Source: " + i.source.map((s: Record<string, unknown>) => s.file || s.item).join(", ") : "The skill finds the source file."}\n`);
   }
-  if (resolved.length) lines.push(`${resolved.length} issues are resolved in this audit: ${resolved.map((i) => i.id + (i.status_by.reason === "rule changed" ? " (rule changed)" : "")).join(", ")}.\n`);
+  if (resolved.length) lines.push(`${resolved.length} issues are resolved in this audit: ${resolved.map((i) => i.id + (["rule changed", "not an issue"].includes(i.status_by.reason) ? ` (${i.status_by.reason})` : "")).join(", ")}.\n`);
   const notChecked = r.issues.filter((i) => i.status === "not checked");
   if (notChecked.length) lines.push(`${notChecked.length} issues are not checked, because the audit did not test all their pages: ${notChecked.map((i) => i.id).join(", ")}.\n`);
   const replaced = r.issues.filter((i) => i.status === "new" && i.replaces);
@@ -155,13 +155,12 @@ export function renderReport(r: ReportInput): string {
   // 1.3.5 the count left out the unsure answers, and the report said that the verifier checked more answers than the AI gave.
   const aiAnswered = r.questions.filter((q) => q.ai_answer);
   const aiUnsure = aiAnswered.filter((q) => q.ai_answer.value === "unsure").length;
-  // The sample that waits for a person: a random share of the answers and the low confidence answers, also when the two AI answers
-  // agree. The unresolved questions have their own line. Before 1.3.9 a question left the sample when the verifier answered, so the
+  // The sample that waits for a person: a random share of the answers, the low confidence answers, and the answers that reach many
+  // pages (since 1.3.10), also when the two AI answers agree. The unresolved questions have their own line. Before 1.3.9 a question left the sample when the verifier answered, so the
   // list was empty after a full cycle.
   const forPerson = r.questions.filter((q) => personGroup(q) === "sample" && waitsForPerson(q)).sort((a, b) => b.pages - a.pages);
   // A person agrees with the AI by the same answer, or by a confirmation of the facts of the AI answer.
-  const both = r.questions.filter((q) => q.ai_answer && q.ai_answer.value !== "unsure" && ((q.person_answer && q.person_answer.value !== "not applicable") || q.facts_check));
-  const agree = both.filter((q) => (q.person_answer && q.ai_answer.value === q.person_answer.value) || (!q.person_answer && q.facts_check?.result === "confirmed")).length;
+  const { checked: both, agreed: agree } = personChecks(r.questions);
   const wrongFacts = r.questions.filter((q) => q.facts_check?.result === "wrong" && !q.person_answer);
   const verified = r.questions.filter((q) => q.verification);
   const agreed = verified.filter((q) => q.verification.agrees);
@@ -170,7 +169,7 @@ export function renderReport(r: ReportInput): string {
   lines.push(`## Answers\n`);
   lines.push(`The AI answered ${aiAnswered.length} questions${aiUnsure ? ` (${aiUnsure} of them unsure)` : ""}, and a person answered ${r.questions.filter((q) => q.person_answer).length}. The verifier, a second independent AI pass, checked ${verified.length} and agreed on ${agreed.length}. ${unresolved.length} questions are unresolved: the two AI answers differ, or one is unsure. ${unverified.length} answers count on the first AI answer alone, with no verification yet.${both.length ? ` On the ${both.length} questions that a person checked, the AI and the person agree on ${agree}.` : ""}${wrongFacts.length ? ` ${wrongFacts.length} questions go back to the AI, because a person found a fact wrong: ${wrongFacts.map((q) => q.id).join(", ")}.` : ""}\n`);
   if (unresolved.length) lines.push(`Unresolved: ${unresolved.slice(0, 40).map((q) => `${q.id} (${q.criterion}, AI ${q.ai_answer?.value}, verifier ${q.verification?.value || "none"})`).join("; ")}.\n`);
-  if (forPerson.length) lines.push(`The sample for a person: ${forPerson.length} answers, chosen at random or with a low confidence. A person checks them on the review page.\n`);
+  if (forPerson.length) lines.push(`The sample for a person: ${forPerson.length} answers, chosen at random, with a low confidence, or with a reach of ${LARGE_REACH_PAGES} pages or more. A person checks them on the review page.\n`);
   for (const q of forPerson.slice(0, 40)) lines.push(`- ${q.id} (${q.criterion}, ${q.pages} pages): ${q.question}${q.ai_answer ? " AI: " + q.ai_answer.value + ", " + q.ai_answer.confidence + " confidence, " + q.ai_answer.reason : ""}`);
   if (forPerson.length) lines.push("");
   if (r.decisions.length) lines.push(`${r.decisions.length} decisions of a person give "passed" or "not applicable" for a scope. The last: ${r.decisions.slice(-5).map((d) => `${d.criterion} ${d.result} on ${Object.keys(d.scope.pages || {}).length} pages by ${d.by}`).join("; ")}.\n`);

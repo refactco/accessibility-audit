@@ -61,8 +61,8 @@ export function verifyQuestion(dir: string, id: string, value: "issue" | "no iss
 
 /** The group of a question in the queue of a person, from the AI answers alone, so that a question keeps its group after a person
  *  answers it. "unsure": the AI answers say that only a person can decide, for example the captions of a video. "differ": the two AI
- *  answers are not the same. "sample": a random share of the answers, and the low confidence answers, for a person to check the AI,
- *  also when the two AI answers agree. "person": a check that only a person can do. null: not for a person.
+ *  answers are not the same. "sample": a random share of the answers, the low confidence answers, and the answers that reach many
+ *  pages, for a person to check the AI, also when the two AI answers agree. "person": a check that only a person can do. null: not for a person.
  *  Before 1.3.9 the sample left the queue when the verifier answered, so a full cycle had no sample, and two "unsure" answers were
  *  in the group of the answers that differ. */
 export type PersonGroup = "differ" | "unsure" | "sample" | "person";
@@ -72,8 +72,34 @@ export function personGroup(q: Record<string, any>): PersonGroup | null {
   const ai = q.ai_answer, v = q.verification;
   if (ai.value === "unsure" && (!v || v.value === "unsure")) return "unsure";
   if (v && !v.agrees) return "differ";
-  if (q.sample) return "sample";
+  if (sampleReasonOf(q)) return "sample";
   return null;
+}
+
+/** The number of pages from which an answer of the AI goes to the sample for a person. Since 1.3.10. */
+export const LARGE_REACH_PAGES = 10;
+
+/** Why a question is in the sample for a person: "low confidence", "random", or "large reach". null: not in the sample.
+ *  The answers decide, not only the stored flag, so that a refresh puts the answers of an older version in the sample too. Before
+ *  1.3.10 only the stored flag counted: a low confidence verification of 1.3.8 or older never joined the sample. A random sample
+ *  picks nearly only the questions of one page, so an answer that reaches many pages joins the sample too: a wrong answer there
+ *  changes many pages of the report. */
+export function sampleReasonOf(q: Record<string, any>): "low confidence" | "random" | "large reach" | null {
+  if (q.kind !== "review" || !q.ai_answer) return null;
+  if (q.ai_answer.confidence === "low" || q.verification?.confidence === "low") return "low confidence";
+  if (q.sample) return "random";
+  if ((q.pages || 0) >= LARGE_REACH_PAGES) return "large reach";
+  return null;
+}
+
+/** The answers of the AI that a person checked: by an answer of issue or no issue, or by a check of the facts. "agreed": the person
+ *  gave the same answer, or confirmed the facts. "random": the checked answers of the random sample, with no low confidence, so that
+ *  the client report can give the agreement on a random sample apart. Since 1.3.10; the report counted the same before. */
+export function personChecks(questions: Record<string, any>[]): { checked: Record<string, any>[]; agreed: number; random: number; randomAgreed: number } {
+  const checked = questions.filter((q) => q.ai_answer && q.ai_answer.value !== "unsure" && ((q.person_answer && q.person_answer.value !== "not applicable") || q.facts_check));
+  const agrees = (q: Record<string, any>) => (q.person_answer && q.ai_answer.value === q.person_answer.value) || (!q.person_answer && q.facts_check?.result === "confirmed");
+  const random = checked.filter((q) => sampleReasonOf(q) === "random");
+  return { checked, agreed: checked.filter(agrees).length, random: random.length, randomAgreed: random.filter(agrees).length };
 }
 
 /** True when a question waits for a person: it is in a group of the queue, and no person answered it or checked its facts. */

@@ -64,6 +64,11 @@
           "type": "integer",
           "minimum": 0
         },
+        "resolved_not_an_issue": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "The issues that this run resolved because a person answered their question with no issue or not applicable. Not a fix. Since 1.3.10."
+        },
         "replaced": {
           "type": "integer",
           "minimum": 0,

@@ -29,7 +29,7 @@ const CLIPPED = `(() => {
   return { clipped: out, scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth, scrollHeight: doc.scrollHeight };
 })()`;
 
-const SPACING_CSS = `* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }`;
+export const SPACING_CSS = `* { line-height: 1.5 !important; letter-spacing: 0.12em !important; word-spacing: 0.16em !important; } p { margin-bottom: 2em !important; }`;
 
 export async function runSpacing(page: Page, url: string, width: number, state: string[]): Promise<Outcome[]> {
   const before = await page.evaluate(CLIPPED) as { clipped: { selector: string; hiddenHeight: number; hiddenWidth: number }[] };
