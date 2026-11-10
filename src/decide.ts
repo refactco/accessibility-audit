@@ -51,9 +51,34 @@ export function verifyQuestion(dir: string, id: string, value: "issue" | "no iss
   if (!q.ai_answer) throw new Error(`The question ${id} has no first AI answer to verify.`);
   const agrees = q.ai_answer.value === value && value !== "unsure";
   q.verification = { value, confidence: o.confidence || "medium", reason: o.reason || o.note || "", model: o.model, prompt_version: o.promptVersion || "1", date: o.date || today(), ...(o.facts && o.facts.length ? { facts: o.facts } : {}), agrees };
+  // A low confidence answer of the verifier also goes to a person, as a low confidence first answer does. Before 1.3.9 only the
+  // first answer set the sample.
+  if (q.verification.confidence === "low") q.sample = true;
   validate("question/2", q);
   writeFileSync(path, JSON.stringify(q, null, 1) + "\n");
   return q;
+}
+
+/** The group of a question in the queue of a person, from the AI answers alone, so that a question keeps its group after a person
+ *  answers it. "unsure": the AI answers say that only a person can decide, for example the captions of a video. "differ": the two AI
+ *  answers are not the same. "sample": a random share of the answers, and the low confidence answers, for a person to check the AI,
+ *  also when the two AI answers agree. "person": a check that only a person can do. null: not for a person.
+ *  Before 1.3.9 the sample left the queue when the verifier answered, so a full cycle had no sample, and two "unsure" answers were
+ *  in the group of the answers that differ. */
+export type PersonGroup = "differ" | "unsure" | "sample" | "person";
+export function personGroup(q: Record<string, any>): PersonGroup | null {
+  if (q.kind === "person") return "person";
+  if (q.kind !== "review" || !q.ai_answer) return null;
+  const ai = q.ai_answer, v = q.verification;
+  if (ai.value === "unsure" && (!v || v.value === "unsure")) return "unsure";
+  if (v && !v.agrees) return "differ";
+  if (q.sample) return "sample";
+  return null;
+}
+
+/** True when a question waits for a person: it is in a group of the queue, and no person answered it or checked its facts. */
+export function waitsForPerson(q: Record<string, any>): boolean {
+  return !!personGroup(q) && !q.person_answer && !q.facts_check;
 }
 
 /** The answer that counts for a question: a person's answer, then two AI answers that agree, then a first AI answer that no verifier checked yet.

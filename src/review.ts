@@ -8,8 +8,9 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join, normalize } from "node:path";
 import { CRITERIA_BY_ID } from "./criteria.ts";
 import type { Config } from "./config.ts";
-import { answerQuestion, checkFacts, clearPersonAnswer, effectiveAnswer, reopenIssue, setIssueStatus } from "./decide.ts";
+import { answerQuestion, checkFacts, clearPersonAnswer, effectiveAnswer, personGroup, reopenIssue, setIssueStatus, type PersonGroup } from "./decide.ts";
 import { familyOf } from "./own/families.ts";
+import { fileName, fixGroups } from "./fix-groups.ts";
 import { loadExisting, proposesNoChange } from "./issues.ts";
 import { refresh } from "./refresh.ts";
 import { readHistory, type Overview } from "./overview.ts";
@@ -31,14 +32,33 @@ export function whoFixes(origin: string): string {
   return "Not known yet";
 }
 
-/** The text of an HTML in a few words, for a row of a list: the text of the element, or its tag. */
-function hintOf(html: string, selector: string): string {
-  const text = String(html || "").replace(/<[^>]+>/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
-  if (text) return text.slice(0, 70);
-  const alt = String(html || "").match(/\salt="([^"]*)"/)?.[1] || String(html || "").match(/\saria-label="([^"]*)"/)?.[1];
-  if (alt) return alt.slice(0, 70);
-  const last = String(selector || "").split(" > ").pop() || "";
-  return /^(html|body|main)$/.test(last) ? "" : last.slice(0, 70);
+const decodeHtml = (s: string) => s.replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#0*39;|&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&#(\d+);/g, (_, n) => { try { return String.fromCodePoint(Number(n)); } catch { return " "; } })
+  .replace(/&#x([0-9a-f]+);/gi, (_, n) => { try { return String.fromCodePoint(parseInt(n, 16)); } catch { return " "; } }).replace(/&amp;/g, "&");
+const short = (s: string) => s.length > 70 ? s.slice(0, 69).trimEnd() + "…" : s;
+
+/** A short name of an element for a person, for a row of a list: its text, a text attribute, the file of an image, or the host of a
+ *  frame. Never a CSS selector or HTML: the client report shows it. Before 1.3.9 a row could show a selector, for example ".avatar",
+ *  or the start of an HTML that the audit cut, for example '<td style="'. */
+export function labelOf(html: string): string {
+  // The audit cuts a long HTML, so it can end in an open tag.
+  const h = String(html || "").replace(/<[^>]*$/, "");
+  const text = decodeHtml(h.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  if (text) return short(text);
+  const attr = (name: string) => h.match(new RegExp(`\\s${name}\\s*=\\s*"([^"]*)"`, "i"))?.[1]?.trim() || "";
+  for (const a of ["alt", "aria-label", "title", "placeholder", "label"]) { const v = attr(a); if (v) return short(decodeHtml(v).replace(/\s+/g, " ")); }
+  const tag = h.match(/^\s*<\s*([a-z0-9-]+)/i)?.[1]?.toLowerCase() || "";
+  if (tag === "input" && /\stype\s*=\s*"(submit|button|reset)"/i.test(h) && attr("value")) return short(decodeHtml(attr("value")));
+  const src = attr("src") || attr("data-src");
+  if (src) {
+    try {
+      const u = new URL(decodeHtml(src), "https://page.invalid/");
+      if (["iframe", "embed", "object"].includes(tag)) return u.host === "page.invalid" ? "" : u.host;
+      if (u.protocol === "data:") return "";
+      return short(decodeURIComponent(u.pathname.split("/").pop() || ""));
+    } catch { return ""; }
+  }
+  return "";
 }
 
 /** The title of a row: the plain title of the rule, or the summary of the rule when it has no plain words. The fallback of the
@@ -65,15 +85,10 @@ function summaryOf(outDir: string): Record<string, any> | null {
   try { return JSON.parse(readFileSync(join(outDir, "summary.json"), "utf8")); } catch { return null; }
 }
 
-/** The group of a question in the queue of decisions, from the AI answers alone, so that a question keeps its group after a person
- *  answers it. null: the question is not for a person. With all, every open review question is in the queue. */
-function groupOf(q: Record<string, any>, all: boolean): "differ" | "sample" | "person" | "other" | null {
-  if (q.kind === "person") return "person";
-  if (q.kind !== "review") return null;
-  const ai = q.ai_answer, v = q.verification;
-  if ((ai && ai.value === "unsure") || (v && !v.agrees)) return "differ";
-  if (ai && !v && q.sample) return "sample";
-  return all ? "other" : null;
+/** The group of a question in the queue of decisions (personGroup in decide.ts). null: the question is not for a person. With all,
+ *  every open review question is in the queue. */
+function groupOf(q: Record<string, any>, all: boolean): PersonGroup | "other" | null {
+  return personGroup(q) || (all && q.kind === "review" ? "other" : null);
 }
 
 /** The date of the decision of a person on a question, or "". */
@@ -107,7 +122,7 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     if (!group) continue;
     const decided = decidedOn(q);
     if (decided && decided < runDate) continue;
-    decisions.push({ id: q.id, type: "question", group, title: titleOf(q.evidence?.rule, q.criterion, q.evidence?.summary), hint: hintOf(q.evidence?.html, q.evidence?.selector), path: q.evidence?.url || "", pages: q.pages || 0,
+    decisions.push({ id: q.id, type: "question", group, title: titleOf(q.evidence?.rule, q.criterion, q.evidence?.summary), hint: labelOf(q.evidence?.html), path: q.evidence?.url || "", pages: q.pages || 0,
       criterion: q.criterion, done: !!decided, answer: answerText(q), sample: group === "sample" });
   }
   for (const i of issues.filter((x) => OPEN.has(x.status) || (x.decision && ["accepted", "dismissed"].includes(x.status))).sort((a, b) => (b.reach?.pages || 0) - (a.reach?.pages || 0))) {
@@ -115,21 +130,40 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     const decided = i.decision?.date ? String(i.decision.date) : "";
     if (!OPEN.has(i.status) && !(decided && decided >= runDate)) continue;
     if (i.decision && decided < runDate) continue;
-    decisions.push({ id: i.id, type: "issue", group: "proposal", title: titleOf(i.rule.id, i.wcag.criterion, i.summary), hint: hintOf(i.examples?.[0]?.html, i.examples?.[0]?.selector), path: i.examples?.[0]?.url || "",
+    decisions.push({ id: i.id, type: "issue", group: "proposal", title: titleOf(i.rule.id, i.wcag.criterion, i.summary), hint: labelOf(i.examples?.[0]?.html), path: i.examples?.[0]?.url || "",
       pages: i.reach?.pages || 0, criterion: i.wcag.criterion, done: !!i.decision, answer: i.decision ? DECISION_TEXT[i.decision.status] || i.decision.status : "", sample: false });
   }
 
   // The issues: the open ones, the ones a person decided, and the ones this audit resolved.
+  const { groups, byIssue } = fixGroups(issues);
   const issueRows = issues.filter((i) => OPEN.has(i.status) || ["accepted", "dismissed"].includes(i.status) || (i.status === "resolved" && i.status_by?.run === run))
     .sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity) || (b.reach?.pages || 0) - (a.reach?.pages || 0))
     .map((i) => {
       const c = CRITERIA_BY_ID.get(i.wcag.criterion);
-      return { id: i.id, title: titleOf(i.rule.id, i.wcag.criterion, i.summary), experience: experienceOf(i.rule.id, i.wcag.criterion), hint: hintOf(i.examples?.[0]?.html, i.examples?.[0]?.selector), severity: i.severity, pages: i.reach?.pages || 0,
+      return { id: i.id, title: titleOf(i.rule.id, i.wcag.criterion, i.summary), experience: experienceOf(i.rule.id, i.wcag.criterion), hint: labelOf(i.examples?.[0]?.html), path: i.examples?.[0]?.url || "", severity: i.severity, pages: i.reach?.pages || 0,
         criterion: i.wcag.criterion, level: c?.level || "", who: whoFixes(i.origin), status: i.status, isNew: i.status === "new", proposal: proposesNoChange(i),
-        decision: i.decision ? DECISION_TEXT[i.decision.status] || i.decision.status : "", reason: i.status === "resolved" ? i.status_by?.reason || "" : "" };
+        decision: i.decision ? DECISION_TEXT[i.decision.status] || i.decision.status : "", reason: i.status === "resolved" ? i.status_by?.reason || "" : "",
+        fix: byIssue.get(i.id)?.id || "", fromAnswer: !!i.question };
     });
 
   const open = issueRows.filter((i) => OPEN.has(i.status));
+  // The things to fix: each open issue, or one fix group for all its issues, in the order of the severity and then the pages. The
+  // client report and the overview list them, so that one change shows as one line. Since 1.3.9.
+  const fixes: Record<string, any>[] = [];
+  const seen = new Set<string>();
+  for (const i of open) {
+    const g = byIssue.get(i.id);
+    if (!g) { fixes.push({ id: i.id, ids: [i.id], fix: "", count: 1, title: i.title, experience: i.experience, hint: i.hint, path: i.path, severity: i.severity, pages: i.pages, pagesExact: true,
+      who: i.who, criterion: i.criterion, proposal: i.proposal, file: "", line: null }); continue; }
+    if (seen.has(g.id)) continue;
+    seen.add(g.id);
+    const members = open.filter((x) => byIssue.get(x.id) === g);
+    const top = members[0];
+    fixes.push({ id: top.id, ids: members.map((x) => x.id), fix: g.id, count: members.length, title: top.title, experience: top.experience,
+      hint: `One change fixes ${members.length} issues: ${fileName(g.file)}, line ${g.line}`, path: top.path, severity: top.severity, pages: g.pages, pagesExact: g.pages_exact,
+      who: top.who, criterion: top.criterion, proposal: members.every((x) => x.proposal), file: g.file, line: g.line });
+  }
+  fixes.sort((a, b) => SEVERITY.indexOf(a.severity) - SEVERITY.indexOf(b.severity) || b.pages - a.pages);
   // Who answered the questions of the run: the method text of the page and of the client report says it from these counts, never
   // from a fixed sentence. Since 1.3.8.
   // The groups do not overlap: a person's answer first, then the review questions by their AI answers, then the checks for a person.
@@ -141,6 +175,8 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     agreed: review.filter((e) => e.by === "agreement").length,
     aiOnly: review.filter((e) => e.by === "ai").length,
     unresolved: review.filter((e) => e.unresolved).length,
+    // Of the unresolved: the AI answers say that only a person can decide, for example by playing a video. Since 1.3.9.
+    unsure: questions.filter((q) => !q.person_answer && personGroup(q) === "unsure" && effectiveAnswer(q).unresolved).length,
     waitingAi: review.filter((e) => !e.by && !e.unresolved).length,
     personChecks: questions.filter((q) => !q.person_answer && q.kind === "person").length,
   };
@@ -151,8 +187,18 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
   const cov = summary?.coverage || {};
   // The issues that this audit closed because the settings leave their pages out now. Since 1.3.6.
   const outOfScope = issues.filter((i) => i.status === "page removed" && i.status_by?.reason === "out of scope" && i.status_by?.run === run).length;
+  // The new issues that came from an answer to a question, and the ones that came from the tests. Answers to the questions of earlier
+  // audits make new issues, so the open issues can go up while the site stays the same. Since 1.3.9.
+  const newIssues = issues.filter((i) => i.status === "new" && !i.replaces);
+  const newFromAnswers = newIssues.filter((i) => i.question).length;
+  // The date of the results: the last answer, decision, or refresh, and not only the date of the run. Since 1.3.9.
+  const dates = [runDate, String(summary?.versions?.refreshed_on || ""),
+    ...questions.flatMap((q) => [q.ai_answer?.date, q.verification?.date, q.person_answer?.date, q.facts_check?.date]), ...issues.map((i) => i.decision?.date)]
+    .filter(Boolean).map((d) => String(d).slice(0, 10)).filter((d) => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+  const updated = dates.length ? dates[dates.length - 1] : runDate;
+  const grouped = groups.reduce((n, g) => n + g.issues.length, 0);
   return {
-    host, site, run, runDate, environment: config.site.environment, all, outDir,
+    host, site, run, runDate, updated, environment: config.site.environment, all, outDir,
     versions: summary?.versions || null,
     preparedBy: config.report?.prepared_by || "", contact: config.report?.contact || "",
     overview: {
@@ -160,6 +206,8 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
       prevOpen: prev ? prev.overview!.open_issues : null,
       prevRun: prev ? prev.run : null,
       newCount: counts.new || 0,
+      newFromAnswers: Math.min(newFromAnswers, counts.new || 0),
+      newFromTests: Math.max(0, (counts.new || 0) - newFromAnswers),
       resolved: (counts.resolved || 0) + (counts.resolved_rule_changed || 0),
       resolvedFixed: counts.resolved || 0,
       resolvedRule: counts.resolved_rule_changed || 0,
@@ -168,6 +216,11 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
       outOfScope,
       share: o ? o.levels.AA.units.share_no_failure : null,
       prevShare: prev ? prev.overview!.share_no_failure_AA : null,
+      failedUnits: o ? o.levels.AA.units.failed : null,
+      unknownUnits: o ? o.levels.AA.units.unknown : null,
+      prevFailedUnits: prev?.overview?.failed_units_AA ?? null,
+      prevUnknownUnits: prev?.overview?.unknown_units_AA ?? null,
+      fixGroups: { groups: groups.length, issues: grouped },
       pagesNoFailure: o ? o.levels.AA.pages : null,
       levels: o ? o.levels : null,
       definition: o?.definition || "",
@@ -178,6 +231,7 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     answers, answersText: judgmentText(answers),
     decisions,
     issues: issueRows,
+    fixes,
   };
 }
 
@@ -205,8 +259,10 @@ export function itemDetails(config: Config, outDir: string, id: string): Record<
     };
   }
   if (/^ISS-[0-9a-f]{8}$/.test(id)) {
-    const i = loadExisting(outDir, "issues").get(id);
+    const all = loadExisting(outDir, "issues");
+    const i = all.get(id);
     if (!i) return null;
+    const g = fixGroups([...all.values()]).byIssue.get(id);
     const c = CRITERIA_BY_ID.get(i.wcag.criterion);
     const ex = (i.examples || [])[0] || {};
     const shot = (i.examples || []).find((e: Record<string, any>) => e.facts?.screenshot)?.facts?.screenshot;
@@ -222,6 +278,7 @@ export function itemDetails(config: Config, outDir: string, id: string): Record<
       origin: i.origin, source, sourceWarning: i.source_warning || "",
       fix: { summary: i.solution?.summary || "", steps: i.solution?.steps || [], example: i.solution?.example || "", expected: i.solution?.expected_result || "", specific: i.solution?.type === "specific" },
       proposal: proposesNoChange(i), paths, element: `${ex.selector || ""}\n${ex.html || ""}`, question: i.question || null,
+      fixGroup: g ? { id: g.id, file: g.file, line: g.line, count: g.issues.length, pages: g.pages, pagesExact: g.pages_exact } : null,
       decision: i.decision || null, decisionText: i.decision ? DECISION_TEXT[i.decision.status] || i.decision.status : "",
     };
   }

@@ -324,7 +324,10 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     }
     if (old.status === "resolved" || old.status === "page removed" || old.status === "dismissed") {
       // A refresh of the same run looks at its fixes again, so that it can correct a fix of 1.3.2 that a new name of a state gave.
-      if (old.status === "resolved" && old.status_by?.reason === "fixed" && old.status_by?.run === run) { const copy = { ...old }; issues.push(copy); resolvedNow.push(copy); continue; }
+      // An issue that a new issue replaced in this run is "fixed" again until a new issue replaces it again. Since 1.3.9.
+      if (old.status === "resolved" && ["fixed", "replaced"].includes(old.status_by?.reason) && old.status_by?.run === run) {
+        const copy = { ...old, status_by: { ...old.status_by, reason: "fixed" } }; issues.push(copy); resolvedNow.push(copy); continue;
+      }
       issues.push(old); continue;
     }
     const paths: string[] = (old.examples || []).map((e: { url: string }) => e.url);
@@ -366,6 +369,9 @@ export function buildIssues(pages: PageRecord[], config: Config, run: string, da
     const old = resolvedNow.find((r) => r.rule.id === i.rule.id && r.wcag.criterion === i.wcag.criterion && [...pagesOf(r)].some((p) => mine.has(p)));
     if (!old) continue;
     i.replaces = old.id; i.first_seen = old.first_seen;
+    // The old issue was not fixed: its element changed, and the new issue has the problem. Before 1.3.9 its reason stayed "fixed", and
+    // the issue list showed a fix that the counts did not count.
+    old.status_by = { ...old.status_by, reason: "replaced" };
     // The same element fails in a state of the same page, and only the name of the state changed: the name comes from the text of
     // its control, for example a list whose name is the text of its options. It is the same issue: the new ID continues the old
     // one, with its status, origin, source, solution, and decision, and the old ID is resolved with the reason "rule changed", as

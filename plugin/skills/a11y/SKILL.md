@@ -68,7 +68,7 @@ A person confirms the facts on the review page, not the rule. A question whose f
 
 Every answer gets a second, independent pass: the verifier. Run it as a separate agent, so that the verifier does not know the first answers. Read `references/verify.md` for the method. In short: `refact-a11y tasks verify --out <folder>` writes the questions without the first answer in batch files, the verifier decides each one from the evidence, and `refact-a11y verify <Q-id> <value> --by ai ...` records it. Two equal answers decide. A disagreement is unresolved, and the report counts it. No person is needed.
 
-The command marks a random one in ten answers, and all low confidence answers, for a person. After a review session, run `refact-a11y refresh <config.json> --out accessibility-audit`: it rebuilds the summary, the page results, and the report from the stored outcomes with the new answers, with no new crawl. The next `refact-a11y audit` or `refact-a11y check` does the same with fresh outcomes.
+The command marks a random one in ten answers, and all low confidence answers of the AI or of the verifier, for a person. The review page shows them in the group "Sample: check the AI", also when the two AI answers agree. After a review session, run `refact-a11y refresh <config.json> --out accessibility-audit`: it rebuilds the summary, the page results, and the report from the stored outcomes with the new answers, with no new crawl. The next `refact-a11y audit` or `refact-a11y check` does the same with fresh outcomes.
 
 Never answer the checks for a person, the files with `"kind": "person"`. They need a person with a screen reader, a media player, or a test account. Tell the user which ones wait, with their steps.
 
@@ -106,7 +106,7 @@ The product does not fix. After the review, the verification, and the locate ste
 refact-a11y handoff <config.json> --out accessibility-audit
 ```
 
-It writes `fixes.json`, which another agent reads as data, and `fixes.md`, the same as a brief for a person. The fixing agent applies the tasks in the repository of the site and runs `refact-a11y check`. The next audit marks the fixed issues resolved. Never apply the tasks yourself in the audit session.
+It writes `fixes.json`, which another agent reads as data, and `fixes.md`, the same as a brief for a person. A fix group (`fix_groups`, and `fix_group` in a task) is a set of tasks with the same rule and the same line of the same file: one change fixes them all. The fixing agent applies the tasks in the repository of the site and runs `refact-a11y check`. The next audit marks the fixed issues resolved. Never apply the tasks yourself in the audit session.
 
 ## Record the decisions of a person
 

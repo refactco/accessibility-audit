@@ -2,6 +2,34 @@
 
 The version is the same for the package `@refact/a11y` and for the plugin `accessibility-audit`. A machine gets a new copy of the plugin only when this version changes.
 
+## 1.3.9, 2026-11-10
+
+Fixes from the second review cycle on the large WordPress multisite, with 1.3.7 and 1.3.8. The cycle answered 1,728 questions and found 519 new issues. All the fixes of 1.3.8 worked.
+
+The queue of a person:
+
+- The sample stays in the queue after the verifier. The sample is one answer in ten at random, and each answer with a low confidence. Before, a question left the sample when the verifier answered, so after a full cycle the group "Sample: check the AI" was empty, and `report.md` listed no sample. On the large site, 151 sample answers were not in the queue.
+- A low confidence answer of the verifier also puts the question in the sample. Before, only the first answer did.
+- Two "unsure" answers have their own group: "The AI could not decide". Before, they were in the group "The AI reviews differ". On the large site, 172 of the 288 unresolved questions had two "unsure" answers. 167 of them were media players that a person must play.
+- The summary table of `report.md` gives the right counts. "Questions for the AI" counts the questions that the review step lists. "Questions for a person" counts the open items of the queue. Before, the table gave 1 and 0 after the cycle: the first column counted a question that only a person answered, and the second column counted only the checks for a person.
+
+The issues and the handoff:
+
+- The fix groups. Some open issues have the same rule, and their first source is the same line of the same file. When their origin is the code, the design, the configuration, or a third-party part that the site controls, one change fixes them. `fixes.json` lists these groups in `fix_groups`, and each task names its group in `fix_group`. `fixes.md` lists them before the tasks. On the large site, 255 open issues came from 20 places in the code, and one line of a style sheet gave 133 issues. The issues stay separate, because each has its own pages and example.
+- An issue that a new issue replaces after a change of the markup has the reason "replaced", not "fixed". Before, the counts did not count it as a fix, but the issue list showed "fixed".
+- The rule text of `field-no-visible-label` follows WCAG Understanding 3.3.2 and technique G167. A button with a well-known icon next to the field counts as a label, for example a magnifier next to a search field. For a select, the options count when they show what it is for. A heading counts when the field is the only field after it. A placeholder alone does not count. Before, the two AI passes disagreed on 32 of 55 such questions.
+
+The client report and the review page:
+
+- One line for each fix group in "What to fix first" and in the tables by team. The text says how many issues come from how few places in the code. Before, the same issue of one script filled three of the five lines of "What to fix first".
+- The new issues say where they came from: the automatic tests, or the answers to questions that need judgment. On the large site, all 519 new issues came from the answers to questions of earlier audits.
+- The review page shows the change of the share with no failure only when the last audit kept its failed and unknown checks. It then says how many unknown checks the answers settled. The history keeps these two counts from this version on. Before, the share went up 0.6 points while the open issues went from 188 to 707. The cause was the answers: they changed unknown checks into known ones.
+- The rows show a short name of the element: its text, a text attribute, the file of an image, or the host of a frame. When the element has none of these, the client report shows the page. Before, a row could show a CSS selector, for example ".avatar", or the start of a cut HTML, for example `<td style="`.
+- Plain titles for 32 more rules of axe-core, for example `aria-required-children` and `frame-title`. Before, these rows showed the summary of axe-core, for example "Certain ARIA roles must contain particular children".
+- The client report gives the date of the results next to the date of the audit: the last answer, decision, or refresh. The method text separates the answers that do not agree from the ones where the AI could not decide. The Method view names the engine of the last refresh.
+
+The tests: a new test file, `queue-groups`, in `npm test`, with 39 checks.
+
 ## 1.3.8, 2026-11-10
 
 Fixes from the refresh of the large WordPress multisite with 1.3.7. All the fixes of 1.3.7 worked: the 15 answers and the 4 confirmed issues came back.

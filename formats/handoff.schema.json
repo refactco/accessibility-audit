@@ -42,6 +42,60 @@
       "minimum": 0,
       "description": "The review questions that the two AI passes did not settle. They are not tasks."
     },
+    "fix_groups": {
+      "type": "array",
+      "description": "The open issues that one change fixes: issues of the same rule whose first source is the same line of the same file, with an origin in the code or the design. Make the change once, for all the tasks of the group. Since 1.3.9.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "rule",
+          "origin",
+          "file",
+          "line",
+          "issues",
+          "pages",
+          "pages_exact"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^FIX-[0-9a-f]{8}$"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "origin": {
+            "type": "string"
+          },
+          "file": {
+            "type": "string"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "issues": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "string",
+              "pattern": "^ISS-[0-9a-f]{8}$"
+            }
+          },
+          "pages": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The pages that the issues reach: the largest reach of one issue, or more when the examples show more pages."
+          },
+          "pages_exact": {
+            "type": "boolean",
+            "description": "True when the examples of each issue list all its pages, so that pages is the exact count."
+          }
+        }
+      }
+    },
     "tasks": {
       "type": "array",
       "items": {
@@ -204,6 +258,18 @@
                 "description": "What the next check must show."
               }
             }
+          },
+          "fix_group": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^FIX-[0-9a-f]{8}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The fix group of the task, or null. Since 1.3.9."
           }
         }
       }

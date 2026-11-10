@@ -21,7 +21,7 @@ export interface Overview {
   issues: { open: number; by_severity: Record<Severity, number>; by_certainty: { fail: number; ai_fail: number } };
   score: { value: number; definition: string };
 }
-export interface HistoryPoint { run: string; date: string; kind: string; counts: Record<string, number>; overview?: { share_no_failure_A: number; share_no_failure_AA: number; open_issues: number } }
+export interface HistoryPoint { run: string; date: string; kind: string; counts: Record<string, number>; overview?: { share_no_failure_A: number; share_no_failure_AA: number; open_issues: number; failed_units_AA?: number; unknown_units_AA?: number } }
 
 const MET = new Set<UnitResult>(["no issue found", "passed", "not applicable"]);
 const UNKNOWN = new Set<UnitResult>(["needs review", "needs a person"]);
@@ -70,9 +70,11 @@ export function buildOverview(pages: PageRecord[], widths: number[], criteria: R
   };
 }
 
-/** The part of the overview that the history keeps for each run. */
+/** The part of the overview that the history keeps for each run. The failed and the unknown units of level AA tell why the share
+ *  with no failure changed: answers move units from unknown to known, so the share can go up while the failures go up. Since 1.3.9. */
 export function historyOverview(o: Overview): NonNullable<HistoryPoint["overview"]> {
-  return { share_no_failure_A: o.levels.A.units.share_no_failure, share_no_failure_AA: o.levels.AA.units.share_no_failure, open_issues: o.issues.open };
+  return { share_no_failure_A: o.levels.A.units.share_no_failure, share_no_failure_AA: o.levels.AA.units.share_no_failure, open_issues: o.issues.open,
+    failed_units_AA: o.levels.AA.units.failed, unknown_units_AA: o.levels.AA.units.unknown };
 }
 
 export function readHistory(outDir: string): HistoryPoint[] {

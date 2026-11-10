@@ -22,7 +22,11 @@ export function judgmentText(a: Record<string, number> | undefined): string {
   if (a.aiOnly) done.push(`${num(a.aiOnly)} ${a.aiOnly === 1 ? "has" : "have"} one AI answer that a second review did not check yet`);
   if (a.person) done.push(`a person answered ${num(a.person)}`);
   const open: string[] = [];
-  if (a.unresolved) open.push(`${num(a.unresolved)} ${a.unresolved === 1 ? "has" : "have"} two AI answers that do not agree`);
+  // The unresolved questions: the AI answers differ, or they say that only a person can decide. Before 1.3.9 the text said "do not
+  // agree" also for two "unsure" answers.
+  const unsure = Math.min(a.unsure || 0, a.unresolved || 0), differ = (a.unresolved || 0) - unsure;
+  if (differ) open.push(`${num(differ)} ${differ === 1 ? "has" : "have"} two AI answers that do not agree`);
+  if (unsure) open.push(`${num(unsure)} ${unsure === 1 ? "needs" : "need"} a person, because the AI reviews could not decide`);
   if (a.waitingAi) open.push(`${num(a.waitingAi)} ${a.waitingAi === 1 ? "waits" : "wait"} for a first review`);
   if (a.personChecks) open.push(`${num(a.personChecks)} ${a.personChecks === 1 ? "is a check" : "are checks"} that only a person can do, for example the captions of a video`);
   const list = (parts: string[]) => parts.length > 1 ? parts.slice(0, -1).join(", ") + ", and " + parts[parts.length - 1] : parts[0];
@@ -42,14 +46,25 @@ function sevMark(s: string): string {
 export function clientReport(data: Record<string, any>, options: { local: boolean }): string {
   const o = data.overview;
   const open = (data.issues as Record<string, any>[]).filter((i) => OPEN.has(i.status));
-  const first = open.filter((i) => !i.proposal).slice(0, 5);
+  // The things to fix: an issue, or a fix group whose issues one change fixes. Before 1.3.9 each issue had its own line, so one
+  // change could fill the list of what to fix first, and a table could repeat one line of a style sheet a hundred times.
+  const fixes = ((data.fixes || open.map((i) => ({ ...i, ids: [i.id], count: 1, pagesExact: true }))) as Record<string, any>[]);
+  const first = fixes.filter((f) => !f.proposal).slice(0, 5);
   const by = data.preparedBy ? String(data.preparedBy) : "";
   const share = o.pagesNoFailure ? Math.round((o.pagesNoFailure.no_failure / Math.max(1, o.pagesNoFailure.all)) * 100) : null;
-  const teams = TEAMS.map(([key, label]) => ({ key, label, rows: open.filter((i) => i.who === key) })).filter((t) => t.rows.length);
-  const teamText = teams.filter((t) => t.key !== "Not known yet").map((t) => `${t.label.toLowerCase()} ${num(t.rows.length)}`).join(", ");
+  const teams = TEAMS.map(([key, label]) => ({ key, label, issues: open.filter((i) => i.who === key).length, rows: fixes.filter((f) => f.who === key) })).filter((t) => t.rows.length);
+  const teamText = teams.filter((t) => t.key !== "Not known yet").map((t) => `${t.label.toLowerCase()} ${num(t.issues)}`).join(", ");
+  const updated = data.updated && data.updated > (data.runDate || "") ? String(data.updated) : "";
+  // The new issues: from the tests, or from the answers to questions that needed judgment. Since 1.3.9.
+  const fromAnswers = o.newFromAnswers || 0;
+  const newText = !o.prevRun ? "" : fromAnswers
+    ? ` ${num(o.newCount)} ${o.newCount === 1 ? "is" : "are"} new since the last audit on ${esc(longDate(o.prevRun))}: ${num(o.newFromTests || 0)} from the automatic tests, and ${num(fromAnswers)} from the review of the findings that need judgment. ${num(o.resolvedFixed)} ${o.resolvedFixed === 1 ? "is" : "are"} fixed.`
+    : ` ${num(o.newCount)} ${o.newCount === 1 ? "is" : "are"} new since the last audit on ${esc(longDate(o.prevRun))}, and ${num(o.resolvedFixed)} ${o.resolvedFixed === 1 ? "is" : "are"} fixed.`;
+  const groupText = o.fixGroups?.groups ? ` ${num(o.fixGroups.issues)} of the issues come from only ${plural(o.fixGroups.groups, "place")} in the code: one change at each place fixes all its issues.` : "";
   const summary = open.length
-    ? `The audit found <strong>${plural(open.length, "open issue")}</strong>.${o.prevRun ? ` ${num(o.newCount)} ${o.newCount === 1 ? "is" : "are"} new since the last audit on ${esc(longDate(o.prevRun))}, and ${num(o.resolvedFixed)} ${o.resolvedFixed === 1 ? "is" : "are"} fixed.` : ""}${teamText ? ` By the team that fixes them: ${esc(teamText)}.` : ""} One issue can reach many pages, because it often comes from one template or one component. ${first.length ? `The ${first.length === 1 ? "issue" : `${first.length} issues`} below ${first.length === 1 ? "is" : "are"} the most serious and ${first.length === 1 ? "reaches" : "reach"} the most pages: we suggest starting with ${first.length === 1 ? "it" : "them"}.` : ""}`
+    ? `The audit found <strong>${plural(open.length, "open issue")}</strong>.${newText}${teamText ? ` By the team that fixes them: ${esc(teamText)}.` : ""} One issue can reach many pages, because it often comes from one template or one component.${groupText} ${first.length ? `The ${first.length === 1 ? "item" : `${first.length} items`} below ${first.length === 1 ? "is" : "are"} the most serious and ${first.length === 1 ? "reaches" : "reach"} the most pages: we suggest starting with ${first.length === 1 ? "it" : "them"}.` : ""}`
     : "The audit found no open issue on the tested pages. That is not a proof of conformance: automatic tests find failures, and no tool proves that a site has none.";
+  const pagesText = (f: Record<string, any>) => `${f.pagesExact === false ? "at least " : ""}${plural(f.pages, "page")}`;
   const bar = `<header class="cbar"><div class="cbar-in">
     <span class="logo" aria-hidden="true">${esc((by || "A").charAt(0).toUpperCase())}</span><span class="cname">${esc(by || "Accessibility Audit")}</span><span aria-hidden="true" class="slash">/</span><span class="muted">Accessibility report</span>
     <span class="cactions">${options.local ? '<a class="btn" href="/">Back to the review</a><a class="btn" href="/client?download=1">Download the HTML file</a>' : ""}<button type="button" class="btn primary" onclick="window.print()">Print or save as PDF</button></span>
@@ -74,7 +89,7 @@ ${bar}
   <section class="intro" aria-labelledby="report-title">
     <p class="eyebrow">Accessibility report</p>
     <h1 id="report-title">${esc(data.host)}</h1>
-    <p class="meta">Audit of ${esc(longDate(data.run))} · WCAG 2.2 level AA · ${plural(o.coverage.pages, "page")}${by ? ` · prepared by ${esc(by)}` : ""}</p>
+    <p class="meta">Audit of ${esc(longDate(data.run))}${updated ? ` · results of ${esc(longDate(updated))}` : ""} · WCAG 2.2 level AA · ${plural(o.coverage.pages, "page")}${by ? ` · prepared by ${esc(by)}` : ""}</p>
     <p class="lede">${summary}</p>
   </section>
   <dl class="stats">
@@ -85,21 +100,21 @@ ${bar}
   </dl>
   ${first.length ? `<section aria-labelledby="first-h">
     <h2 id="first-h">What to fix first</h2>
-    <ol class="first">${first.map((i, n) => `<li><span class="n tnum" aria-hidden="true">${n + 1}</span><div><h3>${esc(i.title)}</h3><p>${esc(i.experience)}</p><p class="tags">${sevMark(i.severity)}<span class="tag tnum">${plural(i.pages, "page")}</span><span class="tag">${esc(TEAMS.find(([k]) => k === i.who)?.[1] || i.who)}</span><span class="tag tnum">WCAG ${esc(i.criterion)}</span></p></div></li>`).join("")}</ol>
+    <ol class="first">${first.map((i, n) => `<li><span class="n tnum" aria-hidden="true">${n + 1}</span><div><h3>${esc(i.title)}</h3><p>${esc(i.experience)}${i.count > 1 ? ` One change in ${esc(String(i.file).split("/").pop())}, line ${esc(i.line)}, fixes ${num(i.count)} issues of this kind.` : ""}</p><p class="tags">${sevMark(i.severity)}${i.count > 1 ? `<span class="tag tnum">${plural(i.count, "issue")}</span>` : ""}<span class="tag tnum">${pagesText(i)}</span><span class="tag">${esc(TEAMS.find(([k]) => k === i.who)?.[1] || i.who)}</span><span class="tag tnum">WCAG ${esc(i.criterion)}</span></p></div></li>`).join("")}</ol>
   </section>` : ""}
   ${teams.length ? `<section aria-labelledby="who-h">
     <h2 id="who-h">The issues, by who fixes them</h2>
-    <p>Each team can start with its own list. The order is the severity, then the number of pages.</p>
-    ${teams.map((t) => `<h3 class="team">${esc(t.label)} <span class="muted tnum">${num(t.rows.length)}</span></h3>
-    <div class="card"><table><caption class="sr-only">${esc(t.label)}: ${plural(t.rows.length, "issue")}</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>
-      ${t.rows.map((i) => `<tr><td>${esc(i.title)}${i.hint ? `<span class="hint">${esc(i.hint)}</span>` : ""}</td><td>${sevMark(i.severity)}</td><td class="num tnum">${num(i.pages)}</td><td class="tnum">${esc(i.criterion)}</td></tr>`).join("")}
+    <p>Each team can start with its own list. The order is the severity, then the number of pages. When one change fixes many issues, they have one line.</p>
+    ${teams.map((t) => `<h3 class="team">${esc(t.label)} <span class="muted tnum">${num(t.issues)}</span></h3>
+    <div class="card"><table><caption class="sr-only">${esc(t.label)}: ${plural(t.issues, "issue")}${t.rows.length !== t.issues ? `, in ${plural(t.rows.length, "line")}` : ""}</caption><thead><tr><th scope="col">Issue</th><th scope="col" class="c-sev">Severity</th><th scope="col" class="num c-pages">Pages</th><th scope="col" class="c-wcag">WCAG</th></tr></thead><tbody>
+      ${t.rows.map((i) => { const where = i.hint || i.path || ""; return `<tr><td>${esc(i.title)}${where ? `<span class="hint">${esc(where)}</span>` : ""}</td><td>${sevMark(i.severity)}</td><td class="num tnum">${i.pagesExact === false ? "at least " : ""}${num(i.pages)}</td><td class="tnum">${esc(i.criterion)}</td></tr>`; }).join("")}
     </tbody></table></div>`).join("\n")}
   </section>` : ""}
   ${o.prevRun ? `<section aria-labelledby="changed-h">
     <h2 id="changed-h">Since the last audit</h2>
     <ul>
       <li>${plural(o.resolvedFixed, "issue")} ${o.resolvedFixed === 1 ? "is" : "are"} fixed${o.resolvedRule ? `, and ${num(o.resolvedRule)} more closed because a test of the audit improved` : ""}.</li>
-      <li>${plural(o.newCount, "issue")} ${o.newCount === 1 ? "is" : "are"} new.</li>
+      <li>${plural(o.newCount, "issue")} ${o.newCount === 1 ? "is" : "are"} new.${fromAnswers ? ` ${num(o.newFromTests || 0)} came from the automatic tests. ${num(fromAnswers)} came from the review of the findings that need judgment: the review answered questions, and the answers showed issues. These issues can be older than the last audit.` : ""}</li>
       ${o.reopened ? `<li>${plural(o.reopened, "issue")} came back after a fix.</li>` : ""}
       ${o.outOfScope ? `<li>${plural(o.outOfScope, "issue")} closed because ${o.outOfScope === 1 ? "its pages are" : "their pages are"} no longer part of the audit, by agreement.</li>` : ""}
     </ul>
@@ -109,7 +124,7 @@ ${bar}
     <p>We tested ${plural(o.coverage.pages, "page")} at ${esc(o.coverage.widths.length)} screen widths (${esc(o.coverage.widths.join(", "))} px) against WCAG 2.2 level AA.${o.coverage.sample ? ` On ${plural(o.coverage.sample, "sample page")} we also opened the menus, the dialogs, and the tabs.` : ""} Automatic tests found part of the issues. ${esc(judgmentText(data.answers))}</p>
     <p>This report measures this audit. It is not a statement of conformance: WCAG has no score, and a page conforms to a level or it does not. Automatic testing cannot find every problem, so some issues need a person with assistive technology to confirm.</p>
   </section>
-  <footer class="cfoot"><span>${by ? `Prepared by ${esc(by)} · ` : ""}${esc(longDate(data.run))}</span>${data.contact ? `<span>Questions: ${esc(data.contact)}</span>` : ""}</footer>
+  <footer class="cfoot"><span>${by ? `Prepared by ${esc(by)} · ` : ""}${esc(longDate(updated || data.run))}</span>${data.contact ? `<span>Questions: ${esc(data.contact)}</span>` : ""}</footer>
 </main>
 </body>
 </html>`;
