@@ -8,7 +8,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { join, normalize } from "node:path";
 import { CRITERIA_BY_ID } from "./criteria.ts";
 import type { Config } from "./config.ts";
-import { answerQuestion, checkFacts, clearPersonAnswer, effectiveAnswer, personGroup, reopenIssue, setIssueStatus, type PersonGroup } from "./decide.ts";
+import { answerQuestion, checkFacts, clearPersonAnswer, effectiveAnswer, personChecks, personGroup, reopenIssue, setIssueStatus, type PersonGroup } from "./decide.ts";
 import { familyOf } from "./own/families.ts";
 import { fileName, fixGroups } from "./fix-groups.ts";
 import { loadExisting, proposesNoChange } from "./issues.ts";
@@ -17,6 +17,7 @@ import { readHistory, type Overview } from "./overview.ts";
 import { hasPlain, plainOf, whoOf } from "./own/plain.ts";
 import { reviewPage } from "./review-page.ts";
 import { clientReport, judgmentText } from "./client-report.ts";
+import { howToSee, SHOW_RULES, showLayout } from "./show.ts";
 
 export interface ReviewOptions { port?: number; all?: boolean; open?: boolean; log?: (line: string) => void }
 
@@ -179,6 +180,9 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     unsure: questions.filter((q) => !q.person_answer && personGroup(q) === "unsure" && effectiveAnswer(q).unresolved).length,
     waitingAi: review.filter((e) => !e.by && !e.unresolved).length,
     personChecks: questions.filter((q) => !q.person_answer && q.kind === "person").length,
+    // The answers of the AI that a person checked, and how many of them the person agreed with: all of them, and the random sample
+    // alone. The client report says it. Since 1.3.10.
+    ...(() => { const c = personChecks(questions); return { checkedByPerson: c.checked.length, personAgreed: c.agreed, checkedRandom: c.random, randomAgreed: c.randomAgreed }; })(),
   };
   const history = readHistory(outDir).filter((h) => h.overview);
   const prev = history.length >= 2 ? history[history.length - 2] : null;
@@ -208,9 +212,11 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
       newCount: counts.new || 0,
       newFromAnswers: Math.min(newFromAnswers, counts.new || 0),
       newFromTests: Math.max(0, (counts.new || 0) - newFromAnswers),
-      resolved: (counts.resolved || 0) + (counts.resolved_rule_changed || 0),
+      resolved: (counts.resolved || 0) + (counts.resolved_rule_changed || 0) + (counts.resolved_not_an_issue || 0),
       resolvedFixed: counts.resolved || 0,
       resolvedRule: counts.resolved_rule_changed || 0,
+      // A person found that the issue is not an issue. Not a fix. Since 1.3.10.
+      resolvedNotIssue: counts.resolved_not_an_issue || 0,
       reopened: counts.reopened || 0,
       pageRemoved: counts.page_removed || 0,
       outOfScope,
@@ -235,6 +241,14 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
   };
 }
 
+/** The widths of a question: the widths of its issue, or else the widths of the audit. A question file keeps no width. */
+function widthsOf(outDir: string, q: Record<string, any>, config: Config): number[] {
+  if (q.issue) {
+    try { const i = JSON.parse(readFileSync(join(outDir, "issues", q.issue + ".json"), "utf8")); if (i.reach?.widths?.length) return i.reach.widths; } catch { /* no issue file */ }
+  }
+  return config.crawl.widths;
+}
+
 /** The details of one question or one issue, for the side panel. */
 export function itemDetails(config: Config, outDir: string, id: string): Record<string, any> | null {
   const site = config.site.url;
@@ -251,6 +265,9 @@ export function itemDetails(config: Config, outDir: string, id: string): Record<
       type: "question", id: q.id, kind: q.kind, title: titleOf(ex.rule, q.criterion, ex.summary), question: q.question, criterion: q.criterion, criterionName: c?.name || "", level: c?.level || "",
       pages: q.pages || 0, pagesList: ex.pages || [], url: absolute(site, ex.url || ""), path: ex.url || "", inState: !!ex.in_state, counts: familyOf(ex.rule) || "",
       experience: experienceOf(ex.rule, q.criterion), steps: q.kind === "person" ? q.steps || [] : [], image: ex.image ? `/shot?p=${encodeURIComponent(ex.image)}` : "",
+      // A layout finding shows only under the conditions of its test: the steps to see it, and the button that opens the page with
+      // them. Since 1.3.10.
+      ...(SHOW_RULES.has(ex.rule) ? { howTo: howToSee(ex.rule, widthsOf(outDir, q, config), config.crawl.widths), showable: true } : {}),
       ai: ai.map((a) => ({ who: a.who, value: a.value, confidence: a.confidence || "", reason: a.reason || "", facts: a.facts || [] })),
       factsButtons: q.kind === "review" && !!q.ai_answer && q.ai_answer.value !== "unsure",
       sample: groupOf(q, false) === "sample", unresolved: effective.unresolved,
@@ -369,6 +386,13 @@ export function serveReview(config: Config, outDir: string, options: ReviewOptio
           const i = reopenIssue(outDir, id, by || "reviewer");
           log(`decision taken back ${i.id}`);
           json(res, 200, { ok: true, id: i.id, status: i.status }); return;
+        }
+        if (url.pathname === "/show") {
+          // Opens the page of a layout question with the conditions of its test, and gives the screenshots. Since 1.3.10.
+          const q = loadExisting(outDir, "questions").get(id);
+          if (!q) throw new Error(`No question ${id}.`);
+          log(`show ${id}: ${q.evidence?.rule} on ${q.evidence?.url}`);
+          json(res, 200, await showLayout(config, q, widthsOf(outDir, q, config))); return;
         }
         if (url.pathname === "/refresh") {
           const r = refresh(config, outDir, log);
