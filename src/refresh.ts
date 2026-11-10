@@ -8,6 +8,7 @@ import { pageKey } from "./crawl.ts";
 import { effectiveAnswer, loadDecisions } from "./decide.ts";
 import { applyAnswers, buildIssues, buildQuestions, lastRun, loadExisting, type CompareContext } from "./issues.ts";
 import { buildOverview, historyOverview, readHistory, updateHistoryLine } from "./overview.ts";
+import { ENGINE_VERSION } from "./own/page.ts";
 import { renderReport, type ReportData } from "./report.ts";
 import { countIssues, issuesByPage, pageCoverage, pageFileOf, processSummary, siteSummary } from "./results.ts";
 import { writeResults } from "./write.ts";
@@ -94,7 +95,13 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   // The page counts first, then the other parts, as the audit writes them: a refresh with no new answer gives the same file.
   const pageCounts = pageCoverage(records);
   const coverage = { ...pageCounts, ...kept, ...pageCounts };
-  const newSummary = { ...summary, counts, coverage, criteria, processes, overview };
+  // The engine of the refresh can be newer than the engine of the run: the hashes, the items, and the statuses come from it, so the
+  // summary and the report name it. A refresh with the engine of the run adds nothing: it writes the same files. Since 1.3.8.
+  type Versions = { engine: string; axe_core: string; browser: string; refreshed_with?: string; refreshed_on?: string };
+  const { refreshed_with: _rw, refreshed_on: _ro, ...runVersions } = versions as Versions;
+  const refreshedVersions: Versions = ENGINE_VERSION === runVersions.engine ? runVersions
+    : { ...runVersions, refreshed_with: ENGINE_VERSION, refreshed_on: versions.refreshed_with === ENGINE_VERSION && versions.refreshed_on ? versions.refreshed_on : new Date().toISOString().slice(0, 10) };
+  const newSummary = { ...summary, versions: refreshedVersions, counts, coverage, criteria, processes, overview };
   updateHistoryLine(outDir, run, { counts, overview: historyOverview(overview) });
   const byPage = issuesByPage(issues as { id: string; examples: { url: string }[] }[]);
   const pageFiles = records.map((p) => pageFileOf(p, run, p.process ? [first] : widths, decisions, byPage, config.site.url));
@@ -103,7 +110,7 @@ export function refresh(config: Config, outDir: string, log: (line: string) => v
   const dataPath = join(runDir, "report-data.json");
   let reportData: ReportData = { differences: [], skipped: [] };
   try { if (existsSync(dataPath)) reportData = { ...reportData, ...JSON.parse(readFileSync(dataPath, "utf8")) }; } catch { /* a broken file: the report has no crawl parts */ }
-  const report = renderReport({ config, run, date, versions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested: summary.coverage?.states_tested || 0, coverage, ...reportData, decisions, durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
+  const report = renderReport({ config, run, date, versions: refreshedVersions, criteria, issues, questions, questionsNotChecked: allQuestions.length - questions.length, pages, processes: processRuns, statesTested: summary.coverage?.states_tested || 0, coverage, ...reportData, decisions, durationSeconds: previous?.duration_seconds || 0, renders: previous?.renders || 0, budgetReached: coverage.budget_reached || [], overview, history: readHistory(outDir) });
   writeResults(outDir, { config, summary: newSummary, pages: pageFiles, issues, questions: allQuestions, history: null, report, run, outcomes: null });
   log(`refreshed: ${issues.filter((i) => ["new", "open", "reopened"].includes(i.status)).length} issues, ${questions.length} questions`);
   return { run, issues: issues.length, questions: questions.length };

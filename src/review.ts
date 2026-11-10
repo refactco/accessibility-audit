@@ -15,7 +15,7 @@ import { refresh } from "./refresh.ts";
 import { readHistory, type Overview } from "./overview.ts";
 import { hasPlain, plainOf, whoOf } from "./own/plain.ts";
 import { reviewPage } from "./review-page.ts";
-import { clientReport } from "./client-report.ts";
+import { clientReport, judgmentText } from "./client-report.ts";
 
 export interface ReviewOptions { port?: number; all?: boolean; open?: boolean; log?: (line: string) => void }
 
@@ -130,6 +130,20 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
     });
 
   const open = issueRows.filter((i) => OPEN.has(i.status));
+  // Who answered the questions of the run: the method text of the page and of the client report says it from these counts, never
+  // from a fixed sentence. Since 1.3.8.
+  // The groups do not overlap: a person's answer first, then the review questions by their AI answers, then the checks for a person.
+  const byPerson = questions.filter((q) => q.person_answer);
+  const review = questions.filter((q) => !q.person_answer && q.kind === "review").map((q) => effectiveAnswer(q));
+  const answers = {
+    questions: questions.length,
+    person: byPerson.length,
+    agreed: review.filter((e) => e.by === "agreement").length,
+    aiOnly: review.filter((e) => e.by === "ai").length,
+    unresolved: review.filter((e) => e.unresolved).length,
+    waitingAi: review.filter((e) => !e.by && !e.unresolved).length,
+    personChecks: questions.filter((q) => !q.person_answer && q.kind === "person").length,
+  };
   const history = readHistory(outDir).filter((h) => h.overview);
   const prev = history.length >= 2 ? history[history.length - 2] : null;
   const o: Overview | undefined = summary?.overview;
@@ -161,6 +175,7 @@ export function reviewData(config: Config, outDir: string, all: boolean): Record
       coverage: { pages: cov.pages_tested || 0, sample: cov.pages_in_sample || 0, states: cov.states_tested || 0, forms: cov.forms_tested || 0, processes: cov.processes_tested || 0,
         widths: config.crawl.widths, notRun: cov.tests_not_run || [] },
     },
+    answers, answersText: judgmentText(answers),
     decisions,
     issues: issueRows,
   };

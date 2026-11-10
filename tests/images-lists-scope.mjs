@@ -145,10 +145,11 @@ try {
   const photoOutcomes = outcomesOf(first, "/photos/", "image-of-text");
   check(!photoOutcomes.length, `1: a lazy photo and a photo under a banner of text are not images of text (${photoOutcomes.map((o) => `${o.item} ${JSON.stringify(o.facts?.colors)}`).join("; ") || "no candidate"})`);
   const textOutcomes = outcomesOf(first, "/text-images/", "image-of-text");
-  const small = textOutcomes.find((o) => o.item === "image|small-text.png");
+  // Since 1.3.8 the item of an image of text has the path of the file.
+  const small = textOutcomes.find((o) => o.item === "image|img/small-text.png");
   check(!!small && small.facts.ink >= 0.01 && small.facts.colors[1].share < 0.02, `1: small letters on a large ground are an image of text, by their ink (${small ? `ink ${small.facts.ink}, second color ${small.facts.colors[1].share}` : "no candidate"})`);
-  check(textOutcomes.some((o) => o.item === "image|other-text.png"), `1: an image of text from another site is read from its file (${textOutcomes.map((o) => o.item).join(", ") || "no candidate"})`);
-  check(textOutcomes.some((o) => o.item === "image|clear-text.png"), `1: a transparent image of text is read over the color of its container (${textOutcomes.map((o) => o.item).join(", ") || "no candidate"})`);
+  check(textOutcomes.some((o) => o.item === "image|img/other-text.png"), `1: an image of text from another site is read from its file (${textOutcomes.map((o) => o.item).join(", ") || "no candidate"})`);
+  check(textOutcomes.some((o) => o.item === "image|img/clear-text.png"), `1: a transparent image of text is read over the color of its container (${textOutcomes.map((o) => o.item).join(", ") || "no candidate"})`);
 
   // 2: the lists.
   const list = questionsOn(first, "/article/", "list-without-list-code");

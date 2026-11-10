@@ -135,7 +135,14 @@ try {
   check(!!logo, `the audit gives an issue for the logo link (${all("issues").map((i) => i.rule.id).join(", ")})`);
   if (logo) locateIssue(dir, logo.id, { origin: "content", source: [], solution: { summary: "No change is needed: the logo link repeats the link to the other page.", steps: [] } });
   const fixable = all("issues").find((i) => i.id !== logo?.id && ["new", "open"].includes(i.status));
+  // The results of an older engine, refreshed with this one. A refresh with the engine of the run adds nothing (false-changes.mjs).
+  const summaryPath = path.join(dir, "summary.json");
+  const older = JSON.parse(fs.readFileSync(summaryPath, "utf8")); older.versions.engine = "1.3.7"; fs.writeFileSync(summaryPath, JSON.stringify(older, null, 1) + "\n");
   refresh(config, dir);
+  const version = JSON.parse(fs.readFileSync(path.join(here, "..", "package.json"), "utf8")).version;
+  const refreshed = JSON.parse(fs.readFileSync(path.join(dir, "summary.json"), "utf8")).versions;
+  check(refreshed.refreshed_with === version && /^\d{4}-\d{2}-\d{2}$/.test(refreshed.refreshed_on || ""), `the summary names the newer engine of the refresh (${JSON.stringify(refreshed)})`);
+  check(fs.readFileSync(path.join(dir, "report.md"), "utf8").includes(`Refreshed on ${refreshed.refreshed_on} with engine ${version}.`), "the report names the engine of the refresh");
 
   review = await serveReview(config, dir, { port: REVIEW, open: false });
   const base = review.url;
@@ -223,7 +230,8 @@ try {
   await page.goto(base + "client"); await page.waitForTimeout(400);
   const text = await page.textContent("body");
   check(text.includes("What to fix first") && text.includes("Example Studio") && text.includes("audits@example.test"), "the client report has the issues to fix first, who prepared it, and the contact");
-  check(!text.includes("AI answers") && await page.$$eval("button[data-value]", (b) => b.length) === 0 && !text.includes("Dismiss"), "the client report has no AI answer and no decision");
+  check(!text.includes("First AI review") && !text.includes("Second AI review") && !text.includes("Show the AI") && await page.$$eval("button[data-value]", (b) => b.length) === 0 && !text.includes("Dismiss"), "the client report shows no AI opinion and no decision");
+  check(text.includes("a person answered 1") && !text.includes("and a person checked"), `the method of the client report gives the count of the answers of a person (${(text.match(/The findings that need judgment[^\n]*?issues\./) || [""])[0]})`);
   await axe("the client report");
   const download = await fetch(base + "client?download=1");
   const file = await download.text();

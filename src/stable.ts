@@ -102,6 +102,18 @@ export function legacyItems(item: string, html: string): string[] {
     const before = textOf(html).replace(/\s+/g, " ").trim().slice(0, 40);
     if (before !== placeholder) out.add([parts[0], parts[1], before, ...parts.slice(3)].join("|"));
   }
+  // The items of 1.3.7 and older versions gave an image of text, and the text contrast of an image, the file name only. Since 1.3.8
+  // they give the path of the file. The old item has the last part of the path, with and without the query.
+  if (item.startsWith("image|")) {
+    const bar = item.lastIndexOf("|");
+    const key = item.slice(bar + 1);
+    const [path, query] = key.split(/\?(.*)/s);
+    if (path.includes("/")) {
+      const name = path.split("/").pop() || "";
+      out.add(item.slice(0, bar + 1) + name);
+      if (query) out.add(item.slice(0, bar + 1) + name + "?" + query);
+    }
+  }
   // The items of 1.3.4 and older versions kept the fragment of the address of a src. A fragment that does not change, for example
   // #page=2 of a document, gives the old item again, so its question and its issue continue.
   const src = (html.match(/^<[^>]*?\ssrc="([^"]*)"/) || [])[1];

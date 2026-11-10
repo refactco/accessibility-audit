@@ -22,6 +22,22 @@ export function fileName(src: string): string {
   return query && !/\.(png|jpe?g|gif|svg|webp|avif|bmp|ico|tiff?)$/i.test(name) ? name + "?" + query.split("#")[0] : name;
 }
 
+/** The key of an image for the item of its question: the path of its file, not only its name. Two uploads with the same name in two
+ *  folders, for example Picture1.png of two months, are two images and get two questions. The part of the path before /wp-content/,
+ *  the address of a subsite, is left out: one file reached from two subsites is one image. Other sites keep the whole path. The query
+ *  of a script that sends the image stays, as in fileName. Before 1.3.8 the item had only the file name. */
+export function imageKey(src: string): string {
+  if (!src || src.startsWith("data:")) return fileName(src);
+  let path = src, query = "";
+  try { const u = new URL(src); path = u.pathname; query = u.search.replace(/^\?/, ""); } catch { [path, query = ""] = src.split(/\?(.*)/s); }
+  try { path = decodeURI(path); } catch { /* the path as it is */ }
+  const at = path.indexOf("/wp-content/");
+  const key = at >= 0 ? path.slice(at + "/wp-content/".length) : path.replace(/^\/+/, "");
+  const name = key.split("/").pop() || "";
+  if (!key) return fileName(src);
+  return query && !/\.(png|jpe?g|gif|svg|webp|avif|bmp|ico|tiff?)$/i.test(name) ? key + "?" + query.split("#")[0] : key;
+}
+
 /** The images in the content: visible, large enough, and outside the header, the navigation, and the footer, where the logos live. */
 const FIND_IMAGES = `(() => {
   ${HELPERS}
@@ -152,7 +168,7 @@ export async function runImageOfTextTest(page: Page, url: string, width: number,
     // Text on a flat ground: three colors cover most of the pixels, and the second color, or the ink, is more than a trace. A photo
     // spreads over many colors. The ink is new in 1.3.6: small letters on a large ground have no second color of 2%.
     if (topShare < 0.85 || (flat.top[1].share < 0.02 && flat.ink < 0.01)) continue;
-    const name = fileName(src);
+    const name = imageKey(src);
     if (!name) continue;
     found.push({
       criterion: "1.4.5", rule: "image-of-text", kind: "candidate", selector: c.selector, html: c.html, item: "image|" + name,
@@ -173,7 +189,7 @@ function imageContrastQuestion(c: { selector: string; html: string; src: string;
   return {
     criterion: "1.4.3", rule: "image-text-contrast", kind: "cantTell", selector: c.selector, html: c.html, item: "image|text-contrast|" + name,
     facts: { src: c.src, alt: c.alt, width: c.width, height: c.height, textColor: m.textColor, glyphHeight: m.glyphHeight, ...(m.colors && m.colors.length > 1 ? { textColors: m.colors } : {}), measured: { main: m.main, worst: m.worst, best: m.best, required: 4.5, passShare: m.passShare, passShareLarge: m.passShareLarge, background: m.background } },
-    summary: `The text in the image "${c.alt || name}" has a contrast of about ${m.main}:1 with the colors under it.`, severity: "serious",
+    summary: `The text in the image "${c.alt || name.split("/").pop()}" has a contrast of about ${m.main}:1 with the colors under it.`, severity: "serious",
     question: `Does the image "${c.alt || name}" show text, other than a logo or a brand name? The engine measured its letters in ${m.textColor} against the colors under them: ${m.main}:1 for most of the letters, ${m.worst}:1 at the worst places, and ${Math.round(m.passShare * 100)}% of the letters pass 4.5:1. Is the text readable: at least 4.5:1, or 3:1 for large text?`,
     solution: { summary: "Give the text of the image enough contrast with its background, or use real text.", steps: ["Change the color of the text or of the background in the image, or add a solid band behind the text.", "Better: put the text in the page as HTML text, and check its contrast."] },
   };
@@ -296,7 +312,8 @@ export async function runImageTextContrastTest(page: Page, url: string, width: n
     if (!m || m.skip) continue;
     // A clear pass: the letters pass 4.5 to 1, or they are large and pass 3 to 1.
     if (m.passShare >= 0.9 || (m.glyphHeight !== null && m.glyphHeight >= 32 && m.passShareLarge >= 0.9)) continue;
-    const name = c.src.startsWith("data:") ? "inline image " + c.alt.toLowerCase().slice(0, 40) : c.src.split("?")[0].split("/").pop() || c.src;
+    // The path of the file, as for image-of-text, since 1.3.8. Before, the file name only.
+    const name = c.src.startsWith("data:") ? "inline image " + c.alt.toLowerCase().slice(0, 40) : imageKey(c.src.split("?")[0]) || c.src;
     found.push(imageContrastQuestion(c, name, m));
   }
   return found.map((f) => toOutcome(f, url, width, state));
